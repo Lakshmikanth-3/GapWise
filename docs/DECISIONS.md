@@ -94,3 +94,17 @@
     archive logs). TODO when the Alchemy key arrives.
 26. **Storage:** Postgres when `DATABASE_URL` is set, otherwise `data/*.jsonl` (gitignored). `scripts/reserves-worker.ts`
     runs every 60 s and never overlaps runs.
+27. **Flow-match findings (open).** (a) Ethereum is close (99.3% out) but has partial-day coverage until an archive-capable
+    `ETH_RPC_URL` is set. (b) Cardano reported deposits far exceed priced on-chain inflows. Likely causes: unpriced sUSDr/LP
+    moves, and ADA valued at the current price instead of the historic one. Not yet explained. (c) Solana 20 Oct: Strike reports
+    $499.56 in, but no token movement was seen on the locker's USDC account (it may be a SOL deposit to another account).
+    No tolerance was widened to make these pass.
+28. **Ethereum `Deposit.userID`** = the depositor's Strike account UUID in the first 16 bytes (e.g.
+    `0x01a09b405e83700080d6b03bcb794010…` → `01a09b40-5e83-7000-80d6-b03bcb794010`). This allows an exact on-chain ↔ account
+    coverage check once full log history is available.
+29. **Builder Connect:** Strike's API sends `Access-Control-Allow-Origin: *` with the X-API-Wallet-* headers allowed, so
+    the browser talks to Strike directly. The API-wallet Ed25519 private key is generated and kept only in the user's browser
+    tab; the ZeroGap server never sees it. Withdrawals can only go to the wallet the user connected with (Strike enforces
+    this server-side), and each one needs the user's own wallet signature.
+30. **No simulation mode** (owner's decision, 22 Oct): alerts fire only on real events. The PRD's `[SIMULATION]` demo
+    path is removed. Tests still use recorded real API responses so CI never depends on the network.

@@ -49,3 +49,17 @@ included) 84.29%, Incomplete.
 
 **Exit gate:** T1.1–T1.5 pass; reserves stored every 60 s (worker). Passed for P1's scope. The ratio itself still depends on
 the founder's answers (vaults, prices, referral).
+
+## P2 Liabilities, ratio and flow match (Thu 22 Oct, 01:30–02:15 IST)
+
+**Built:** `stats.ts` (Strike `/stat/v1/dashboard/transfers` → per day per chain), `flows.ts` (on-chain locker flows:
+Ethereum decoded Deposit/Withdraw/AdminWithdraw events; Solana token-balance deltas of the locker's token accounts;
+Cardano net value change of both scripts per tx, so internal batches net to zero), `core/flowCheck.ts` (only full days inside
+the collector's coverage are compared), `scripts/flow-match.ts`.
+
+**Tests:** `npm test` 54/54 (adds T2.7 and flow parsing/bucketing/coverage). Live: T2.8 full scan (3,452 accounts, 0
+failed, ~3 min with 2 calls/account).
+
+**First live flow match (2 days):** Ethereum out 99.3%, in 97.0% (partial-day coverage; keyless RPC only serves ~10k
+blocks of logs). Solana and Cardano show real gaps: Cardano reported deposits $42.3k vs $7.7k priced on-chain on 20 Oct,
+with 12 unpriced moves (sUSDr/LP) that day. Reported as mismatch, not hidden. See DECISIONS #27.
