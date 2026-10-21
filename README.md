@@ -20,10 +20,17 @@ npm test
 
 Data sources: `GET /stat/v1/stats/leaderboard` (account list), `GET /v2/account` (liabilities), `GET /price/v2/premiumIndex` (prices).
 
-## First recorded ratio (T0.4)
+## Ratio rules
 
-2026-10-21 18:57 UTC: **85.57%** (Exact: 3,456 accounts read, 0 failed). This is preliminary. About $259k of `sUSDr` and one other
-Cardano token are not priced yet, and account coverage is being confirmed with Strike. See `docs/DECISIONS.md`.
+Strike is not a CEX, so reserves should equal liabilities exactly. Status: **Balanced** (within 0.01%), **Drift** (0.01–1%),
+**Needs review** (over 1%; never published or alerted as insolvency). A result over 100% is as suspicious as one under 100%.
+
+**Timing:** a full account scan takes about 90 s while balances keep moving, so a tiny drift can be timing alone. Reserves are
+read at both the start and the end of each scan, and the scan window is stored with the ratio.
+
+## Status
+
+P0 complete; ratio still **Needs review** pending founder confirmation of vault accounting and of the sUSDr price source (see `docs/DECISIONS.md`).
 
 ## Licence
 

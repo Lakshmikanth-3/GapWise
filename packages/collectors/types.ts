@@ -7,9 +7,8 @@ export type Reserve = {
   amount: number;
   raw?: string;
   decimals?: number;
+  /** Token contract / mint / Cardano policy+name. Pricing keys off this, never the display name. */
   contract?: string;
-  /** Pricing hint: true for USD stablecoins valued at 1.00. */
-  stable?: boolean;
-  /** Address actually holding the funds (for explorer links). */
+  /** Address actually holding the funds (for explorer links and per-locker totals). */
   holder?: string;
 };

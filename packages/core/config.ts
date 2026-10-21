@@ -6,7 +6,11 @@ export const LOCKERS = {
   // treasury PDA ["treasury", vault] — see docs/DECISIONS.md. TODO: re-confirm with corrected IDL.
   solana: 'Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt',
   solanaProgram: '7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8',
-  cardano: 'addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3',
+  // Both scripts count (confirmed by Shan): deposit script + protocol script holding batched funds.
+  cardano: [
+    'addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3',
+    'addr1w9m5m4v8vfpq74n6cd0z33r3jlatfkfsykpcjaxze8af33qxh7jf2',
+  ],
 } as const;
 
 export const EXPLORERS = {

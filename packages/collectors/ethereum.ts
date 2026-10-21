@@ -21,13 +21,13 @@ export const CANDIDATE_TOKENS: Record<string, `0x${string}`> = {
 export async function ethReserves(): Promise<Reserve[]> {
   const c = client();
   const eth = await c.getBalance({ address: vault });
-  const out: Reserve[] = [{ chain: 'ethereum', asset: 'ETH', amount: Number(formatUnits(eth, 18)), raw: eth.toString(), decimals: 18 }];
+  const out: Reserve[] = [{ chain: 'ethereum', asset: 'ETH', amount: Number(formatUnits(eth, 18)), raw: eth.toString(), decimals: 18, holder: vault }];
   for (const [sym, token] of Object.entries(CANDIDATE_TOKENS)) {
     const [raw, dec] = await Promise.all([
       c.readContract({ address: token, abi: erc20Abi, functionName: 'balanceOf', args: [vault] }),
       c.readContract({ address: token, abi: erc20Abi, functionName: 'decimals' }),
     ]);
-    if (raw > 0n) out.push({ chain: 'ethereum', asset: sym, stable: sym !== 'WETH', amount: Number(formatUnits(raw, dec)), raw: raw.toString(), decimals: dec, contract: token });
+    if (raw > 0n) out.push({ chain: 'ethereum', asset: sym, amount: Number(formatUnits(raw, dec)), raw: raw.toString(), decimals: dec, contract: token, holder: vault });
   }
   return out;
 }
