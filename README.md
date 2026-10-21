@@ -16,7 +16,9 @@ npm test
 
 ## Formula
 
-`reserve ratio = Σ(locker balance × Strike indexPrice, stablecoins = 1.00) ÷ Σ margin_balance over every account and sub-account`
+`reserve ratio = Σ(locker balance × price) ÷ Σ margin_balance over every non-vault account and sub-account`
+
+Price: Strike `indexPrice` for ADA/ETH/SOL; 1:1 peg only for fiat-redeemable stables identified by contract id (labelled `peg`); everything else is listed as unpriced.
 
 Data sources: `GET /stat/v1/stats/leaderboard` (account list), `GET /v2/account` (liabilities), `GET /price/v2/premiumIndex` (prices).
 
