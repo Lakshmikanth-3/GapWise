@@ -1,0 +1,3300 @@
+{
+  "address": "7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8",
+  "metadata": {
+    "name": "strike_example",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "admin_deposit",
+      "discriminator": [
+        210,
+        66,
+        65,
+        182,
+        102,
+        214,
+        176,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "AdminDepositTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "admin_withdraw",
+      "discriminator": [
+        160,
+        166,
+        147,
+        222,
+        46,
+        220,
+        75,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "AdminWithdrawTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "bulk_withdraw",
+      "discriminator": [
+        112,
+        110,
+        45,
+        26,
+        4,
+        36,
+        215,
+        226
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "bulk_ticket",
+          "type": {
+            "defined": {
+              "name": "BulkWithdrawalTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        },
+        {
+          "name": "metadata",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cancel_action",
+      "discriminator": [
+        228,
+        144,
+        170,
+        146,
+        66,
+        88,
+        133,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_action",
+          "writable": true
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "CancelActionTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cancel_withdrawal",
+      "discriminator": [
+        183,
+        104,
+        181,
+        250,
+        28,
+        128,
+        210,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_withdrawal",
+          "writable": true
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "CancelWithdrawalTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cleanup_expired_action",
+      "discriminator": [
+        226,
+        18,
+        143,
+        118,
+        117,
+        216,
+        252,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_action",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cleanup_expired_withdrawal",
+      "discriminator": [
+        141,
+        8,
+        109,
+        166,
+        13,
+        79,
+        70,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_withdrawal",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "deposits",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "AssetAmount"
+              }
+            }
+          }
+        },
+        {
+          "name": "request_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "user_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "metadata",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_large_withdrawal",
+      "discriminator": [
+        4,
+        253,
+        112,
+        156,
+        130,
+        20,
+        95,
+        176
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_withdrawal",
+          "writable": true
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_action",
+      "discriminator": [
+        121,
+        86,
+        46,
+        250,
+        186,
+        129,
+        46,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_action",
+          "writable": true
+        },
+        {
+          "name": "rent_receiver",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "payload",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "governance_unpause",
+      "discriminator": [
+        235,
+        210,
+        116,
+        6,
+        8,
+        137,
+        102,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "UnpauseTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "guardian_pause",
+      "discriminator": [
+        184,
+        93,
+        27,
+        13,
+        127,
+        100,
+        198,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "PauseTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "inactivity_recover",
+      "discriminator": [
+        117,
+        47,
+        234,
+        122,
+        26,
+        177,
+        32,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recovery_destination",
+          "docs": [
+            "owner of the SPL destination token accounts)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.vault_seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "propose_action",
+      "discriminator": [
+        49,
+        249,
+        251,
+        197,
+        25,
+        74,
+        36,
+        5
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_action",
+          "writable": true
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "ProposeActionTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "UpdateConfigTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "nonce_account",
+          "writable": true
+        },
+        {
+          "name": "pending_withdrawal",
+          "docs": [
+            "derived [b\"pending\", vault, request_id] address."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticket",
+          "type": {
+            "defined": {
+              "name": "WithdrawalTicket"
+            }
+          }
+        },
+        {
+          "name": "signers_with_sigs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SignerWithSignature"
+              }
+            }
+          }
+        },
+        {
+          "name": "metadata",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "NonceAccount",
+      "discriminator": [
+        110,
+        202,
+        133,
+        201,
+        147,
+        206,
+        238,
+        84
+      ]
+    },
+    {
+      "name": "PendingAction",
+      "discriminator": [
+        10,
+        76,
+        29,
+        155,
+        104,
+        63,
+        34,
+        51
+      ]
+    },
+    {
+      "name": "PendingWithdrawal",
+      "discriminator": [
+        61,
+        103,
+        179,
+        177,
+        148,
+        199,
+        63,
+        171
+      ]
+    },
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    },
+    {
+      "name": "VaultState",
+      "discriminator": [
+        228,
+        196,
+        82,
+        165,
+        98,
+        210,
+        235,
+        152
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Overflow",
+      "msg": "Overflow"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidSignersCount",
+      "msg": "Invalid signers count"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidThreshold",
+      "msg": "Invalid threshold"
+    },
+    {
+      "code": 6003,
+      "name": "SignersNotSorted",
+      "msg": "Signers must be sorted ascending with no duplicates"
+    },
+    {
+      "code": 6004,
+      "name": "DuplicateAsset",
+      "msg": "Duplicate asset"
+    },
+    {
+      "code": 6005,
+      "name": "DuplicateAssetIndex",
+      "msg": "Duplicate asset index"
+    },
+    {
+      "code": 6006,
+      "name": "InsufficientValidSignatures",
+      "msg": "Not enough valid signatures from authorized signers"
+    },
+    {
+      "code": 6007,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in treasury"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount (must be > 0)"
+    },
+    {
+      "code": 6009,
+      "name": "TicketExpired",
+      "msg": "Ticket has expired"
+    },
+    {
+      "code": 6010,
+      "name": "NonceAlreadyUsed",
+      "msg": "Nonce has already been used"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidVault",
+      "msg": "Invalid vault in ticket"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidRecipient",
+      "msg": "Invalid recipient in ticket"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidNetwork",
+      "msg": "Invalid network"
+    },
+    {
+      "code": 6014,
+      "name": "InsufficientSignatures",
+      "msg": "Insufficient signatures provided"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidSignature",
+      "msg": "Invalid secp256k1 signature"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidRecoveryId",
+      "msg": "Invalid recovery ID (must be 0, 1, 27, or 28)"
+    },
+    {
+      "code": 6017,
+      "name": "AssetNotWhitelisted",
+      "msg": "Asset not whitelisted"
+    },
+    {
+      "code": 6018,
+      "name": "DepositsDisabled",
+      "msg": "Deposits are disabled for this asset"
+    },
+    {
+      "code": 6019,
+      "name": "NoDepositsProvided",
+      "msg": "No deposits provided"
+    },
+    {
+      "code": 6020,
+      "name": "NoWithdrawalsProvided",
+      "msg": "No withdrawals provided"
+    },
+    {
+      "code": 6021,
+      "name": "TokenAccountNotFound",
+      "msg": "Token account not found"
+    },
+    {
+      "code": 6022,
+      "name": "InsufficientAccounts",
+      "msg": "Insufficient remaining accounts"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidNonceAccount",
+      "msg": "Invalid nonce account"
+    },
+    {
+      "code": 6024,
+      "name": "DuplicateRequestId",
+      "msg": "Duplicate request id"
+    },
+    {
+      "code": 6025,
+      "name": "TooManyTickets",
+      "msg": "Too many tickets"
+    },
+    {
+      "code": 6026,
+      "name": "AccountAlreadyExists",
+      "msg": "Account already exists"
+    },
+    {
+      "code": 6027,
+      "name": "VaultPaused",
+      "msg": "Vault is paused"
+    },
+    {
+      "code": 6028,
+      "name": "VaultNotPaused",
+      "msg": "Vault is not paused"
+    },
+    {
+      "code": 6029,
+      "name": "VaultRecovered",
+      "msg": "Vault has been recovered; only inactivity_recover is allowed"
+    },
+    {
+      "code": 6030,
+      "name": "AssetLimit1hExceeded",
+      "msg": "Per-asset 1h rate limit exceeded"
+    },
+    {
+      "code": 6031,
+      "name": "AssetLimit24hExceeded",
+      "msg": "Per-asset 24h rate limit exceeded"
+    },
+    {
+      "code": 6032,
+      "name": "GlobalLimit1hExceeded",
+      "msg": "Global 1h rate limit exceeded"
+    },
+    {
+      "code": 6033,
+      "name": "GlobalLimit24hExceeded",
+      "msg": "Global 24h rate limit exceeded"
+    },
+    {
+      "code": 6034,
+      "name": "WithdrawalNeverFeasible",
+      "msg": "Withdrawal exceeds an absolute cap and can never execute"
+    },
+    {
+      "code": 6035,
+      "name": "TooManyPendingWithdrawals",
+      "msg": "Pending withdrawal queue is full"
+    },
+    {
+      "code": 6036,
+      "name": "ExecutionWindowTooShort",
+      "msg": "Ticket expiry leaves no execution window after the queue delay"
+    },
+    {
+      "code": 6037,
+      "name": "LargeWithdrawalNotReady",
+      "msg": "Large withdrawal delay has not elapsed"
+    },
+    {
+      "code": 6038,
+      "name": "LargeWithdrawalExpired",
+      "msg": "Large withdrawal has expired"
+    },
+    {
+      "code": 6039,
+      "name": "LargeWithdrawalNotExpired",
+      "msg": "Large withdrawal has not expired"
+    },
+    {
+      "code": 6040,
+      "name": "StaleSignerEpoch",
+      "msg": "Pending withdrawal was queued under a stale withdraw-signer epoch"
+    },
+    {
+      "code": 6041,
+      "name": "MissingPendingWithdrawalAccount",
+      "msg": "Pending withdrawal account required for the queue route"
+    },
+    {
+      "code": 6042,
+      "name": "UnexpectedPendingWithdrawalAccount",
+      "msg": "Pending withdrawal account must not be supplied on the instant route"
+    },
+    {
+      "code": 6043,
+      "name": "InvalidPendingAccount",
+      "msg": "Invalid pending account address"
+    },
+    {
+      "code": 6044,
+      "name": "PendingRequestIdMismatch",
+      "msg": "Pending request id does not match the ticket"
+    },
+    {
+      "code": 6045,
+      "name": "InvalidRentReceiver",
+      "msg": "Rent receiver must be the original rent payer"
+    },
+    {
+      "code": 6046,
+      "name": "PauseEpochMismatch",
+      "msg": "Unpause ticket pause_epoch does not match the current pause epoch"
+    },
+    {
+      "code": 6047,
+      "name": "RestrictiveDirectionViolated",
+      "msg": "Config patch moves a field in the permissive direction; use the timelock"
+    },
+    {
+      "code": 6048,
+      "name": "DepositsNotDisabled",
+      "msg": "Asset must have deposits disabled before removal"
+    },
+    {
+      "code": 6049,
+      "name": "AssetNotDrained",
+      "msg": "Asset balance must be zero before removal"
+    },
+    {
+      "code": 6050,
+      "name": "InvalidDelay",
+      "msg": "Invalid delay or window parameter"
+    },
+    {
+      "code": 6051,
+      "name": "InvalidLimits",
+      "msg": "24h limit must be >= 1h limit"
+    },
+    {
+      "code": 6052,
+      "name": "InvalidWeight",
+      "msg": "Asset weight must be > 0"
+    },
+    {
+      "code": 6053,
+      "name": "InvalidMaxPending",
+      "msg": "Invalid max pending withdrawals"
+    },
+    {
+      "code": 6054,
+      "name": "AssetIndexExhausted",
+      "msg": "All asset indices have been retired; no more assets can be added"
+    },
+    {
+      "code": 6055,
+      "name": "ActionNotReady",
+      "msg": "Action timelock has not elapsed"
+    },
+    {
+      "code": 6056,
+      "name": "ActionExpired",
+      "msg": "Action has expired"
+    },
+    {
+      "code": 6057,
+      "name": "ActionNotExpired",
+      "msg": "Action has not expired"
+    },
+    {
+      "code": 6058,
+      "name": "PayloadHashMismatch",
+      "msg": "Payload does not match the proposed action hash"
+    },
+    {
+      "code": 6059,
+      "name": "InvalidActionPayload",
+      "msg": "Invalid action payload"
+    },
+    {
+      "code": 6060,
+      "name": "InactivityDelayNotElapsed",
+      "msg": "Inactivity recovery delay has not elapsed"
+    },
+    {
+      "code": 6061,
+      "name": "InvalidRecoveryDestination",
+      "msg": "Recovery destination must be the configured admin recovery address"
+    }
+  ],
+  "types": [
+    {
+      "name": "ActionKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "SetWithdrawSigners"
+          },
+          {
+            "name": "SetGuardianSigners"
+          },
+          {
+            "name": "SetGovernanceSigners"
+          },
+          {
+            "name": "AddAsset"
+          },
+          {
+            "name": "RaiseLimits"
+          },
+          {
+            "name": "RaiseLargeThreshold"
+          },
+          {
+            "name": "LowerWeight"
+          },
+          {
+            "name": "SetQueueParams"
+          },
+          {
+            "name": "SetTimelockConfig"
+          },
+          {
+            "name": "SetRecoveryConfig"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminDepositTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "deposits",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetAmount"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminWithdrawTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "audit_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AdminWithdrawalAudit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "audit_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "asset_ix",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Asset",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Sol"
+          },
+          {
+            "name": "SplToken",
+            "fields": [
+              {
+                "name": "mint",
+                "type": "pubkey"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetAmount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "asset_ix",
+            "type": "u8"
+          },
+          {
+            "name": "weight",
+            "type": "u64"
+          },
+          {
+            "name": "limit_1h",
+            "type": "u64"
+          },
+          {
+            "name": "limit_24h",
+            "type": "u64"
+          },
+          {
+            "name": "deposits_enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetPatch",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_ix",
+            "type": "u8"
+          },
+          {
+            "name": "weight",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "limit_1h",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "limit_24h",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "disable_deposits",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetUsage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "usage_1h",
+            "type": {
+              "defined": {
+                "name": "WindowUsage"
+              }
+            }
+          },
+          {
+            "name": "usage_24h",
+            "type": {
+              "defined": {
+                "name": "WindowUsage"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "BulkWithdrawalTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tickets",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "WithdrawalTicket"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CancelActionTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "pending_request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CancelWithdrawalTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "pending_request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigPatch",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "global_limit_1h",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "global_limit_24h",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "large_withdrawal_threshold",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "queue_delay_secs",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "max_pending_withdrawals",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "asset_patches",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetPatch"
+                }
+              }
+            }
+          },
+          {
+            "name": "remove_asset_ixs",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_seed",
+            "type": "string"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "withdraw_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "withdraw_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "guardian_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "guardian_pause_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "guardian_cancel_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "governance_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "governance_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "asset_configs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "global_limit_1h",
+            "type": "u64"
+          },
+          {
+            "name": "global_limit_24h",
+            "type": "u64"
+          },
+          {
+            "name": "large_withdrawal_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "queue_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_pending_withdrawals",
+            "type": "u16"
+          },
+          {
+            "name": "timelock_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "timelock_expiry_window_secs",
+            "type": "i64"
+          },
+          {
+            "name": "admin_recovery_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "inactivity_recovery_delay_secs",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NonceAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "used",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PauseTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingAction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "ActionKind"
+              }
+            }
+          },
+          {
+            "name": "payload_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "ready_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingWithdrawal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset_ix",
+            "type": "u8"
+          },
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "queued_at",
+            "type": "i64"
+          },
+          {
+            "name": "executable_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "signer_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposeActionTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "ActionKind"
+              }
+            }
+          },
+          {
+            "name": "payload",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SignerWithSignature",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "signature",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "recovery_id",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnpauseTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "pause_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateConfigTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "patch",
+            "type": {
+              "defined": {
+                "name": "ConfigPatch"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_seed",
+            "type": "string"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "withdraw_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "withdraw_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "guardian_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "guardian_pause_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "guardian_cancel_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "governance_signers",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  20
+                ]
+              }
+            }
+          },
+          {
+            "name": "governance_threshold",
+            "type": "u8"
+          },
+          {
+            "name": "asset_configs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "global_limit_1h",
+            "type": "u64"
+          },
+          {
+            "name": "global_limit_24h",
+            "type": "u64"
+          },
+          {
+            "name": "large_withdrawal_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "queue_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_pending_withdrawals",
+            "type": "u16"
+          },
+          {
+            "name": "timelock_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "timelock_expiry_window_secs",
+            "type": "i64"
+          },
+          {
+            "name": "admin_recovery_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "inactivity_recovery_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "next_asset_ix",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury_bump",
+            "type": "u8"
+          },
+          {
+            "name": "state_bump",
+            "type": "u8"
+          },
+          {
+            "name": "reserve",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "pause_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "withdraw_signer_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "last_activity_at",
+            "type": "i64"
+          },
+          {
+            "name": "pending_withdrawal_count",
+            "type": "u16"
+          },
+          {
+            "name": "recovered",
+            "type": "bool"
+          },
+          {
+            "name": "global_usage_1h",
+            "type": {
+              "defined": {
+                "name": "WindowUsage"
+              }
+            }
+          },
+          {
+            "name": "global_usage_24h",
+            "type": {
+              "defined": {
+                "name": "WindowUsage"
+              }
+            }
+          },
+          {
+            "name": "asset_usage",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "AssetUsage"
+                  }
+                },
+                20
+              ]
+            }
+          },
+          {
+            "name": "admin_withdrawal_count",
+            "type": "u32"
+          },
+          {
+            "name": "last_admin_withdrawal",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "AdminWithdrawalAudit"
+                }
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "reserve",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "WindowUsage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "current",
+            "type": "u64"
+          },
+          {
+            "name": "previous",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawalTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "network_id",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

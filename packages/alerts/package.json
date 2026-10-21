@@ -1,0 +1,5 @@
+{
+  "name": "@watchtower/alerts",
+  "private": true,
+  "type": "module"
+}

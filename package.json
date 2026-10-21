@@ -1,0 +1,30 @@
+{
+  "name": "strike-watchtower",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "first-ratio": "tsx scripts/first-ratio.ts",
+    "test": "vitest run --exclude \"**/*.live.test.ts\" --exclude \"**/*.testnet.test.ts\" --exclude \"**/node_modules/**\"",
+    "test:live": "vitest run live",
+    "test:testnet": "vitest run testnet",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.8",
+    "tweetnacl": "^1.0.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.0",
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0",
+    "msw": "^2.4.0",
+    "@playwright/test": "^1.48.0"
+  }
+}

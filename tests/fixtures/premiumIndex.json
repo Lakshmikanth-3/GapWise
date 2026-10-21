@@ -1,0 +1,58 @@
+[
+ {
+  "symbol": "ADA-USD",
+  "markPrice": "0.23014",
+  "indexPrice": "0.22980364",
+  "latestPremiumIndex": "0.0012259721881934429",
+  "averagePremiumIndex": "0.0012813335524665128",
+  "premiumIndexCount": 520,
+  "fundingRate": "0.0001726666940583141",
+  "nextFundingTime": 1792609200000,
+  "interestRate": "0.0001",
+  "interestRateDampener": "0",
+  "fundingMultiplier": "1",
+  "time": 1792608204290
+ },
+ {
+  "symbol": "BTC-USD",
+  "markPrice": "84663.10816560",
+  "indexPrice": "84699.13938283",
+  "latestPremiumIndex": "-0.0004212191341703774",
+  "averagePremiumIndex": "-0.0004589871445044631",
+  "premiumIndexCount": 520,
+  "fundingRate": "-0.0000448733930630579",
+  "nextFundingTime": 1792609200000,
+  "interestRate": "0.0001",
+  "interestRateDampener": "0",
+  "fundingMultiplier": "1",
+  "time": 1792608204290
+ },
+ {
+  "symbol": "ETH-USD",
+  "markPrice": "2514.13535946",
+  "indexPrice": "2514.95790330",
+  "latestPremiumIndex": "-0.000291626769391249",
+  "averagePremiumIndex": "-0.0002770432223733771",
+  "premiumIndexCount": 520,
+  "fundingRate": "-0.0000221304027966721",
+  "nextFundingTime": 1792609200000,
+  "interestRate": "0.0001",
+  "interestRateDampener": "0",
+  "fundingMultiplier": "1",
+  "time": 1792608204290
+ },
+ {
+  "symbol": "SOL-USD",
+  "markPrice": "108.91859041",
+  "indexPrice": "108.93050161",
+  "latestPremiumIndex": "0",
+  "averagePremiumIndex": "-0.0000361879971914928",
+  "premiumIndexCount": 520,
+  "fundingRate": "0.0000079765003510634",
+  "nextFundingTime": 1792609200000,
+  "interestRate": "0.0001",
+  "interestRateDampener": "0",
+  "fundingMultiplier": "1",
+  "time": 1792608204290
+ }
+]

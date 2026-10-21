@@ -1,0 +1,5 @@
+{
+  "name": "@watchtower/core",
+  "private": true,
+  "type": "module"
+}
