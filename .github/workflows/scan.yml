@@ -1,0 +1,57 @@
+name: ZeroGap engine
+# Runs one real engine cycle (reserves, safety events, full liability scan, flow match, alerts) every ~5 minutes
+# and publishes the state to the `zerogap-data` branch, which the Vercel site serves.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zerogap-engine
+  cancel-in-progress: false
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Restore previous state
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin zerogap-data 2>/dev/null; then
+            git --work-tree=data checkout origin/zerogap-data -- . && git reset -q
+          fi
+          ls -la data
+
+      - name: Engine cycle
+        env:
+          ZEROGAP_DATA_DIR: data
+          ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          BLOCKFROST_PROJECT_ID: ${{ secrets.BLOCKFROST_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PUBLIC_URL: https://zerogap-strike.vercel.app
+        run: npx tsx scripts/engine-once.ts
+
+      - name: Publish state to zerogap-data
+        run: |
+          cd data
+          rm -f *.jsonl
+          git init -q -b zerogap-data
+          git config user.name "zerogap-engine"
+          git config user.email "zerogap-engine@users.noreply.github.com"
+          git add -A
+          git commit -qm "state $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" zerogap-data
