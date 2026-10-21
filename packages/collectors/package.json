@@ -1,5 +1,5 @@
 {
-  "name": "@watchtower/collectors",
+  "name": "@zerogap/collectors",
   "private": true,
   "type": "module"
 }

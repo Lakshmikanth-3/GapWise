@@ -6,7 +6,8 @@ import account from '../fixtures/account.json';
 import premium from '../fixtures/premiumIndex.json';
 import koios from '../fixtures/koios-address-info.json';
 import { listAccounts, scanLiabilities } from '../../packages/collectors/accounts';
-import { createPriceFeed } from '../../packages/collectors/prices';
+import { strikeFeedAdapter } from '../../packages/collectors/prices';
+import balances from '../fixtures/balances.json';
 import { cardanoReserves } from '../../packages/collectors/cardano';
 import { LOCKERS } from '../../packages/core/config';
 
@@ -30,6 +31,10 @@ describe('accounts collector (mocked fixtures)', () => {
     const requested: string[] = [];
     server.use(
       http.get(`${B}/stat/v1/stats/leaderboard`, () => HttpResponse.json(leaderboard)),
+      http.get(`${B}/v2/balances`, ({ request }) => {
+        const id = new URL(request.url).searchParams.get('account_id');
+        return HttpResponse.json([{ ...balances[0], stakingRewardBalance: id === a0 ? '1.5' : '0', lockedRewards: id === a1 ? '4' : '0', maxWithdrawAfterRewards: id === a1 ? String(Number(balances[0].maxWithdrawAmount) - 4) : balances[0].maxWithdrawAmount }]);
+      }),
       http.get(`${B}/v2/account`, ({ request }) => {
         const q = new URL(request.url).searchParams;
         const id = q.get('account_id') ?? `vault-audit:${q.get('vault_id')}`;
@@ -40,7 +45,7 @@ describe('accounts collector (mocked fixtures)', () => {
       }),
     );
     const s = await scanLiabilities(B, 40);
-    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, discovered: 1, read: 4, failed: [], totalUsd: 28, negative: ['sub-1'] });
+    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, discovered: 1, read: 4, failed: [], totalUsd: 28, stakingRewardsUsd: 1.5, lockedRewardsUsd: 4, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['sub-1'] });
     expect(requested.filter(r => r === 'sub-1')).toHaveLength(1);
     expect(requested.some(r => r.startsWith('vault_'))).toBe(false);
     expect(s.startedAt).toBeLessThanOrEqual(s.ts);
@@ -57,16 +62,17 @@ describe('accounts collector (mocked fixtures)', () => {
   });
 });
 
-describe('T1.3 price feed (mocked fixture)', () => {
-  it('parses premiumIndex and falls back to last good price with stale flag', async () => {
+describe('T1.3 price feed fallback (mocked fixture)', () => {
+  it('parses premiumIndex; on error returns last good price with stale status', async () => {
     let fail = false;
     server.use(http.get(`${B}/price/v2/premiumIndex`, () => (fail ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(premium))));
-    const feed = createPriceFeed(B);
-    const p1 = await feed();
-    expect(p1.get('ADA')).toMatchObject({ stale: false });
+    const feed = strikeFeedAdapter(B, fetch, 0);
+    const ada = { chain: 'cardano', asset: 'ADA' };
+    const p1 = await feed.getPrice(ada);
+    expect(p1).toMatchObject({ status: 'priced' });
+    expect(p1.usd).toBeGreaterThan(0);
     fail = true;
-    const p2 = await feed();
-    expect(p2.get('ADA')).toMatchObject({ usd: p1.get('ADA')!.usd, stale: true });
+    expect(await feed.getPrice(ada)).toMatchObject({ usd: p1.usd, status: 'stale' });
   });
 });
 

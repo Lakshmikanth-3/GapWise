@@ -53,3 +53,44 @@
     separately; T2.10 vaults excluded; T2.11 status bands; T2.12 scan timestamped (start and end).
 16. **Timing.** A scan takes about 90 s. Reserves are read at both the start and the end of the scan. They moved about $124
     (about 0.008%) during one scan.
+
+## 2026-10-22 (P1)
+
+17. **Project renamed to ZeroGap** (repo github.com/Lakshmikanth-3/ZeroGap) at the owner's request.
+18. **Pluggable pricing** (`packages/collectors/prices.ts`): `getPrice(asset) → {usd?, source, ts, status}`, built from adapters
+    tried in order: strike-feed (ADA/ETH/SOL and WETH, matched by contract), peg (fiat-redeemable stables, matched by contract),
+    pending (sUSDr, iUSD, LP USDCx/USDM → `unpriced`), unknown (→ `unpriced`). Strike's official sUSDr/LP price API becomes one
+    new adapter placed before `pending`. We build no pricing of our own for these assets.
+19. **Token `4de79a0c…` identified**: a CIP-68 "333" fungible LP token of a SundaeSwap-v3-style **USDCx/USDM** pool. The pool
+    datum names the pair (USDCx `1f3aec8b…`, USDM `c48cbb3d…`) and 852.3B LP tokens in circulation. The pool holds
+    179,499 USDCx and 685,900 USDM. Strike holds 36.62B LP (4.297%), worth about 7,713 USDCx + 29,474 USDM ≈ $37.2k by
+    look-through. That figure is for identification only; the LP stays `pending` until Strike's official price API is out.
+20. **Liabilities = margin_balance + stakingRewardBalance + referral rewards (pending).** `/v2/balances?account_id=` was
+    confirmed in the docs: `stakingRewardBalance` is "segregated…; excluded from margin and withdrawals", so it is added
+    (live: $32,085). The scan makes 2 calls per account on one shared 40 req/s limiter, so a full scan takes about 3 min.
+    Referral rewards (~$25K per the founder) are a `pending` line: shown, never added. TODO adapter.
+21. **lockedRewards (undetermined, ask the founder).** Σ $3,756.60 across 606 accounts. Test used: if lockedRewards is inside
+    walletBalance, then `maxWithdrawAmount − maxWithdrawAfterRewards = lockedRewards`. That held for 1 account and failed for 605,
+    where the two withdraw figures are equal. Logged only, not added.
+22. **Ratio assessment with pending components** (`assessRatio`): a shortfall while reserves are still unpriced, or a surplus
+    no bigger than the pending-liability estimate, is shown as **Incomplete** (never Drift / Needs review, never green, never an
+    alert). Larger gaps are still banded normally.
+23. **Vault evidence update (live 19:50 UTC):** with vaults excluded, 196.31% (Needs review). With vaults included, 84.29% on
+    priced reserves; the gap is about $294k, and the unpriced reserves (sUSDr 259k + iUSD 4k + LP ~37k) are about $300k, which
+    would put it near 100.3%. The founder's rule remains the published one; both ratios are logged on every run.
+24. **Account coverage (6,135 vs 3,452), investigated:**
+    - Summary docs: `total_users` = "trading accounts, excluding vault accounts". The leaderboard is not traders-only either:
+      1,252 entries have 0 trades and 852 have neither trades nor deposits.
+    - Leaderboard 24h/7d/30d/all_time: 678 / 818 / 1,733 / 2,984 entries; the union adds 0 accounts beyond all_time.
+    - Solana depositors: 300 recent USDC-locker transactions → 25 fee payers. 23 are on the leaderboard; 1 is not and holds
+      **$0**; 1 (226 txs) has no Strike account (likely the relayer).
+    - Cardano depositors: not usable. 5,747 deposit-script transactions have only 6 distinct wallet input addresses, because
+      deposits are batched.
+    - Ethereum `Deposit` events need an archive or getLogs RPC (publicnode, drpc and 1rpc all refuse). The script
+      `scripts/investigate-eth-deposits.ts` will run once `ETH_RPC_URL`/`LOGS_RPC_URL` (Alchemy) is set.
+    Conclusion so far: no missing account holding money has been found; the gap looks like zero-balance registrations.
+    The Ethereum check is still pending.
+25. **Ethereum token discovery:** still a fixed list of known token contracts (enumerating AssetWhitelisted events needs
+    archive logs). TODO when the Alchemy key arrives.
+26. **Storage:** Postgres when `DATABASE_URL` is set, otherwise `data/*.jsonl` (gitignored). `scripts/reserves-worker.ts`
+    runs every 60 s and never overlaps runs.

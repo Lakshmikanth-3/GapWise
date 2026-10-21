@@ -1,13 +1,13 @@
-# Strike Watchtower
+# ZeroGap
 
-An independent, read-only proof-of-solvency and safety monitor for **Strike Finance** (strikefinance.org; not the Bitcoin app "Strike").
+ZeroGap is an independent, read-only proof-of-solvency and safety monitor for **Strike Finance** (strikefinance.org; not the Bitcoin app "Strike").
 It reads the three locker contracts on-chain (Ethereum, Cardano, Solana), prices them with Strike's own price feed, and sums every
 account's `margin_balance` from Strike's public API to get liabilities.
 
 ## Setup
 
 ```bash
-git clone <repo> && cd strike-watchtower
+git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
 npm install
 cp .env.example .env      # optional: works with keyless public RPCs
 npm run first-ratio

@@ -4,12 +4,23 @@ import { valueReserves } from '../../packages/core/valuation';
 import { ratioStatus, reserveRatio } from '../../packages/core/ratio';
 import { toReserves } from '../../packages/collectors/cardano';
 import { isVaultAccount } from '../../packages/collectors/accounts';
+import { createPricer, pegAdapter, pendingAdapter, type PriceAdapter } from '../../packages/collectors/prices';
 
 const USDM = 'c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad';
 const SUSDR = '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae';
 const IUSD = 'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880';
+const LP = '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56';
 const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+/** Stand-in for the Strike feed: natives by symbol, WETH by contract; ETH quote is stale. */
+export const fakeFeed: PriceAdapter = {
+  name: 'fake-feed',
+  matches: a => (!a.contract && ['ADA', 'ETH', 'SOL'].includes(a.asset)) || a.contract === WETH,
+  getPrice: async a => (a.asset === 'ADA'
+    ? { usd: 0.25, source: 'fake', ts: 1, status: 'priced' }
+    : { usd: 2500, source: 'fake', ts: 1, status: 'stale' }),
+};
 
 describe('P0', () => {
   it('T0.1 CI runs on push', () => expect(true).toBe(true));
@@ -20,28 +31,29 @@ describe('P0', () => {
   });
 });
 
-describe('T1.8 pricing never assumes $1 by name; non-pegged tokens are unpriced', () => {
-  const prices = new Map([['ADA', { usd: 0.25, stale: false }], ['ETH', { usd: 2500, stale: true }]]);
-  const v = valueReserves([
+describe('T1.8 pricing never assumes $1 by name; pending tokens are unpriced', async () => {
+  const v = await valueReserves([
     { chain: 'ethereum', asset: 'USDC', amount: 10, contract: USDC_ETH },
     { chain: 'cardano', asset: 'USDM', amount: 99, contract: 'deadbeef' + '5553444d' }, // spoofed name
     { chain: 'cardano', asset: 'USDM', amount: 7, contract: USDM + '0014df105553444d' },
     { chain: 'cardano', asset: 'sUSDr', amount: 50, contract: SUSDR + '7355534472' },
     { chain: 'cardano', asset: 'iUSD', amount: 3, contract: IUSD + '69555344' },
-    { chain: 'cardano', asset: 'LP-ADA-USDM', amount: 1000, contract: 'abcd' },
+    { chain: 'cardano', asset: 'LP', amount: 1000, contract: LP + '0014df10d7c7' },
     { chain: 'cardano', asset: 'ADA', amount: 4 },
     { chain: 'ethereum', asset: 'WETH', amount: 1, contract: WETH },
     { chain: 'ethereum', asset: 'ETH', amount: 2, contract: '0xfake' }, // a token named ETH is not ETH
-  ], prices);
+  ], createPricer([fakeFeed, pegAdapter, pendingAdapter]));
 
   it('only peg-listed contracts get 1.00, labelled as peg', () => {
-    expect(v.rows[0]).toMatchObject({ usdValue: 10, priceSource: 'peg' });
-    expect(v.rows[2]).toMatchObject({ usdValue: 7, priceSource: 'peg' });
+    expect(v.rows[0]).toMatchObject({ usdValue: 10, quote: { source: expect.stringMatching(/^peg/) } });
+    expect(v.rows[2]).toMatchObject({ usdValue: 7 });
   });
-  it('sUSDr, iUSD, LP and spoofed tokens are listed as unpriced', () => {
-    expect(v.unpriced.map(u => u.asset)).toEqual(['USDM', 'sUSDr', 'iUSD', 'LP-ADA-USDM', 'ETH']);
+  it('sUSDr, iUSD and LP are "pending"; spoofed tokens are "unknown"; all unpriced', () => {
+    expect(v.unpriced.map(u => u.asset)).toEqual(['USDM', 'sUSDr', 'iUSD', 'LP', 'ETH']);
+    expect(v.rows[3].quote.source).toMatch(/^pending/);
+    expect(v.rows[1].quote.source).toMatch(/^unknown/);
   });
-  it('natives priced from the Strike feed, stale flag carried', () => {
+  it('natives priced from the feed, stale flag carried', () => {
     expect(v.pricedUsd).toBe(10 + 7 + 1 + 2500);
     expect(v.stalePrices).toBe(true);
   });

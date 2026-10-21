@@ -5,12 +5,22 @@ import { createRateLimiter, withRetry } from '../core/rateLimiter';
 // Vault rows have account_id "vault_<8hex>" and the full UUID in vault_id.
 type LbEntry = { account_id: string; vault_id?: string };
 type Account = { account_id: string; margin_balance: string; sub_accounts?: { account_id: string }[] };
+// GET /v2/balances?account_id= → one row per collateral asset (live: a single USDT row).
+export type BalanceRow = { asset: string; walletBalance: string; maxWithdrawAmount: string; maxWithdrawAfterRewards: string; lockedRewards: string; stakingRewardBalance: string };
 
 export type LiabilityScan = {
   listed: number; excludedVaults: number;
   /** Σ margin_balance of the excluded vault accounts, read separately for audit; NOT in totalUsd. */
   vaultsUsd: number; discovered: number; read: number; failed: string[];
-  totalUsd: number; negative: string[]; startedAt: number; ts: number;
+  /** Σ margin_balance (non-vault accounts + sub-accounts). */
+  totalUsd: number;
+  /** Σ stakingRewardBalance — segregated from margin per the docs, so it is an extra liability. */
+  stakingRewardsUsd: number;
+  /** Σ lockedRewards — logged only; see lockedInWallet for whether it already sits inside walletBalance. */
+  lockedRewardsUsd: number;
+  /** Accounts with lockedRewards > 0 where maxWithdrawAmount − maxWithdrawAfterRewards == lockedRewards (i.e. inside walletBalance) vs not. */
+  lockedInWallet: { consistent: number; inconsistent: number };
+  negative: string[]; startedAt: number; ts: number;
 };
 
 export class HttpError extends Error { constructor(public status: number, url: string) { super(`${status} ${url}`); } }
@@ -38,21 +48,39 @@ export async function listAccounts(base = env.strikeApi): Promise<{ ids: string[
   return { ids: [...ids], excludedVaults: vaults.size, vaultIds: [...vaults.values()].filter(Boolean) };
 }
 
+/** Rewards from one /v2/balances response, plus whether lockedRewards is already inside walletBalance. */
+export function rewardsOf(rows: BalanceRow[]): { staking: number; locked: number; lockedInWallet?: boolean } {
+  let staking = 0, locked = 0, withdrawGap = 0;
+  for (const r of rows) {
+    staking += Number(r.stakingRewardBalance ?? 0);
+    locked += Number(r.lockedRewards ?? 0);
+    withdrawGap += Number(r.maxWithdrawAmount ?? 0) - Number(r.maxWithdrawAfterRewards ?? 0);
+  }
+  return { staking, locked, lockedInWallet: locked > 0 ? Math.abs(withdrawGap - locked) < 1e-6 : undefined };
+}
+
 export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts: { retryBaseMs?: number } = {}): Promise<LiabilityScan> {
   const startedAt = Date.now();
+  // One limiter for both endpoints: two calls per account, still ≤ rps in total.
   const take = createRateLimiter(rps);
+  const get = <T>(url: string) => withRetry(async () => { await take(); return getJson<T>(url); }, 3, opts.retryBaseMs);
   const { ids, excludedVaults, vaultIds } = await listAccounts(base);
   const queue = [...ids];
   const listed = queue.length;
   const seen = new Set(queue);
   const failed: string[] = []; const negative: string[] = [];
-  let total = 0, read = 0, discovered = 0;
+  const lockedInWallet = { consistent: 0, inconsistent: 0 };
+  let total = 0, staking = 0, locked = 0, read = 0, discovered = 0;
 
   async function one(id: string) {
+    const q = `account_id=${encodeURIComponent(id)}`;
     try {
-      const a = await withRetry(async () => { await take(); return getJson<Account>(`${base}/v2/account?account_id=${encodeURIComponent(id)}`); }, 3, opts.retryBaseMs);
+      // Both reads must succeed before anything is counted, so a half-read account is a clean failure.
+      const [a, bal] = await Promise.all([get<Account>(`${base}/v2/account?${q}`), get<BalanceRow[]>(`${base}/v2/balances?${q}`)]);
       const v = Number(a.margin_balance);
-      total += v; read++;
+      const r = rewardsOf(bal);
+      total += v; staking += r.staking; locked += r.locked; read++;
+      if (r.lockedInWallet !== undefined) lockedInWallet[r.lockedInWallet ? 'consistent' : 'inconsistent']++;
       if (v < 0) negative.push(id);
       for (const s of a.sub_accounts ?? []) {
         if (seen.has(s.account_id) || s.account_id.startsWith('vault_')) continue;
@@ -76,10 +104,11 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   // exclusion can be checked against the data (see docs/DECISIONS.md #11).
   let vaultsUsd = 0;
   for (const vid of vaultIds) {
-    try {
-      const a = await withRetry(async () => { await take(); return getJson<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`); }, 3, opts.retryBaseMs);
-      vaultsUsd += Number(a.margin_balance);
-    } catch { failed.push(`vault:${vid}`); }
+    try { vaultsUsd += Number((await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`)).margin_balance); }
+    catch { failed.push(`vault:${vid}`); }
   }
-  return { listed, excludedVaults, vaultsUsd, discovered, read, failed, totalUsd: total, negative, startedAt, ts: Date.now() };
+  return {
+    listed, excludedVaults, vaultsUsd, discovered, read, failed, totalUsd: total,
+    stakingRewardsUsd: staking, lockedRewardsUsd: locked, lockedInWallet, negative, startedAt, ts: Date.now(),
+  };
 }

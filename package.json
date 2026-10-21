@@ -1,9 +1,13 @@
 {
-  "name": "strike-watchtower",
+  "name": "zerogap",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
-  "engines": { "node": ">=20" },
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "first-ratio": "tsx scripts/first-ratio.ts",
     "test": "vitest run --exclude \"**/*.live.test.ts\" --exclude \"**/*.testnet.test.ts\" --exclude \"**/node_modules/**\"",
@@ -13,18 +17,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "viem": "^2.21.0",
-    "@solana/web3.js": "^1.95.0",
     "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.23.1",
     "tweetnacl": "^1.0.3",
-    "dotenv": "^16.4.5"
+    "viem": "^2.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/node": "^20.16.0",
-    "typescript": "^5.6.0",
-    "tsx": "^4.19.0",
-    "vitest": "^2.1.0",
+    "@types/pg": "^8.23.1",
     "msw": "^2.4.0",
-    "@playwright/test": "^1.48.0"
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
   }
 }

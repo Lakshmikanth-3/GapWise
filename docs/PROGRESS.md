@@ -31,3 +31,21 @@ both ends of the scan.
 Unpriced: sUSDr 259,016; iUSD 4,174; CIP-68 token `4de79a0c…` (36.6B units).
 
 **Exit gate: NOT passed.** The vault-exclusion rule conflicts with the data (DECISIONS #11). Waiting on the founder.
+
+## P1 Reserves collectors (Thu 22 Oct, 01:00–01:30 IST)
+
+**Built:** pluggable pricer; `snapshotReserves` (a failed chain is reported, not zeroed); BigInt unit conversions;
+liability breakdown (margin + staking rewards + pending referral line); `assessRatio` with an Incomplete state; Postgres
+schema and store with a JSONL fallback; 60 s reserves worker; project renamed to ZeroGap.
+
+**Tests:** `npm test` 50/50: T1.1, T1.2, T1.3, T1.4 (Ethereum and Solana RPC fixtures, Koios fixture), T1.7, T1.8, plus pricer,
+liabilities and assessment tests. `npm run test:live`: T0.3 and T1.5 (×4) green, each under 2.5 s.
+T1.6 (explorer comparison): values come straight from chain RPCs (Ethereum RPC, Koios, Solana RPC) at the addresses linked
+in the explorers; still to be repeated by hand on Etherscan, Cardanoscan and Solscan for the demo.
+
+**Live (19:50 UTC):** priced reserves $1,579,733; liabilities exposed $804,705 (margin $772,620 + staking $32,085) +
+referral pending; 3,452 accounts read, 0 failed. Published ratio (vaults excluded) 196.31%, Needs review; audit ratio (vaults
+included) 84.29%, Incomplete.
+
+**Exit gate:** T1.1–T1.5 pass; reserves stored every 60 s (worker). Passed for P1's scope. The ratio itself still depends on
+the founder's answers (vaults, prices, referral).
