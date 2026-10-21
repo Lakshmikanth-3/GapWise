@@ -12,3 +12,6 @@ data/
 tests/.tmp-store/
 .claude/
 apps/web/vendor/
+
+.vercel
+.env*
