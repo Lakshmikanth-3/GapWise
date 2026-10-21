@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Safety · ZeroGap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/zerogap.css">
+<style>
+  .check { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .walletbtn { justify-content: flex-start; background: var(--chip); color: var(--ink); border: 1px solid var(--line2); }
+  .walletbtn:hover { color: var(--ink); border-color: var(--green); }
+  #log { font-family: var(--mono); font-size: 12px; color: var(--dim); white-space: pre-wrap; margin: 0; max-height: 220px; overflow: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 10px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--mute); border: 0; padding: 10px 14px; font-family: var(--sans); font-size: 14px; cursor: pointer; }
+  .seg button.on { background: var(--chip); color: var(--ink); }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="#4ADE80" stroke-width="2"/><path d="M9 11h14L9 21h14" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b>ZeroGap</b></a>
+  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+    <div class="seg" role="group" aria-label="Network"><button id="net-testnet" class="on">Testnet</button><button id="net-mainnet">Mainnet</button></div>
+    <div id="who" class="mono" style="display: none; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-radius: 10px; background: var(--chip); font-size: 14px"></div>
+  </div>
+</header>
+
+<main style="max-width: 1040px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 24px">
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <h1 id="title" style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -.02em">Check your funds on Strike</h1>
+    <p id="subtitle" style="margin: 0; font-size: 17px; color: var(--mute)">Connect the wallet you use on Strike. ZeroGap uses Strike Builder Connect: you sign a message in your own wallet, and the API key it creates stays in this browser tab only.</p>
+  </div>
+
+  <section id="connect" class="card">
+    <h2 style="margin: 0; font-size: 20px; font-weight: 600">Connect with Strike Builder Connect</h2>
+    <div class="grid-auto" style="--min: 240px; gap: 12px" id="wallets"></div>
+    <div id="connect-err"></div>
+    <p class="label" style="margin: 0; line-height: 1.5">What you sign: Strike's own connect message for the ZeroGap builder code. It creates an API wallet that can only send withdrawals to <b>your</b> connected wallet, and every withdrawal still needs your wallet signature. ZeroGap never sees a key that can move your funds.</p>
+  </section>
+
+  <div id="account" style="display: none; flex-direction: column; gap: 24px">
+    <div class="grid-auto" style="gap: 16px">
+      <div class="card" style="gap: 8px"><div class="label" style="font-size: 14px">Your account value</div><div class="mono" style="font-size: 36px; font-weight: 700" id="a-value">…</div><div class="label" id="a-value-sub"></div></div>
+      <div class="card" style="gap: 8px"><div class="label" style="font-size: 14px">Withdrawable right now</div><div class="mono" style="font-size: 36px; font-weight: 700; color: var(--green2)" id="a-wd">…</div><div class="label" id="a-wd-sub"></div></div>
+      <div class="card" style="gap: 8px"><div class="label" style="font-size: 14px">Platform reserve ratio (mainnet)</div><div class="mono" style="font-size: 36px; font-weight: 700" id="a-ratio">…</div><div class="label" id="a-ratio-sub"></div></div>
+    </div>
+
+    <section class="card" style="gap: 4px">
+      <h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 600">Checks on your money</h2>
+      <div id="checks"></div>
+    </section>
+
+    <section class="card" style="gap: 16px">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 600">Withdraw shortcut</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 240px"><label for="amt" class="label" style="font-size: 14px">Amount (USD)</label><input class="in" id="amt" type="text" inputmode="decimal"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 200px"><label for="asset" class="label" style="font-size: 14px">Receive as</label><select class="in" id="asset"></select></div>
+        <button class="btn" id="wd-btn" type="button" style="min-height: 48px; padding: 0 22px; font-size: 16px">Get quote and sign</button>
+      </div>
+      <div id="wd-out"></div>
+      <p class="label" style="margin: 0; line-height: 1.5">ZeroGap never holds your keys. Strike sends funds only to your connected wallet, after you sign in your wallet. Minimum $5; $1 Strike withdrawal fee applies.</p>
+    </section>
+  </div>
+
+  <details class="card"><summary class="label">Connection log</summary><pre id="log"></pre></details>
+</main>
+<footer class="foot"><span>ZeroGap · independent project, not affiliated with Strike Finance · MIT licence</span><a href="/dashboard">Public dashboard</a></footer>
+
+<script src="/vendor/nacl-fast.min.js"></script>
+<script type="module" src="/assets/my-safety.js"></script>
+</body>
+</html>

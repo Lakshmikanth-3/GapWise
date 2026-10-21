@@ -32,23 +32,9 @@ export async function ethReserves(): Promise<Reserve[]> {
   return out;
 }
 
-export async function ethSafetyState() {
-  const c = client();
-  const [paused, cfg] = await Promise.all([
-    c.readContract({ address: vault, abi: vaultAbi, functionName: 'isPaused' }),
-    c.readContract({ address: vault, abi: vaultAbi, functionName: 'largeWithdrawalConfig' }),
-  ]) as [boolean, readonly [bigint, bigint, bigint, bigint]];
-  return { paused, queueDelaySecs: Number(cfg[1]), maxPending: Number(cfg[2]), pendingCount: Number(cfg[3]) };
-}
-
 export const SAFETY_EVENTS = [
   'LargeWithdrawalQueued', 'LargeWithdrawalExecuted', 'LargeWithdrawalCancelled',
   'Paused', 'Unpaused', 'ActionProposed', 'ActionFinalized', 'ActionCancelled',
   'Upgraded', 'RateLimitUpdated', 'RoleMembersUpdated', 'AdminWithdrawERC20', 'AdminWithdrawETH',
+  'ValidatorsUpdated', 'ThresholdUpdated', 'TimelockConfigUpdated', 'AssetWhitelisted', 'OwnershipTransferred', 'LargeThresholdUpdated',
 ] as const;
-
-export async function ethSafetyEvents(fromBlock: bigint, toBlock: bigint) {
-  const c = client();
-  const logs = await c.getContractEvents({ address: vault, abi: vaultAbi, fromBlock, toBlock });
-  return logs.filter(l => (SAFETY_EVENTS as readonly string[]).includes((l as { eventName?: string }).eventName ?? ''));
-}

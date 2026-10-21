@@ -85,6 +85,7 @@ export async function solanaFlows(sinceMs: number, getPrice: GetPrice): Promise<
       for (const s of sigs) {
         if (s.err || !s.blockTime) continue;
         if (s.blockTime * 1000 < sinceMs) { before = undefined; break; }
+        await new Promise(r => setTimeout(r, Number(process.env.SOLANA_TX_DELAY_MS ?? 250))); // public RPC rate limit
         const tx = await conn.getParsedTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
         const keys = tx?.transaction.message.accountKeys.map(k => k.pubkey.toBase58()) ?? [];
         const idx = keys.indexOf(acc.pubkey.toBase58());

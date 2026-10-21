@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["packages", "scripts", "tests"]
+  "include": ["apps/server", "packages", "scripts", "tests"]
 }

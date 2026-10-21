@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeroGap dashboard · Strike Finance reserves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/zerogap.css">
+<style>
+  body.offline #live { background: var(--redbg); color: var(--red); }
+  .hero-stat { display: flex; flex-direction: column; gap: 6px; }
+  .hero-stat .v { font-family: var(--mono); font-size: 48px; font-weight: 700; }
+  .scale { position: relative; height: 14px; border-radius: 7px; background: linear-gradient(90deg, #4A1D1D 0%, #3A3320 30%, #10261E 46%, #10261E 54%, #3A3320 70%, #4A1D1D 100%); }
+  .scale i { position: absolute; top: -6px; width: 4px; height: 26px; border-radius: 2px; background: var(--ink); transform: translateX(-2px); }
+  details summary { cursor: pointer; color: var(--mute); font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><span id="logo"></span><b>ZeroGap</b><span>for Strike Finance</span></a>
+  <nav class="sections" aria-label="Sections">
+    <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a>
+  </nav>
+  <a class="btn" href="/my-safety">Check my funds</a>
+</header>
+
+<section class="zg-grid hero" style="padding: 88px 24px 72px; border-bottom: 1px solid var(--line)">
+  <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px">
+    <div style="display: flex; flex-direction: column; gap: 18px; max-width: 820px">
+      <span class="pill" style="align-self: flex-start; border: 1px solid #1F4A38; color: var(--green); font-family: var(--mono)">Independent monitor · built on Strike Finance</span>
+      <h1 style="margin: 0; font-size: 72px; line-height: 1.02; font-weight: 700; letter-spacing: -.035em">Every dollar on Strike,<br><span style="color: var(--green)">proven on-chain.</span></h1>
+      <p style="margin: 0; font-size: 19px; line-height: 1.5; color: var(--mute); max-width: 60ch">ZeroGap reads Strike's lockers on Ethereum, Solana and Cardano and checks them against every account, live.</p>
+    </div>
+    <div class="grid-auto" style="--min: 260px; gap: 32px">
+      <div class="hero-stat"><div class="v" id="h-ratio">…</div><div class="label" style="font-size: 15px">Reserve ratio <span id="h-ratio-st"></span></div></div>
+      <div class="hero-stat"><div class="v" id="h-res">…</div><div class="label" style="font-size: 15px">Held in lockers (priced)</div></div>
+      <div class="hero-stat"><div class="v" id="h-acc">…</div><div class="label" style="font-size: 15px">Accounts verified</div></div>
+    </div>
+  </div>
+</section>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 24px">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; color: var(--dim)">
+    <span class="pill live" id="live"><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#4ADE80"/></svg>Live</span>
+    <span class="mono" id="scan-meta">Waiting for first scan…</span>
+    <span id="errors"></span>
+  </div>
+
+  <section id="overview" class="grid-auto" style="--min: 520px; gap: 24px">
+    <div class="card big">
+      <h2 style="margin: 0; font-size: 15px; font-weight: 500; color: var(--mute)">Reserve ratio · reserves ÷ what Strike owes users</h2>
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px">
+        <div class="mono ratio-big" id="ratio" style="font-size: 88px; font-weight: 700; letter-spacing: -.04em; line-height: 1">…</div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="status" id="status">—</span>
+          <span class="mono" style="font-size: 14px; color: var(--mute)" id="gap"></span>
+        </div>
+      </div>
+      <p id="ratio-explain" style="margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink2); max-width: 52ch">Strike is not a CEX: every dollar in its lockers belongs to a user, so the ratio should be exactly 100%. Above or below both mean something needs a look.</p>
+      <div aria-label="Deviation scale" style="display: flex; flex-direction: column; gap: 8px">
+        <div class="scale"><i id="needle" style="left: 50%"></i></div>
+        <div class="mono" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--dim)"><span>−1%+ review</span><span>drift</span><span>±0.01% balanced</span><span>drift</span><span>+1%+ review</span></div>
+      </div>
+      <div class="src" id="ratio-src"></div>
+    </div>
+
+    <div class="card big" style="gap: 24px">
+      <h2 style="margin: 0; font-size: 15px; font-weight: 500; color: var(--mute)">The two sides of the scale</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px"><div class="label">Reserves · on-chain</div><div class="mono" style="font-size: 34px; font-weight: 700" id="res-usd">…</div><div class="label" id="res-sub"></div></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div class="label">Liabilities · Strike API</div><div class="mono" style="font-size: 34px; font-weight: 700" id="lia-usd">…</div><div class="label" id="lia-sub"></div></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 12px"><span class="label" style="width: 92px">Reserves</span><div style="flex: 1"><div id="bar-res" style="height: 12px; border-radius: 6px; background: var(--green); width: 0"></div></div></div>
+        <div style="display: flex; align-items: center; gap: 12px"><span class="label" style="width: 92px">Liabilities</span><div style="flex: 1"><div id="bar-lia" style="height: 12px; border-radius: 6px; background: var(--blue); width: 0"></div></div></div>
+      </div>
+      <div id="pending-notes" style="display: flex; flex-direction: column; gap: 10px"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px"><h2 style="margin: 0; font-size: 22px; font-weight: 600">Ratio history</h2><span class="src" id="hist-src"></span></div>
+    <div id="history" style="min-height: 120px"></div>
+  </section>
+
+  <section id="reserves" style="display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0; font-size: 22px; font-weight: 600">Reserves by chain</h2>
+    <div class="grid-auto" style="--min: 340px" id="chains"></div>
+    <div id="unpriced"></div>
+  </section>
+
+  <div class="grid-auto" style="--min: 520px; gap: 24px">
+    <section id="liabilities" class="card" style="gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 600">What Strike owes</h2>
+      <div style="overflow-x: auto"><table class="t"><thead><tr><th>Component</th><th>Source</th><th class="r">USD</th></tr></thead><tbody id="lia-rows"></tbody></table></div>
+      <p class="label" style="margin: 0; line-height: 1.5" id="lia-note">Vaults are skipped because each depositor's share is already in their own account value; counting both doubles it.</p>
+    </section>
+
+    <section class="card" style="gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 600">Flow match · <span id="flow-day">latest full day</span></h2>
+      <p style="margin: 0; font-size: 14px; color: var(--mute)">Deposits and withdrawals Strike reports vs what actually moved on-chain.</p>
+      <div style="overflow-x: auto"><table class="t"><thead><tr><th>Chain</th><th class="r">Reported in</th><th class="r">On-chain in</th><th class="r">In</th><th class="r">Reported out</th><th class="r">On-chain out</th><th class="r">Out</th></tr></thead><tbody id="flow-rows"></tbody></table></div>
+      <details><summary>All days and coverage</summary><div style="overflow-x: auto"><table class="t"><thead><tr><th>Day</th><th>Chain</th><th class="r">In match</th><th class="r">Out match</th><th>Note</th></tr></thead><tbody id="flow-all"></tbody></table></div><div class="src" id="flow-cov"></div></details>
+    </section>
+  </div>
+
+  <section id="safety" style="display: flex; flex-direction: column; gap: 16px">
+    <h2 style="margin: 0; font-size: 22px; font-weight: 600">Safety controls</h2>
+    <div class="grid-auto" style="--min: 260px" id="safety-cards"></div>
+    <div class="src" id="safety-src"></div>
+  </section>
+
+  <section class="card" style="gap: 12px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 600">Recent events</h2>
+      <a id="tg-link" href="#" style="font-size: 14px; display: none">Get alerts on Telegram ↗</a>
+    </div>
+    <ul class="feed" id="feed"></ul>
+  </section>
+
+  <section id="method" class="card" style="border: 1px dashed var(--line2); background: transparent; gap: 10px">
+    <h2 style="margin: 0; font-size: 18px; font-weight: 600">How we compute</h2>
+    <p class="mono" style="margin: 0; font-size: 14px; color: var(--ink2)">ratio = Σ locker balances × price ÷ (Σ account value + staking rewards + referral rewards)</p>
+    <p style="margin: 0; font-size: 14px; color: var(--dim); line-height: 1.6">
+      Reserves: balances read directly from the lockers (Ethereum <code>eth_call</code>, Solana RPC, Cardano Koios/Blockfrost); ADA/ETH/SOL priced with Strike's
+      <code>/price/v2/premiumIndex</code> index price, fiat-redeemable stablecoins at their 1:1 peg (labelled), anything else listed as unpriced — never guessed.<br>
+      Liabilities: every account from <code>/stat/v1/stats/leaderboard</code> read live via <code>/v2/account</code> (margin_balance) and <code>/v2/balances</code> (stakingRewardBalance), sub-accounts included, vaults excluded, ≤ 40 requests/s.<br>
+      Status: Balanced within ±0.01%, Drift up to ±1%, Needs review beyond (never published as insolvency). Gaps explained by components Strike does not expose yet show as Incomplete.
+      Read-only, open source (MIT): <a id="gh" href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>.
+    </p>
+  </section>
+</main>
+<footer class="foot"><span>ZeroGap · independent project, not affiliated with Strike Finance · MIT licence</span><span><a href="https://docs.strikefinance.org/">Strike docs</a></span></footer>
+
+<script type="module" src="/assets/dashboard.js"></script>
+</body>
+</html>

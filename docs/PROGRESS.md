@@ -63,3 +63,33 @@ failed, ~3 min with 2 calls/account).
 **First live flow match (2 days):** Ethereum out 99.3%, in 97.0% (partial-day coverage; keyless RPC only serves ~10k
 blocks of logs). Solana and Cardano show real gaps: Cardano reported deposits $42.3k vs $7.7k priced on-chain on 20 Oct,
 with 12 unpriced moves (sUSDr/LP) that day. Reported as mismatch, not hidden. See DECISIONS #27.
+
+## P3 Dashboard, P4 Safety monitor and alerts, P5 My Safety (Thu 22 Oct, 02:15–03:30 IST)
+
+**P3 built:** `apps/server` (engine + read-only API) and `apps/web` pages rebuilt from the owner's ZeroGap UI design
+(landing, dashboard, my-safety) with every sample number replaced by live data, its source and its timestamp. The ratio history
+is an inline SVG chart (instead of Recharts, so there is no React build step). The engine keeps the last good state on disk,
+so a failed source shows its previous value plus a warning.
+**P3 tests:** Playwright 6/6 against the live server: T3.4 (loads in 1.1 s, all 3 chains, correct explorer links), T3.1,
+T3.3 (API outage keeps the last render and flags offline), T3.5 (375 px, no horizontal scroll on all three pages).
+
+**P4 built:** `collectors/safety.ts` (isPaused, pauseEpoch, largeWithdrawalConfig, timelockConfig, rateLimitBucket 1h/24h
+per asset and global; the window argument is in hours (1 or 24), verified live; events decoded with the ABI). Rules rewritten
+for real events only (no simulation), Telegram sender, persistent de-duplication. Events already on-chain when ZeroGap first
+starts are shown but not re-alerted.
+Live cross-check: the contract's own 24h USDC bucket (104,180.48 used) equals the 21 Oct outflow the flow match decoded
+from Withdraw events (104,180.48).
+**P4 tests:** T4.1 (bucket math with live values, open queue/timelock tracking), T4.2 (every rule fires on its trigger,
+silent when clean; Needs review / Incomplete never alerted), T4.3, T4.4 (no simulation tag), Telegram format and request.
+T4.5 (delivery to a real channel) and T4.6 (1 h clean live run) need the bot token.
+
+**P5 built:** browser Builder Connect client (`apps/web/assets/strike-client.js`): Ed25519 key in the tab only,
+request-signature → wallet signs (Phantom base58 / EVM personal_sign / CIP-30 COSE) → verify-signature, then account
+value, withdrawable amount (`maxWithdrawAfterRewards`) and checks; withdrawal quote → user signs → `/v2/withdraw`.
+Testnet by default. Probed live: testnet `request-signature` answers `builder code not found` for a fake code, so the
+endpoint shape is as documented.
+**P5 tests:** T5.1 (signing message format; signature verifies with tweetnacl), T5.2 (fresh UUID nonce), T5.6 (secret
+never sent), base58 and bech32 encodings (round-trips Strike's real Cardano script address).
+T5.3–T5.5 (testnet connect, balances, withdrawal) need the owner's builder code and wallet signature.
+
+**Totals:** `npm test` 75/75 · `npm run test:live` green · Playwright 6/6 · typecheck clean.
