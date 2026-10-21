@@ -10,3 +10,4 @@ test-results/
 *.log
 data/
 tests/.tmp-store/
+.claude/
