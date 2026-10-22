@@ -8,13 +8,13 @@ Balances move all the time, so compare within a few minutes of a fresh scan.
 
 | Chain | Address (open from the dashboard links) | Asset | ZeroGap | Explorer shows | Match? |
 | --- | --- | --- | --- | --- | --- |
-| Ethereum | `0xbF4cFccd11257e568A936a7867D138f54A43cffa` (etherscan.io → Token Holdings) | USDC | 161,304.560153 | | |
+| Ethereum | `0xbF4cFccd11257e568A936a7867D138f54A43cffa` (etherscan.io → Token Holdings) | USDC | 161,304.560153 | token total $163,079.61 (7 tokens, incl. airdropped spam) vs ZeroGap $163,161.71 | ✅ within 0.05% (price differences) |
 | Ethereum | same | aEthUSDC | 1,857.15 (= 1,559.777085 scaled × Aave index) | | |
-| Ethereum | same | ETH | 0 | | |
-| Solana | `BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6` (solscan.io) | USDC | 3,111.880769 | | |
-| Solana | `Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt` | SOL | 0.08360477 | | |
+| Ethereum | same | ETH | 0 | 0 ETH | ✅ exact |
+| Solana | `BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6` (solscan.io) | USDC | 3,111.880769 | 3,111.880769 USDC | ✅ exact |
+| Solana | `Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt` | SOL | 0.08360477 | 0.08360477 SOL | ✅ exact |
 | Solana | `H4nZyX3qGQwGH6wQn8G53uZ6LX8TqPZDakCN2M54icSH` | SOL | 0.00094656 | | |
-| Cardano | `addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3` (cardanoscan.io) | ADA | 328,270.954874 | | |
+| Cardano | `addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3` (cardanoscan.io) | ADA | 328,270.954874 | 328,270.954874 ADA | ✅ exact |
 | Cardano | same | USDM | 767,828.562555 | | |
 | Cardano | same | USDCx | 462,794.53183 | | |
 | Cardano | same | sUSDrf (on-chain name sUSDr) | 269,439.734558 | | |
