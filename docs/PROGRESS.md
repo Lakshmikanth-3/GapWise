@@ -127,3 +127,12 @@ Full git-history secret scan: clean.
 **Testnet view:** lockers located on-chain (DECISIONS #46); `ZEROGAP_NETWORK=testnet`; dashboard Mainnet/Testnet switch
 with a test-funds banner; engine workflow runs both networks. Live testnet verify passed (530 accounts read).
 **Tests:** `npm test` 104/104 (adds report and network tests); new e2e for the testnet banner and mainnet default.
+
+## T6.6 passed (Thu 22 Oct, 23:45 IST)
+
+`npm run test:t6.6`: fresh `git clone` of github.com/Lakshmikanth-3/ZeroGap (commit ad73522) → `npm ci` → `npm run verify`
+with **no keys** (all RPC keys blank, public endpoints only) → compared with the live dashboard's latest scan (30 min old):
+reserves $1,774,992.39 vs $1,773,919.72 (0.060%), liabilities $644,564.26 vs $643,854.43 (0.110%), ratio 2.753787 vs
+2.755157 (0.050%). Tolerance 3% → **PASSED**. Also live: engine #8 published the scan report (`/api/report`, 3,462 account
+rows, sha256 15174cbc…, code ad73522); hourly verify #1 created the `reports` branch with `index.csv`; testnet view
+published (493 testnet accounts). Playwright 9/9 against production.
