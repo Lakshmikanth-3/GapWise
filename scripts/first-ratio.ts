@@ -44,7 +44,7 @@ async function main() {
   console.log('\n=== Ratio ===');
   console.log(`Priced reserves ${usd(v.pricedUsd)} · liabilities ${usd(b.exposedUsd)}${v.stalePrices ? ' · [STALE PRICES]' : ''}`);
   console.log(`Vaults EXCLUDED (founder rule, published): ${show(assessRatio({ ...common, liabilitiesUsd: b.exposedUsd }))}`);
-  console.log(`Vaults INCLUDED (audit, ${usd(liab.vaultsUsd)}):      ${show(assessRatio({ ...common, liabilitiesUsd: b.exposedUsd + liab.vaultsUsd }))}`);
+  console.log(`Vault cross-check: excluded vault accounts ${usd(liab.vaultsUsd)} vs Σ depositor shares ${usd(liab.vaultSharesUsd)}`);
   console.log(`In-transit tolerance $${IN_TRANSIT.toleranceUsd.toLocaleString('en-US')}: ${IN_TRANSIT.note}`);
 }
 main().catch(e => { console.error(e); process.exit(1); });

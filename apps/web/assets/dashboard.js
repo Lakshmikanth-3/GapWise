@@ -48,7 +48,8 @@ function renderRatio(s) {
   const dev = a.ratio === undefined ? 0 : Math.max(-1.2, Math.min(1.2, (a.ratio - 1) * 100));
   $('needle').style.left = `${50 + (dev / 1.2) * 50}%`;
   $('ratio-src').innerHTML = `Liability scan ${esc(new Date(r.scanWindow[0]).toISOString().slice(11, 19))}–${esc(new Date(r.scanWindow[1]).toISOString().slice(11, 19))} UTC · reserves read ${esc(ago(r.reservesTs))} · confidence <b>${esc(r.confidence)}</b>${r.failed ? ` (${r.failed} failed)` : ''}`
-    + (r.vaultsIncludedAudit?.ratio !== undefined ? `<br>Audit (vault accounts included): ${pct(r.vaultsIncludedAudit.ratio, 2)} — see docs/DECISIONS.md` : '');
+    + (r.vaultCrossCheck ? `<br>Vault cross-check: excluded vault accounts ${usd(r.vaultCrossCheck.vaultAccountsUsd)} vs Σ depositor shares counted ${usd(r.vaultCrossCheck.depositorSharesUsd)}` : '')
+    + (r.knownSurplus ? `<br>${esc(r.knownSurplus.label)}: ${r.knownSurplus.usd ? usd(r.knownSurplus.usd) + ' subtracted before the gap' : 'amount pending confirmation from Strike'}` : '');
   $('scan-meta').textContent = `Last scan ${ago(r.ts)} · ${s.liabilities?.read?.toLocaleString('en-US') ?? '—'} accounts · reserves ${ago(s.reserves?.ts)}`;
   $('res-usd').textContent = usd(r.reservesUsd);
   $('lia-usd').textContent = usd(r.liabilitiesUsd);
@@ -88,11 +89,13 @@ function renderLiabilities(s) {
   $('lia-sub').textContent = `${l.read.toLocaleString('en-US')} accounts read · ${l.failedCount} failed · ${ago(l.ts)}`;
   const fmt = (c) => c.usd === undefined ? '—' : c.status === 'deducted' ? `−${num(c.usd, 0)}` : num(c.usd, 0);
   const rows = l.components.map((c) => `<tr><td>${esc(c.name === 'margin_balance' ? 'Account value' : c.name)}</td><td style="color:var(--dim)">${esc(c.source.replace('GET ', ''))}</td><td class="r" style="${c.status === 'excluded' ? 'color:var(--dim)' : ''}">${c.status === 'excluded' ? `${fmt(c)} <span class="src">not counted</span>` : fmt(c)}</td></tr>`);
-  rows.push(`<tr><td>Vault accounts (excluded)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} audit</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
+  rows.push(`<tr><td>Vault accounts (excluded, no double count)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} cross-check</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
-  $('pending-notes').innerHTML = (s.ratio?.inTransitNote ? `<div class="note">${esc(s.ratio.inTransitNote)}</div>` : '')
-    + '<div class="note" style="background:transparent">Liabilities are what users can withdraw: account value minus locked rewards (rewards are tradeable only, per Strike).</div>';
+  const ks = s.ratio?.knownSurplus;
+  $('pending-notes').innerHTML = (ks ? `<div class="note"><b>${esc(ks.label)}:</b> Strike deposited converted V1 platform rewards into the lockers without attributing them to any account, so a small surplus is expected. ${ks.usd ? `${usd(ks.usd)} is subtracted before the gap.` : 'Amount pending confirmation from Strike, so nothing is subtracted yet.'}</div>` : '')
+    + (s.ratio?.inTransitNote ? `<div class="note">${esc(s.ratio.inTransitNote)}</div>` : '')
+    + '<div class="note" style="background:transparent">Liabilities are what users can withdraw: account value minus locked rewards (rewards are tradeable only), plus each depositor&#39;s vault share (vault deposits are not inside account value), per Strike.</div>';
 }
 
 function renderFlows(s) {

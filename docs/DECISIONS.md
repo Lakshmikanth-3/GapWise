@@ -220,3 +220,18 @@
     download, commit link). The hourly `verify.yml` appends reports and `index.csv` to the `reports` branch. T6.6
     (`npm run test:t6.6`) does a fresh clone, npm ci and keyless verify, then compares with the live dashboard. Secret scan
     of the full git history: no keys or tokens found.
+48. **Vault-shares fix (founder answers, 22 Oct 23:33).** `margin_balance` does not include a user's vault deposits
+    (account `019ed9c8…`: margin $0.004, `/v2/portfolio` `history_vault` latest $144,848.76). Liabilities now add each
+    depositor's **current** vault share from the public `GET /v2/vault/{id}/depositors` (`current_equity`, paginated by
+    `next_cursor`). The 6 vault accounts stay excluded, so nothing is double counted. `/v2/portfolio` was checked first, as
+    the founder asked: its `history_vault` is an hourly series, while the depositors endpoint is current and needs one call
+    per vault page instead of one per account.
+    Live run (18:25 UTC): Σ margin_balance $648,583.08 − Σ lockedRewards $3,440.52 + Σ vault shares $1,093,753.22 =
+    **liabilities $1,738,895.78**; reserves **$1,775,483.49** (Ethereum $148,667.78 · Cardano $1,623,681.15 · Solana
+    $3,134.56; iUSD unpriced); **ratio 102.10%, gap +$36,588 (+2.10%)**.
+    Per-vault cross-check (vault account vs Σ depositor shares): Glacier Arc +$0.08 · Luxor +$0.42 · Neutral Drift $0 ·
+    VISION $0 · MARKET WIZARDS −$391.04 · SLP +$2.50 · total −$388.04. All within rounding and timing except MARKET WIZARDS,
+    where the depositors' total exceeds the vault account by $391 (ask the founder).
+    **Known surplus:** "Unattributed V1 rewards (known surplus)" via `KNOWN_SURPLUS_USD` (default 0, pending
+    confirmation); when set, it is subtracted from reserves before the gap and status, and the raw gap is kept in the report.
+    The +$36.6k surplus is consistent with it. Accounts not on the leaderboard never deposited (founder) and are ignored.

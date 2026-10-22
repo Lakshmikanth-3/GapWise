@@ -10,6 +10,7 @@ const liab: LiabilityScan = {
     { account_id: 's1', sub_account: true, margin_balance: '-2', lockedRewards: '0', stakingRewardBalance: '0' },
   ],
   vaults: [{ vault_id: 'v-uuid', margin_balance: '50' }],
+  vaultShares: [{ vault_id: 'v-uuid', address: '0xabc', current_equity: '49.5' }], vaultSharesUsd: 49.5,
   listed: 1, excludedVaults: 1, vaultsUsd: 50, discovered: 1, read: 2, failed: [], totalUsd: 98.5,
   stakingRewardsUsd: 3, lockedRewardsUsd: 0.5, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['s1'], startedAt: 1_000, ts: 2_000,
 };
@@ -26,6 +27,7 @@ describe('verify report (founder request: independently verifiable)', () => {
     expect(r.reserves.rows[0]).toMatchObject({ address: '0xbF4c', raw: '98000000', decimals: 6, price_usd: 1, price_source: 'peg' });
     expect(r.liabilities.accounts).toHaveLength(2);
     expect(r.liabilities.vaults).toEqual([{ vault_id: 'v-uuid', margin_balance: '50' }]);
+    expect(r.liabilities.vault_shares).toEqual([{ vault_id: 'v-uuid', address: '0xabc', current_equity: '49.5' }]);
     expect(r.timing.price_snapshot_at).toBe(new Date(2_500).toISOString());
     expect(r.rules).toEqual(RULES);
     expect(r.code_commit).toBe('abc1234');
@@ -33,10 +35,13 @@ describe('verify report (founder request: independently verifiable)', () => {
   });
 
   it('recomputes liabilities and the ratio from the rows it publishes', () => {
-    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.margin_balance) - Number(a.lockedRewards), 0);
-    expect(fromRows).toBeCloseTo(r.liabilities.total_usd, 9);
-    expect(r.result.ratio).toBeCloseTo(98 / 98, 9);
-    expect(r.result.gap_text).toBe('Gap +$0 · +0.0000%');
+    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.margin_balance) - Number(a.lockedRewards), 0)
+      + r.liabilities.vault_shares.reduce((s, v) => s + Number(v.current_equity), 0);
+    expect(fromRows).toBeCloseTo(r.liabilities.total_usd, 9); // 98 − 0 … + 49.5 = 147.5
+    expect(r.result.ratio).toBeCloseTo(98 / 147.5, 9);
+    expect(r.result.vault_crosscheck).toEqual({ vault_accounts_usd: 50, depositor_shares_usd: 49.5, difference_usd: 0.5,
+      per_vault: [{ vault_id: 'v-uuid', vault_account_usd: 50, depositor_shares_usd: 49.5, depositors: 1, difference_usd: 0.5 }] });
+    expect(r.result.known_surplus).toMatchObject({ label: 'Unattributed V1 rewards (known surplus)' });
   });
 
   it('content_sha256 is the hash of the report body, so anyone can check integrity', () => {

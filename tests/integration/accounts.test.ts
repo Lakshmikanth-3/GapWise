@@ -31,6 +31,8 @@ describe('accounts collector (mocked fixtures)', () => {
     const requested: string[] = [];
     server.use(
       http.get(`${B}/stat/v1/stats/leaderboard`, () => HttpResponse.json(leaderboard)),
+      // Public Vaults API: depositors of the (excluded) vault, with their current share value.
+      http.get(`${B}/v2/vault/:id/depositors`, () => HttpResponse.json({ count: 2, depositors: [{ address: '0xd1', current_equity: '6.5' }, { address: 'addr1q', current_equity: '3.25' }], next_cursor: null })),
       http.get(`${B}/v2/balances`, ({ request }) => {
         const id = new URL(request.url).searchParams.get('account_id');
         return HttpResponse.json([{ ...balances[0], stakingRewardBalance: id === a0 ? '1.5' : '0', lockedRewards: id === a1 ? '4' : '0', maxWithdrawAmount: id === a1 ? String(Number(balances[0].walletBalance) - 4) : balances[0].maxWithdrawAmount }]);
@@ -45,7 +47,7 @@ describe('accounts collector (mocked fixtures)', () => {
       }),
     );
     const s = await scanLiabilities(B, 40);
-    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, discovered: 1, read: 4, failed: [], totalUsd: 28, stakingRewardsUsd: 1.5, lockedRewardsUsd: 4, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['sub-1'] });
+    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, vaultSharesUsd: 9.75, discovered: 1, read: 4, failed: [], totalUsd: 28, stakingRewardsUsd: 1.5, lockedRewardsUsd: 4, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['sub-1'] });
     expect(requested.filter(r => r === 'sub-1')).toHaveLength(1);
     expect(requested.some(r => r.startsWith('vault_'))).toBe(false);
     expect(s.startedAt).toBeLessThanOrEqual(s.ts);

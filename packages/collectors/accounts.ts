@@ -11,9 +11,13 @@ export type BalanceRow = { asset: string; walletBalance: string; maxWithdrawAmou
 /** Raw per-account values as returned by Strike (strings preserved) — published in verify reports for diffing. */
 export type AccountRow = { account_id: string; sub_account: boolean; margin_balance: string; lockedRewards: string; stakingRewardBalance: string };
 export type VaultRow = { vault_id: string; margin_balance: string };
+/** One depositor's share of a vault (GET /v2/vault/{id}/depositors current_equity), raw string preserved. */
+export type VaultShareRow = { vault_id: string; address: string; current_equity: string };
 
 export type LiabilityScan = {
-  accounts: AccountRow[]; vaults: VaultRow[];
+  accounts: AccountRow[]; vaults: VaultRow[]; vaultShares: VaultShareRow[];
+  /** Σ depositors' vault shares — owed to users but NOT inside their own margin_balance (founder, 22 Oct 23:33). */
+  vaultSharesUsd: number;
   listed: number; excludedVaults: number;
   /** Σ margin_balance of the excluded vault accounts, read separately for audit; NOT in totalUsd. */
   vaultsUsd: number; discovered: number; read: number; failed: string[];
@@ -111,15 +115,26 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   });
   await Promise.all(workers);
 
-  // Audit only: vault value is excluded from liabilities per the founder, but recorded so the
-  // exclusion can be checked against the data (see docs/DECISIONS.md #11).
-  let vaultsUsd = 0;
+  // Vault accounts are excluded (no double counting), but each depositor's share of a vault is a liability that is NOT
+  // inside that depositor's margin_balance, so it is added from /v2/vault/{id}/depositors. The vault account's own
+  // margin_balance is kept as an audit cross-check: Σ depositor shares ≈ vault margin_balance (docs/DECISIONS.md #48).
+  let vaultsUsd = 0, vaultSharesUsd = 0;
+  const vaultShares: VaultShareRow[] = [];
   for (const vid of vaultIds) {
-    try { const va = await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`); vaultsUsd += Number(va.margin_balance); vaults.push({ vault_id: vid, margin_balance: va.margin_balance }); }
-    catch { failed.push(`vault:${vid}`); }
+    try {
+      const va = await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`);
+      vaultsUsd += Number(va.margin_balance); vaults.push({ vault_id: vid, margin_balance: va.margin_balance });
+      let cursor: string | undefined;
+      do {
+        const page = await get<{ depositors: { address: string; current_equity: string }[]; next_cursor?: string | null }>(
+          `${base}/v2/vault/${encodeURIComponent(vid)}/depositors?limit=500${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+        for (const d of page.depositors ?? []) { vaultSharesUsd += Number(d.current_equity); vaultShares.push({ vault_id: vid, address: d.address, current_equity: d.current_equity }); }
+        cursor = page.next_cursor || undefined;
+      } while (cursor);
+    } catch { failed.push(`vault:${vid}`); }
   }
   return {
-    listed, excludedVaults, vaultsUsd, discovered, read, failed, totalUsd: total,
+    listed, excludedVaults, vaultsUsd, vaultSharesUsd, vaultShares, discovered, read, failed, totalUsd: total,
     stakingRewardsUsd: staking, lockedRewardsUsd: locked, lockedInWallet, negative, startedAt, ts: Date.now(), accounts, vaults,
   };
 }

@@ -61,10 +61,10 @@ describe('pluggable pricer: adding one adapter prices a pending asset', () => {
 });
 
 describe('liabilities = withdrawable value: margin_balance minus locked rewards; other rewards excluded', () => {
-  it('discounts rewards: margin_balance minus locked rewards; no staking or referral line (founder rule)', () => {
-    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30 });
-    expect(b.exposedUsd).toBe(970);
-    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'deducted']]);
+  it('margin_balance minus locked rewards plus depositor vault shares; no staking or referral line (founder rules)', () => {
+    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30, vaultSharesUsd: 500 });
+    expect(b.exposedUsd).toBe(1470);
+    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'deducted'], ['Vault', 'counted']]);
     expect(JSON.stringify(b)).not.toMatch(/Staking|Referral/);
   });
 
@@ -131,5 +131,17 @@ describe('custody scale and one price snapshot per scan', () => {
     expect(await p(ref)).toMatchObject({ usd: 1.0057, status: 'priced' });
     fresh = false;
     expect(await p(ref)).toMatchObject({ usd: 1.0057, status: 'stale' });
+  });
+});
+
+describe('known surplus: unattributed V1 rewards (founder, 22 Oct 23:33)', () => {
+  const p = { unpricedReserves: 0, pendingLiabilityEstimateUsd: 0, inTransitToleranceUsd: 0 };
+  it('is subtracted from reserves before the gap and status, and the raw gap is kept', () => {
+    const a = assessRatio({ ...p, reservesUsd: 1_036_000, liabilitiesUsd: 1_000_000, knownSurplusUsd: 36_000 });
+    expect(a).toMatchObject({ status: 'Balanced', gapUsd: 0, rawGapUsd: 36_000 });
+  });
+  it('defaults to 0 (pending confirmation): nothing is hidden', () => {
+    const a = assessRatio({ ...p, reservesUsd: 1_036_000, liabilitiesUsd: 1_000_000, knownSurplusUsd: 0 });
+    expect(a).toMatchObject({ status: 'Needs review', gapUsd: 36_000 });
   });
 });
