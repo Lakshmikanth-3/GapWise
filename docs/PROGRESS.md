@@ -93,3 +93,15 @@ never sent), base58 and bech32 encodings (round-trips Strike's real Cardano scri
 T5.3–T5.5 (testnet connect, balances, withdrawal) need the owner's builder code and wallet signature.
 
 **Totals:** `npm test` 75/75 · `npm run test:live` green · Playwright 6/6 · typecheck clean.
+
+## P5 testnet proof (Thu 22 Oct, ~12:00 IST): passed
+
+On https://zerogap-strike.vercel.app/my-safety, Strike **testnet**, builder code `zerogap` (registered on mainnet and testnet,
+verified through `/auth/builder/request-signature`), MetaMask wallet `0x43DDBD19381C8Ea8C1e4670d18DdB97c43fbEFDC`:
+- T5.3 Connect: request-signature → wallet signature → verify-signature, API wallet created, account id returned. ✅
+- T5.4 Balance view: account value ≈ $19.99 after a 20 USDC Sepolia deposit. ✅
+- T5.5 Withdrawal: quote → user signs in MetaMask → `/v2/withdraw` accepted, request `71c6a5b2-4e30-415c-846b-2d4d4bcefa3c`,
+  status `pending`. ✅ (screen-recorded by the owner)
+
+Note: the first deposit attempt failed on-chain because MetaMask's Smart Account (EIP-7702) bundled approve+deposit
+(tx 0x5d88c0e0…731a, reverted; funds were not moved). It worked after switching the Sepolia account back to a standard account.
