@@ -105,3 +105,15 @@ verified through `/auth/builder/request-signature`), MetaMask wallet `0x43DDBD19
 
 Note: the first deposit attempt failed on-chain because MetaMask's Smart Account (EIP-7702) bundled approve+deposit
 (tx 0x5d88c0e0…731a, reverted; funds were not moved). It worked after switching the Sepolia account back to a standard account.
+
+## P4 live Telegram delivery (Thu 22 Oct, ~20:09 IST): passed
+
+After the GitHub `TELEGRAM_BOT_TOKEN` secret was corrected, engine run #6 delivered the alerts it had held back to the
+public channel **@zerogap_alerts**: flow mismatches for Ethereum, Solana and Cardano (per day) and one unusual-outflow alert.
+Each has a dashboard link and a UTC timestamp. These are real findings; there is no simulation path. T4.5 ✅.
+Earlier, a delivery failure (404 from a malformed secret) exposed a retry bug that created duplicate records. It is fixed:
+one record per alert, re-sent once Telegram works.
+
+Also done on 22 Oct: corrected Solana IDL with full program decoding, Strike Credit prices and custody scaling, rewards
+discounted (with evidence), known in-transit status, gap in USD and %, one price snapshot per scan, PRD §8–9, `/me` route.
+`npm test` 96/96.
