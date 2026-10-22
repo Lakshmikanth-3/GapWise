@@ -38,7 +38,7 @@ async function main() {
     ...b.components.map(x => ({ component: x.name, status: x.status, usd: x.usd === undefined ? 'pending' : usd(x.usd), source: x.source })),
     { component: 'TOTAL', status: '', usd: usd(b.exposedUsd), source: 'Σ margin_balance + Σ vault shares + Σ staking rewards' },
   ]);
-  console.log(`Rewards evidence: lockedRewards inside walletBalance for ${liab.lockedInWallet.consistent} account(s), not for ${liab.lockedInWallet.inconsistent} · stakingRewardBalance Σ ${usd(liab.stakingRewardsUsd)} is separate (not added)`);
+  console.log(`Rewards evidence: lockedRewards inside walletBalance for ${liab.lockedInWallet.consistent} account(s), not for ${liab.lockedInWallet.inconsistent} · stakingRewardBalance Σ ${usd(liab.stakingRewardsUsd)} is separate from margin_balance (added above)`);
 
   const common = { reservesUsd: v.pricedUsd, unpricedReserves: v.unpriced.length, pendingLiabilityEstimateUsd: b.pendingEstimateUsd };
   console.log('\n=== Ratio ===');
