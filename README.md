@@ -11,6 +11,22 @@ counts every dollar Strike owes its users, and shows the gap live. Anyone can re
 
 Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_alerts** · Scan history: [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports)
 
+## Latest result (23 Oct 2026, 21:46 UTC, `npm run verify`)
+
+| | USD |
+| --- | --- |
+| **Reserves** | **$1,780,450.92** (Ethereum $163,161.59 · Solana $3,120.63 · Cardano $1,614,168.70) |
+| Σ account values (`margin_balance`, locked rewards included) | $645,696.86 |
+| + Σ depositors' vault shares | $1,094,609.93 |
+| + Σ staking rewards | $32,031.50 |
+| + Commission | pending (not yet exposed by Strike) |
+| **Liabilities** | **$1,772,338.29** (3,470 accounts read, 0 failed, 6 vault accounts excluded) |
+| **Ratio** | **100.46%** · gap **+$8,113 (+0.46%)** → **In transit** |
+
+About $5.7K of the gap is iUSD valued at a $1 placeholder. Commission, once Strike exposes it, adds to liabilities and closes
+most of the rest. Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
+[`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
+
 ## Verify it yourself
 
 ```bash
@@ -23,7 +39,8 @@ No keys are needed. It scans every Strike account (about 3 minutes at ≤40 requ
 reserves by chain and address, the liabilities (accounts read, vaults excluded, failures), the price snapshot used,
 the ratio, and the gap in USD and %. It also writes **`reports/<network>-<timestamp>.json`**, a plain JSON file with
 every input: addresses, raw on-chain balances, decimals, prices with sources and timestamps, every account's raw
-`margin_balance` / `lockedRewards`, the vault audit rows, the code commit and a `content_sha256`. Diff it against any
+`margin_balance` / `lockedRewards` / `stakingRewardBalance`, every depositor's vault share, the per-vault cross-check,
+open notes, the code commit and a `content_sha256`. Diff it against any
 published scan: the dashboard's **Download this scan (JSON)** button, `GET /api/report`, or the hourly files in the
 `reports` branch.
 
@@ -45,7 +62,8 @@ published scan: the dashboard's **Download this scan (JSON)** button, `GET /api/
 reserves    = Σ over lockers, assets:  amount × price
               amount  = raw on-chain integer ÷ 10^decimals   (Credit custody assets: Strike's raw_amount_scale)
               price   = Strike index price (ADA, ETH, SOL) | Strike Credit price (sUSDrf, LP, scaled aUSDC)
-                        | 1.00 for fiat-redeemable stablecoins by contract (USDC, USDT, USDCx, USDM) | unpriced → excluded
+                        | 1.00 for fiat-redeemable stablecoins by contract (USDC, USDT, USDCx, USDM)
+                        | iUSD: labelled $1 placeholder (price source pending) | anything else unpriced → excluded
 liabilities = Σ margin_balance                       every non-vault account + sub-accounts (locked rewards included)
             + Σ depositors' current vault shares  GET /v2/vault/{id}/depositors current_equity (not inside margin_balance)
             + Σ stakingRewardBalance              GET /v2/balances (withdrawable; not inside margin_balance)
@@ -59,7 +77,7 @@ One price snapshot values every reserve row; it is taken right after the account
 
 ## Addresses and endpoints
 
-| Locker | Address | Holds (22 Oct) |
+| Locker | Address | Holds (23 Oct) |
 | --- | --- | --- |
 | Ethereum vault | [`0xbF4cFccd11257e568A936a7867D138f54A43cffa`](https://etherscan.io/address/0xbF4cFccd11257e568A936a7867D138f54A43cffa) | USDC, aEthUSDC (Aave V3) |
 | Solana vault account | [`Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt`](https://solscan.io/account/Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt) | SOL (rent); owns the USDC token account |
@@ -83,7 +101,7 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 | Reported flows | [`GET /stat/v1/dashboard/transfers`](https://docs.strikefinance.org/api/platform-stats/platform-dashboard.md) |
 | My Safety | [Builder Connect](https://docs.strikefinance.org/api/builder-codes.md) `/auth/builder/*`, `/v2/withdraw/*` (builder code `zerogap`) |
 
-## Founder-confirmed rules (Strike Finance, 21–22 Oct 2026)
+## Founder-confirmed rules (Strike Finance, 21–23 Oct 2026)
 
 - **Vault accounts are excluded** (no double counting), but `margin_balance` does **not** include a user's vault deposits,
   so each depositor's current vault share is added. Cross-check: Σ depositor shares ≈ each vault account's balance.
@@ -94,6 +112,7 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 - **Both Cardano scripts** count (deposit + protocol).
 - **Both Solana addresses** count: the vault account `Dj9NkHy…` and the USDC token account `BT85fg…`, de-duplicated.
 - **Prices** for sUSDrf, the SundaeSwap LP token and scaled aUSDC come from Strike's Credit API, never an assumed $1.
+- **In-transit LP/IOG bridge gaps** are rare (a one-time event every few months) and shown as a note only.
 - Rate limit: ≤ 40 requests/second to Strike (the founder asked for under 50).
 
 ## Known limits
