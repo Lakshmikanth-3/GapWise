@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZeroGap dashboard · Strike Finance reserves</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:ital,wght@0,300;0,600;0,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/zerogap.css">
 <style>
   body.offline #live { background: var(--redbg); color: var(--red); }
@@ -18,16 +18,16 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/"><span id="logo"></span><b>ZeroGap</b><span>for Strike Finance</span></a>
+  <a class="brand" href="/" aria-label="ZeroGap home"><span id="logo"></span><b style="font-size: 22px">ZeroGap</b></a>
   <nav class="sections" aria-label="Sections">
     <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a><a href="#verify">Verify</a>
   </nav>
   <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
-    <div class="seg" role="group" aria-label="Network" style="display: inline-flex; border: 1px solid var(--line2); border-radius: 10px; overflow: hidden">
+    <div class="seg" role="group" aria-label="Network" style="display: inline-flex; border: 1px solid var(--line2); border-radius: 999px; overflow: hidden">
       <a id="net-mainnet" href="/dashboard" style="padding: 12px 14px; font-size: 14px; text-decoration: none; color: var(--mute)">Mainnet</a>
       <a id="net-testnet" href="/dashboard?network=testnet" style="padding: 12px 14px; font-size: 14px; text-decoration: none; color: var(--mute)">Testnet</a>
     </div>
-    <a class="btn" href="/me">Check my funds</a>
+    <a class="btn" href="/me" style="min-height: 48px">Check my funds <span aria-hidden="true">→</span></a>
   </div>
 </header>
 <div id="testnet-banner" style="display: none; padding: 12px 24px; background: var(--amberbg); border-bottom: 1px solid var(--amberline); color: var(--amber); text-align: center; font-size: 15px">TESTNET view: Strike's testnet lockers (Sepolia, Solana devnet, Cardano preprod) and testnet accounts. Test funds, not real money. Same engine and code as the published mainnet result.</div>
@@ -152,7 +152,8 @@ npm run verify        # or: npx zerogap verify</pre>
     </p>
   </section>
 </main>
-<footer class="foot"><span>ZeroGap · independent project, not affiliated with Strike Finance · MIT licence</span><span><a href="https://docs.strikefinance.org/">Strike docs</a></span></footer>
+<footer class="site"></footer>
+<script type="module" src="/assets/site.js"></script>
 
 <script type="module" src="/assets/dashboard.js"></script>
 </body>

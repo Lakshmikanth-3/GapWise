@@ -1,0 +1,30 @@
+// Shared site chrome: the pill navigation and the footer, identical on every page.
+const REPO = 'https://github.com/Lakshmikanth-3/ZeroGap';
+export const MARK = '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#45F0A6"/><path d="M12 13h16L12 27h16" fill="none" stroke="#04110B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const FOOTER = [
+  ['Product', [['Dashboard', '/dashboard'], ['My Safety', '/me'], ['Testnet view', '/dashboard?network=testnet'], ['Telegram alerts', 'https://t.me/zerogap_alerts']]],
+  ['Resources', [['Docs', `${REPO}#readme`], ['Methodology', '/dashboard#method'], ['API (live JSON)', '/api/state'], ['Latest report', '/api/report?download'], ['Scan history', `${REPO}/tree/reports`]]],
+  ['Community', [['GitHub', REPO], ['Telegram', 'https://t.me/zerogap_alerts'], ['Strike Finance', 'https://strikefinance.org'], ['Strike docs', 'https://docs.strikefinance.org/']]],
+  ['Legal', [['Terms', '/legal#terms'], ['Privacy', '/legal#privacy'], ['Disclaimer', '/legal#disclaimer'], ['MIT licence', `${REPO}/blob/main/LICENSE`]]],
+];
+
+export function brand() {
+  return `<a class="brand" href="/" aria-label="ZeroGap home">${MARK}<b style="font-size: 24px">ZeroGap</b></a>`;
+}
+
+/** Fills <footer class="site"></footer>. */
+export function renderFooter(el = document.querySelector('footer.site')) {
+  if (!el) return;
+  const ext = (h) => (h.startsWith('http') ? ' target="_blank" rel="noopener"' : '');
+  el.innerHTML = `<div class="cols">
+    <div style="display: flex; flex-direction: column; gap: 22px">${brand()}
+      <p style="margin: 0; max-width: 34ch; font-size: 17px; line-height: 1.6; color: var(--mute)">Independent, read-only proof of solvency for Strike Finance. Every locker, every account, checked live.</p>
+      <p style="margin: 0; font-size: 13px; color: var(--dim)">Not affiliated with Strike Finance.</p></div>
+    ${FOOTER.map(([h, links]) => `<div><h4>${h}</h4><ul>${links.map(([t, href]) => `<li><a href="${href}"${ext(href)}>${t}</a></li>`).join('')}</ul></div>`).join('')}
+  </div>
+  <div class="copy">ZeroGap ${new Date().getFullYear()} · open source under the MIT licence</div>
+  <div class="word" aria-hidden="true">ZEROGAP</div>`;
+}
+
+renderFooter();

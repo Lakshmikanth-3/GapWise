@@ -10,7 +10,7 @@ import { publicConfig, snapshot } from './snapshot';
 const PORT = Number(process.env.PORT ?? 8787);
 const WEB = join(process.cwd(), 'apps', 'web');
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' };
-const PAGES: Record<string, string> = { '/': 'index.html', '/dashboard': 'dashboard.html', '/my-safety': 'my-safety.html', '/me': 'my-safety.html', '/how': 'how.html' };
+const PAGES: Record<string, string> = { '/': 'index.html', '/dashboard': 'dashboard.html', '/my-safety': 'my-safety.html', '/me': 'my-safety.html', '/how': 'how.html', '/legal': 'legal.html' };
 
 async function main() {
   const engine = new Engine();

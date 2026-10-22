@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legal · ZeroGap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:ital,wght@0,300;0,600;0,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/zerogap.css">
+<style>
+  main { max-width: 860px; margin: 0 auto; padding: 72px 24px 96px; }
+  h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(40px, 6vw, 64px); letter-spacing: -.02em; }
+  h2 { margin: 56px 0 14px; font-size: 28px; scroll-margin-top: 120px; }
+  p, li { font-size: 17px; line-height: 1.7; color: var(--ink2); }
+  ul { padding-left: 22px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .toc a { padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line2); color: var(--ink); text-decoration: none; }
+  .toc a:hover { border-color: var(--green); }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/" aria-label="ZeroGap home"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#45F0A6"/><path d="M12 13h16L12 27h16" fill="none" stroke="#04110B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b style="font-size: 22px">ZeroGap</b></a>
+  <nav class="navlinks" aria-label="Main"><a href="/dashboard">Dashboard</a><a href="/me">My Safety</a><a class="btn" href="/dashboard" style="min-height: 48px">Launch App <span aria-hidden="true">→</span></a></nav>
+</header>
+<main>
+  <h1>Legal</h1>
+  <p style="color: var(--mute)">Plain-language terms for an open-source, read-only monitoring tool. Last updated 23 October 2026.</p>
+  <div class="toc"><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#disclaimer">Disclaimer</a><a href="https://github.com/Lakshmikanth-3/ZeroGap/blob/main/LICENSE" target="_blank" rel="noopener">MIT licence</a></div>
+
+  <h2 id="terms">Terms of use</h2>
+  <ul>
+    <li>ZeroGap is an independent, open-source project built for the Strike Finance hackathon. It is <b>not affiliated with, endorsed by or operated by Strike Finance</b>.</li>
+    <li>The public dashboard is read-only. It reads public blockchain data and Strike's public API; it holds no user funds and no keys that can move funds.</li>
+    <li>My Safety uses Strike Builder Connect. Any withdrawal is created by Strike, paid only to your own connected wallet, and only after you sign it in your wallet. You are responsible for what you sign.</li>
+    <li>The service is provided "as is", without warranty or guaranteed uptime. The code is licensed under the MIT licence.</li>
+  </ul>
+
+  <h2 id="privacy">Privacy</h2>
+  <ul>
+    <li>ZeroGap sets no cookies and uses no analytics or tracking scripts. Pages do not use browser storage.</li>
+    <li>On My Safety, the API-wallet key generated for Builder Connect stays in that browser tab's memory and is gone when you close it. Requests about your account go directly from your browser to Strike's API.</li>
+    <li>The public dashboard shows only aggregate figures. Verify reports include public per-account balances already returned by Strike's public API.</li>
+    <li>Hosting (Vercel) and fonts (Google Fonts) receive standard request data such as your IP address, under their own policies.</li>
+  </ul>
+
+  <h2 id="disclaimer">Disclaimer</h2>
+  <ul>
+    <li>ZeroGap's figures are an independent estimate from public data, with the source, time and confidence shown next to each number. They can be wrong or out of date, for example while funds are in transit between chains or when a data source is down.</li>
+    <li>A gap or a "Needs review" status is a prompt to look closer, <b>not</b> a statement that Strike is insolvent. Open questions are published in the project's documentation.</li>
+    <li>Nothing on this site is financial, investment or legal advice.</li>
+  </ul>
+</main>
+<footer class="site"></footer>
+<script type="module" src="/assets/site.js"></script>
+</body>
+</html>
