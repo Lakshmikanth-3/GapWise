@@ -14,6 +14,10 @@ export function ago(ts) {
 export const hhmm = (ts) => new Date(ts).toISOString().slice(11, 16) + ' UTC';
 export const statusClass = (s) => (s === 'Needs review' ? 'Needs' : s === 'In transit' ? 'Drift' : s || '');
 
+/** Which deployment the page shows: the published mainnet result (default) or the labelled testnet one. */
+export const NETWORK = new URLSearchParams(location.search).get('network') === 'testnet' ? 'testnet' : 'mainnet';
+export const withNet = (path) => (NETWORK === 'testnet' ? `${path}${path.includes('?') ? '&' : '?'}network=testnet` : path);
+
 export async function getJSON(path) {
   const r = await fetch(path, { cache: 'no-store' });
   if (!r.ok) throw new Error(`${path} ${r.status}`);
@@ -23,7 +27,7 @@ export async function getJSON(path) {
 /** Calls `render(state)` now and every `ms`; shows a banner if the API is unreachable (last render stays). */
 export function poll(render, ms = 15000) {
   const tick = async () => {
-    try { render(await getJSON('/api/state')); document.body.classList.remove('offline'); }
+    try { render(await getJSON(withNet('/api/state'))); document.body.classList.remove('offline'); }
     catch (e) { document.body.classList.add('offline'); console.error(e); }
   };
   tick();

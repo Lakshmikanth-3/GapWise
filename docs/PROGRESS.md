@@ -117,3 +117,13 @@ one record per alert, re-sent once Telegram works.
 Also done on 22 Oct: corrected Solana IDL with full program decoding, Strike Credit prices and custody scaling, rewards
 discounted (with evidence), known in-transit status, gap in USD and %, one price snapshot per scan, PRD §8–9, `/me` route.
 `npm test` 96/96.
+
+## Verifiable ZeroGap + testnet view (Thu 22 Oct, 21:30–23:30 IST)
+
+**Founder request:** `npm run verify` / `npx zerogap verify` (keyless run passed: 3,462 accounts, 0 failed, 713 KB
+report); published scan reports with commit hash and SHA-256 (`/api/report`, dashboard "Download this scan (JSON)");
+"Verify it yourself" on the landing page and dashboard; hourly `verify.yml` → `reports` branch; README per spec; T6.6 script.
+Full git-history secret scan: clean.
+**Testnet view:** lockers located on-chain (DECISIONS #46); `ZEROGAP_NETWORK=testnet`; dashboard Mainnet/Testnet switch
+with a test-funds banner; engine workflow runs both networks. Live testnet verify passed (530 accounts read).
+**Tests:** `npm test` 104/104 (adds report and network tests); new e2e for the testnet banner and mainnet default.

@@ -2,7 +2,7 @@ import { formatUnits } from 'viem';
 import { PublicKey } from '@solana/web3.js';
 import { solConnection } from './solana';
 import { logsClient, vaultAbi } from './ethereum';
-import { env, LOCKERS } from '../core/config';
+import { env, LOCKERS, NET } from '../core/config';
 import { dayOf } from './stats';
 import type { GetPrice } from './prices';
 import type { Chain } from './types';
@@ -105,7 +105,7 @@ export async function solanaFlows(sinceMs: number, getPrice: GetPrice): Promise<
 
 // ---------- Cardano: net value change of the two locker scripts per transaction ----------
 
-const KOIOS = 'https://api.koios.rest/api/v1';
+const KOIOS = NET.koios;
 async function koios<T>(path: string, body: unknown): Promise<T> {
   for (let k = 0; ; k++) {
     const r = await fetch(`${KOIOS}/${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

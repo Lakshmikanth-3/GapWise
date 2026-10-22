@@ -178,3 +178,45 @@
 45. **Two Ethereum RPCs.** Alchemy's free tier allows only 10-block `eth_getLogs`, so state reads use `ETH_RPC_URL`
     (Alchemy) and log queries use `ETH_LOGS_RPC_URL` (default publicnode, about 5,000 recent blocks). Full history comes
     from Alchemy's Transfers API instead of logs.
+46. **Testnet deployment (labelled second view of the same engine).** Strike's testnet lockers were located on-chain by
+    following real testnet deposits:
+    - Ethereum Sepolia vault `0x879e450F2482a2DEcbd27176A4c177e69Bd7A0E6`: our 20 USDC deposit landed there (tx
+      `0x6e54cbc9…`). Same StrikeFinanceVaultV2 ABI behind a proxy; holds 3,198.98 Circle test USDC; 5 large withdrawals
+      queued (cap 5). `0xdb9B1e94…` is only the deposit router.
+    - Solana devnet program `FSNjjtrZ…MzXt` (called by a testnet user), Vault `Di862rQJ…` (found by IDL discriminator),
+      treasury PDA `6Chkc4f8…`. It is an older program version with no VaultState account, so Solana safety is reported as
+      not available on testnet, not faked.
+    - Cardano preprod script `addr_test1wpuakhm8…rlm70`: received a testnet user's deposits.
+    Selected with `ZEROGAP_NETWORK=testnet`. The `.env` mainnet keys are never used for testnet (`TESTNET_*` overrides
+    only). Test tokens that Strike's testnet custody mapping does not name (devnet mints, preprod test USDM) are unpriced.
+    Testnet alerts never post to the public channel. Live testnet result: $39.4M of testnet account balances (faucet
+    credits) vs about $105k priced in testnet lockers, ratio 0.27% → Incomplete. Test money is not backed one-to-one, which
+    is why only mainnet is the published proof.
+47. **Independently verifiable (founder request).** `npm run verify` / `npx zerogap verify` recomputes everything from
+    public data with no keys and writes `reports/<network>-<timestamp>.json`: every address, raw on-chain integer, decimals,
+    price with source and timestamp, every account's raw margin_balance and lockedRewards, vault audit rows, rules, the
+    code commit and the content SHA-256. The engine publishes the same report for every scan (`/api/report`, dashboard
+    download, commit link). The hourly `verify.yml` appends reports and `index.csv` to the `reports` branch. T6.6
+    (`npm run test:t6.6`) does a fresh clone, npm ci and keyless verify, then compares with the live dashboard. Secret scan
+    of the full git history: no keys or tokens found.
+46. **Testnet deployment (labelled second view of the same engine).** Strike's testnet lockers were located on-chain by
+    following real testnet deposits:
+    - Ethereum Sepolia vault `0x879e450F2482a2DEcbd27176A4c177e69Bd7A0E6`: our 20 USDC deposit landed there (tx
+      `0x6e54cbc9…`). Same StrikeFinanceVaultV2 ABI behind a proxy; holds 3,198.98 Circle test USDC; 5 large withdrawals
+      queued (cap 5). `0xdb9B1e94…` is only the deposit router.
+    - Solana devnet program `FSNjjtrZ…MzXt` (called by a testnet user), Vault `Di862rQJ…` (found by IDL discriminator),
+      treasury PDA `6Chkc4f8…`. It is an older program version with no VaultState account, so Solana safety is reported as
+      not available on testnet, not faked.
+    - Cardano preprod script `addr_test1wpuakhm8…rlm70`: received a testnet user's deposits.
+    Selected with `ZEROGAP_NETWORK=testnet`. The `.env` mainnet keys are never used for testnet (`TESTNET_*` overrides
+    only). Test tokens that Strike's testnet custody mapping does not name (devnet mints, preprod test USDM) are unpriced.
+    Testnet alerts never post to the public channel. Live testnet result: $39.4M of testnet account balances (faucet
+    credits) vs about $105k priced in testnet lockers, ratio 0.27% → Incomplete. Test money is not backed one-to-one, which
+    is why only mainnet is the published proof.
+47. **Independently verifiable (founder request).** `npm run verify` / `npx zerogap verify` recomputes everything from
+    public data with no keys and writes `reports/<network>-<timestamp>.json`: every address, raw on-chain integer, decimals,
+    price with source and timestamp, every account's raw margin_balance and lockedRewards, vault audit rows, rules, the
+    code commit and the content SHA-256. The engine publishes the same report for every scan (`/api/report`, dashboard
+    download, commit link). The hourly `verify.yml` appends reports and `index.csv` to the `reports` branch. T6.6
+    (`npm run test:t6.6`) does a fresh clone, npm ci and keyless verify, then compares with the live dashboard. Secret scan
+    of the full git history: no keys or tokens found.

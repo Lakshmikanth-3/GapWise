@@ -1,8 +1,8 @@
-import { env, LOCKERS } from '../core/config';
+import { env, LOCKERS, NET } from '../core/config';
 import type { Reserve } from './types';
 
-const BF = 'https://cardano-mainnet.blockfrost.io/api/v0';
-const KOIOS = 'https://api.koios.rest/api/v1';
+const BF = NET.blockfrost;
+const KOIOS = NET.koios;
 
 /** Cardano policy id → ticker, for display. Pricing is decided in core/valuation by contract id. */
 export const CARDANO_POLICIES: Record<string, string> = {

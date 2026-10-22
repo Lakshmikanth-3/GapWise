@@ -45,10 +45,18 @@ jobs:
           PUBLIC_URL: https://zerogap-strike.vercel.app
         run: npx tsx scripts/engine-once.ts
 
+      - name: Engine cycle (Strike testnet, labelled; no Telegram)
+        continue-on-error: true
+        env:
+          ZEROGAP_NETWORK: testnet
+          ZEROGAP_DATA_DIR: data/testnet
+          PUBLIC_URL: https://zerogap-strike.vercel.app/dashboard?network=testnet
+        run: mkdir -p data/testnet && npx tsx scripts/engine-once.ts
+
       - name: Publish state to zerogap-data
         run: |
           cd data
-          rm -f *.jsonl
+          rm -f *.jsonl testnet/*.jsonl
           git init -q -b zerogap-data
           git config user.name "zerogap-engine"
           git config user.email "zerogap-engine@users.noreply.github.com"

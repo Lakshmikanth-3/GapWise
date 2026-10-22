@@ -1,5 +1,5 @@
 // Public, read-only views of the engine state. Shared by the Node server and the published snapshot (Vercel).
-import { LOCKERS, EXPLORERS } from '../../packages/core/config';
+import { LOCKERS, EXPLORERS, NET, NETWORK } from '../../packages/core/config';
 import type { State } from './engine';
 
 export function publicConfig(e: NodeJS.ProcessEnv = process.env) {
@@ -22,6 +22,7 @@ export function publicConfig(e: NodeJS.ProcessEnv = process.env) {
 export function snapshot(s: State) {
   return {
     now: Date.now(), startedAt: s.startedAt,
+    network: NETWORK, explorers: NET.explorers,
     reserves: s.reserves && {
       ts: s.reserves.ts, pricedUsd: s.reserves.value.pricedUsd, stalePrices: s.reserves.value.stalePrices,
       rows: s.reserves.value.rows.map(r => ({ chain: r.chain, holder: r.holder, asset: r.asset, contract: r.contract, amount: r.amount, usdValue: r.usdValue, price: r.quote })),

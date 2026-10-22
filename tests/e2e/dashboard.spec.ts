@@ -51,3 +51,17 @@ test('T3.2 a snapshot older than 10 minutes shows a stale warning banner', async
   await expect(page.locator('#stale-banner')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#stale-banner')).toContainText('Stale data');
 });
+
+test('testnet view is clearly labelled and uses testnet data', async ({ page }) => {
+  await page.goto('/dashboard?network=testnet');
+  await expect(page.locator('#testnet-banner')).toBeVisible();
+  await expect(page.locator('#testnet-banner')).toContainText('Test funds, not real money');
+  await expect(page.locator('#net-testnet')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#dl-report-link')).toHaveAttribute('href', /network=testnet/);
+});
+
+test('mainnet is the default view, with no testnet banner', async ({ page }) => {
+  await page.goto('/dashboard');
+  await expect(page.locator('#testnet-banner')).toBeHidden();
+  await expect(page.locator('#net-mainnet')).toHaveAttribute('aria-current', 'page');
+});

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import type { LiabilityScan } from '../collectors/accounts';
 import type { ReserveSnapshot } from '../collectors/reserves';
-import { LOCKERS } from './config';
+import { LOCKERS, NETWORK } from './config';
 import { assessRatio, confidence, formatGap, IN_TRANSIT } from './ratio';
 import { liabilityBreakdown } from './liabilities';
 
@@ -35,7 +35,7 @@ export function buildReport(p: { liab: LiabilityScan; reserves: ReserveSnapshot;
   const body = {
     report_version: REPORT_VERSION,
     product: 'ZeroGap — independent proof-of-solvency monitor for Strike Finance (not affiliated with Strike Finance)',
-    network: p.network ?? 'mainnet',
+    network: p.network ?? NETWORK,
     generated_at: new Date().toISOString(),
     code_commit: p.commit ?? codeCommit(),
     rules: RULES,

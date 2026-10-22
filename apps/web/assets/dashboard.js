@@ -1,6 +1,11 @@
-import { $, esc, usd, num, pct, short, compactUsd, ago, hhmm, statusClass, poll, getJSON, LOGO } from './common.js';
+import { $, esc, usd, num, pct, short, compactUsd, ago, hhmm, statusClass, poll, getJSON, LOGO, NETWORK, withNet } from './common.js';
 
 $('logo').innerHTML = LOGO;
+const activeNet = $(NETWORK === 'testnet' ? 'net-testnet' : 'net-mainnet');
+activeNet.style.background = 'var(--chip)'; activeNet.style.color = 'var(--ink)'; activeNet.setAttribute('aria-current', 'page');
+if (NETWORK === 'testnet') { $('testnet-banner').style.display = ''; document.title = 'ZeroGap dashboard · TESTNET'; }
+for (const a of document.querySelectorAll('a[href^="/api/report"]')) a.href = withNet(a.getAttribute('href'));
+let explorerBases = { ethereum: 'https://etherscan.io', solanaSuffix: '', cardano: 'https://cardanoscan.io' };
 const CHAIN_NAMES = { ethereum: 'Ethereum', solana: 'Solana', cardano: 'Cardano' };
 let config;
 getJSON('/api/config').then((c) => {
@@ -9,9 +14,10 @@ getJSON('/api/config').then((c) => {
 }).catch(() => {});
 
 function explorer(chain, addr) {
-  if (chain === 'ethereum') return `https://etherscan.io/address/${addr}`;
-  if (chain === 'solana') return `https://solscan.io/account/${addr}`;
-  return `https://cardanoscan.io/address/${addr}`;
+  const e = explorerBases;
+  if (chain === 'ethereum') return `${e.ethereum}/address/${addr}`;
+  if (chain === 'solana') return `https://solscan.io/account/${addr}${e.solanaSuffix}`;
+  return `${e.cardano}/address/${addr}`;
 }
 
 function renderRatio(s) {
@@ -126,7 +132,7 @@ function renderProof(s) {
   const r = s.report;
   if (!r) { $('scan-proof').textContent = 'No published scan report yet.'; return; }
   const gh = config?.github ?? 'https://github.com/Lakshmikanth-3/ZeroGap';
-  $('scan-proof').innerHTML = `Scan ${esc(r.generatedAt)} · produced by code <a href="${gh}/commit/${esc(r.commit)}" target="_blank" rel="noopener">${esc(r.commit.slice(0, 7))}</a> · report sha256 <span title="${esc(r.sha256)}">${esc(r.sha256.slice(0, 16))}…</span> · <a href="/api/report" target="_blank" rel="noopener">view JSON</a> · history: <a href="${gh}/tree/reports" target="_blank" rel="noopener">reports branch</a>`;
+  $('scan-proof').innerHTML = `Scan ${esc(r.generatedAt)} · produced by code <a href="${gh}/commit/${esc(r.commit)}" target="_blank" rel="noopener">${esc(r.commit.slice(0, 7))}</a> · report sha256 <span title="${esc(r.sha256)}">${esc(r.sha256.slice(0, 16))}…</span> · <a href="${withNet('/api/report')}" target="_blank" rel="noopener">view JSON</a> · history: <a href="${gh}/tree/reports" target="_blank" rel="noopener">reports branch</a>`;
 }
 
 function renderFeed(s) {
@@ -138,7 +144,7 @@ function renderFeed(s) {
 
 async function renderHistory() {
   try {
-    const h = (await getJSON('/api/history')).filter((p) => p.ratio !== undefined && p.ratio !== null);
+    const h = (await getJSON(withNet('/api/history'))).filter((p) => p.ratio !== undefined && p.ratio !== null);
     if (h.length < 2) { $('history').innerHTML = `<p class="label">${h.length} scan${h.length === 1 ? '' : 's'} recorded so far — the chart appears after the second scan.</p>`; return; }
     const W = 1000, H = 140, xs = h.map((p) => p.ts), ys = h.map((p) => p.ratio * 100);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(99, ...ys), y1 = Math.max(101, ...ys);
@@ -157,5 +163,5 @@ export function staleMessage(s, now = Date.now()) {
   return age > 10 * 60_000 ? `Stale data: last full scan ${Math.round(age / 60_000)} min ago. Values below are the last good snapshot.` : '';
 }
 
-poll((s) => { const m = staleMessage(s); $('stale-banner').textContent = m; $('stale-banner').style.display = m ? '' : 'none'; renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); renderProof(s); });
+poll((s) => { if (s.explorers) explorerBases = s.explorers; const m = staleMessage(s); $('stale-banner').textContent = m; $('stale-banner').style.display = m ? '' : 'none'; renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); renderProof(s); });
 renderHistory(); setInterval(renderHistory, 60000);

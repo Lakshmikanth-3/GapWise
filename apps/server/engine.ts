@@ -16,7 +16,7 @@ import { evaluate, dedupe, type Alert } from '../../packages/alerts/rules';
 import { formatAlert, sendTelegram, telegramFromEnv } from '../../packages/alerts/telegram';
 import { openStore, toReserveRows, type Store } from '../../packages/db/queries';
 import { buildReport, reportFileName, type ScanReport } from '../../packages/core/report';
-import { env } from '../../packages/core/config';
+import { env, NET, NETWORK } from '../../packages/core/config';
 
 const DATA = process.env.ZEROGAP_DATA_DIR ?? 'data';
 const RESERVES_MS = Number(process.env.RESERVES_INTERVAL_MS ?? 60_000);
@@ -131,7 +131,11 @@ export class Engine {
   });
 
   safetyJob = () => this.guarded('safety', async () => {
-    const [s, sol] = await Promise.all([ethSafetyState(), solanaSafetyFull().catch(e => { this.state.errors.solanaSafety = { at: Date.now(), message: (e as Error).message }; return undefined; })]);
+    const [s, sol] = await Promise.all([ethSafetyState(), solanaSafetyFull().catch(e => {
+      // The testnet devnet program is an older version without a VaultState account: not available, not an error.
+      if (NETWORK === 'testnet' && /not found/.test((e as Error).message)) { delete this.state.errors.solanaSafety; return undefined; }
+      this.state.errors.solanaSafety = { at: Date.now(), message: (e as Error).message }; return undefined;
+    })]);
     this.state.safety = { value: s, ts: s.ts };
     if (sol) { this.state.solanaSafety = { value: sol, ts: Date.now() }; delete this.state.errors.solanaSafety; }
     // Solana program instructions (IDL-decoded) since the last seen signature.
@@ -140,7 +144,7 @@ export class Engine {
       const { events, newest } = await solanaInstructionEvents(this.state.lastSolanaSignature, solFirst ? 10 : 25);
       this.state.lastSolanaSignature = newest;
       this.state.solanaEvents = [...events.reverse(), ...(this.state.solanaEvents ?? [])].slice(0, 200);
-      for (const e of events) this.feed({ ts: e.ts, kind: `Solana · ${e.type}`, text: `Solana vault instruction ${e.type}`, link: `https://solscan.io/tx/${e.signature}` });
+      for (const e of events) this.feed({ ts: e.ts, kind: `Solana · ${e.type}`, text: `Solana vault instruction ${e.type}`, link: `https://solscan.io/tx/${e.signature}${NET.explorers.solanaSuffix}` });
       delete this.state.errors.solanaEvents;
     } catch (e) { this.state.errors.solanaEvents = { at: Date.now(), message: (e as Error).message.split('\n')[0] }; }
     if (solFirst) for (const a of this.buildAlerts()) this.sent.add(`${a.rule}|${a.key}`);
@@ -154,7 +158,7 @@ export class Engine {
     for (const e of evs) {
       if (known.has(`${e.tx}:${e.type}`)) continue;
       this.state.events.push(e);
-      this.feed({ ts: e.ts, kind: e.type, text: describeEvent(e), link: `https://etherscan.io/tx/${e.tx}` });
+      this.feed({ ts: e.ts, kind: e.type, text: describeEvent(e), link: `${NET.explorers.ethereum}/tx/${e.tx}` });
       await this.store?.insert('safety_events', [{ ts: new Date(e.ts).toISOString(), chain: e.chain, type: e.type, amount: e.args.amount ?? null, tx_hash: e.tx, status: 'seen' }]).catch(() => {});
     }
     this.state.events = this.state.events.slice(-500);
@@ -215,7 +219,8 @@ export class Engine {
   }
 
   alertJob = async () => {
-    const tg = telegramFromEnv();
+    // Only the published mainnet result alerts the public channel; the testnet deployment records alerts on its dashboard.
+    const tg = NETWORK === 'mainnet' ? telegramFromEnv() : undefined;
     // Alerts recorded while Telegram was not configured are delivered once it is (oldest first).
     if (tg) for (const rec of [...this.state.alerts].reverse().filter(x => !x.sent && x.error?.startsWith('not sent'))) {
       try { await sendTelegram(tg, formatAlert(rec, new Date(rec.ts), tg.dashboardUrl)); rec.sent = true; delete rec.error; }
@@ -226,7 +231,7 @@ export class Engine {
       if (tg) {
         try { await sendTelegram(tg, formatAlert(a, new Date(), tg.dashboardUrl)); rec.sent = true; }
         catch (e) { rec.error = `not sent: ${(e as Error).message}`; } // kept as one record; re-sent by the held-back loop next cycle
-      } else rec.error = 'not sent: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set'; // recorded once, shown on the dashboard
+      } else rec.error = NETWORK === 'mainnet' ? 'not sent: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set' : 'testnet: shown on the dashboard only'; // recorded once, shown on the dashboard
       if (rec.error && this.state.alerts.some(x => x.rule === a.rule && x.key === a.key)) continue;
       this.state.alerts.unshift(rec);
       this.feed({ ts: rec.ts, kind: `Alert · ${a.severity}`, text: `${a.title} — ${a.lines.join(' · ')}`, link: a.link });

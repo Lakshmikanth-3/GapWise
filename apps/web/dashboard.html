@@ -22,8 +22,15 @@
   <nav class="sections" aria-label="Sections">
     <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a><a href="#verify">Verify</a>
   </nav>
-  <a class="btn" href="/me">Check my funds</a>
+  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+    <div class="seg" role="group" aria-label="Network" style="display: inline-flex; border: 1px solid var(--line2); border-radius: 10px; overflow: hidden">
+      <a id="net-mainnet" href="/dashboard" style="padding: 12px 14px; font-size: 14px; text-decoration: none; color: var(--mute)">Mainnet</a>
+      <a id="net-testnet" href="/dashboard?network=testnet" style="padding: 12px 14px; font-size: 14px; text-decoration: none; color: var(--mute)">Testnet</a>
+    </div>
+    <a class="btn" href="/me">Check my funds</a>
+  </div>
 </header>
+<div id="testnet-banner" style="display: none; padding: 12px 24px; background: var(--amberbg); border-bottom: 1px solid var(--amberline); color: var(--amber); text-align: center; font-size: 15px">TESTNET view: Strike's testnet lockers (Sepolia, Solana devnet, Cardano preprod) and testnet accounts. Test funds, not real money. Same engine and code as the published mainnet result.</div>
 
 <section class="zg-grid hero" style="padding: 88px 24px 72px; border-bottom: 1px solid var(--line)">
   <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px">
@@ -124,7 +131,7 @@
   <section id="verify" class="card" style="gap: 12px">
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
       <h2 style="margin: 0; font-size: 22px; font-weight: 600">Verify it yourself</h2>
-      <a class="btn ghost" id="dl-report" href="/api/report?download" style="min-height: 44px">Download this scan (JSON)</a>
+      <a class="btn ghost" id="dl-report" id="dl-report-link" href="/api/report?download" style="min-height: 44px">Download this scan (JSON)</a>
     </div>
     <p style="margin: 0; font-size: 15px; color: var(--mute); line-height: 1.5">Re-run the whole check from scratch with only public data. Your report lists every address, raw balance, price and account value, so you can diff it against this scan.</p>
     <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap

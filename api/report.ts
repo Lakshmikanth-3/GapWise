@@ -1,8 +1,10 @@
 // Full verify-format JSON report of the latest published scan (every address, raw balance, price and account row).
-const DATA_URL = process.env.ZEROGAP_DATA_URL ?? 'https://raw.githubusercontent.com/Lakshmikanth-3/ZeroGap/zerogap-data';
+const DATA_ROOT = process.env.ZEROGAP_DATA_URL ?? 'https://raw.githubusercontent.com/Lakshmikanth-3/ZeroGap/zerogap-data';
+/** ?network=testnet serves the labelled testnet deployment (data/testnet on the data branch). */
+const dataUrl = (request: Request) => (new URL(request.url).searchParams.get('network') === 'testnet' ? `${DATA_ROOT}/testnet` : DATA_ROOT);
 
 export async function GET(request: Request) {
-  const res = await fetch(`${DATA_URL}/latest-report.json?t=${Math.floor(Date.now() / 60_000)}`);
+  const res = await fetch(`${dataUrl(request)}/latest-report.json?t=${Math.floor(Date.now() / 60_000)}`);
   if (!res.ok) return Response.json({ error: `report unavailable (${res.status})` }, { status: 503 });
   const download = new URL(request.url).searchParams.has('download');
   const body = await res.text();

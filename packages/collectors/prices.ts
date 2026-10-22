@@ -60,6 +60,8 @@ export const PEGGED_USD: Record<string, string> = {
   Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: 'USDT (Solana)',
   '1f3aec8bfe7ea4fe14c5f121e2a92e301afe414147860d557cac7e34': 'USDCx (Cardano)',
   'c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad': 'USDM (Cardano)',
+  // Testnet deployment only: Circle's official Sepolia test USDC.
+  '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238': 'USDC (Sepolia, test)',
 };
 
 /** Cardano contract = policy (56 hex) + asset name; match either the full id or the policy. */

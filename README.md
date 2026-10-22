@@ -101,6 +101,15 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 - **iUSD** has no Strike price source, so it is listed as unpriced and excluded.
 - Free public RPCs can be slow or rate-limited; optional free-tier keys make scans faster.
 
+## Testnet view
+
+The same engine also runs against **Strike's testnet** (`ZEROGAP_NETWORK=testnet`, dashboard `/dashboard?network=testnet`):
+Sepolia vault `0x879e450F2482a2DEcbd27176A4c177e69Bd7A0E6`, Solana devnet vault `Di862rQJwGgMLtrchoBfkcehEKXPpYnppeA9Gmxtasin`
+(program `FSNjjtrZP2BiuPfyRjTWQUybN8QNnEQgUogho79SMzXt`), Cardano preprod script `addr_test1wpuakhm8ftcwy2t00vhxp3rmqev90cs5xqf6ynu7f7rxrrg4rlm70`,
+and Strike's testnet accounts. It is clearly labelled as test funds and never alerts the public channel. Testnet balances are
+faucet-credited, so the testnet ratio is not meaningful; mainnet is the published proof. All write actions (My Safety
+withdrawals) were tested on testnet first. `ZEROGAP_NETWORK=testnet npm run verify` reproduces it.
+
 ## Run the live monitor
 
 ```bash
