@@ -31,7 +31,7 @@ Search each address on app.strikefinance.org (Leaderboard → search), or use yo
 | — | `addr1q945ppz2…z9rsh2` | $262.53 | | |
 | andrewadaberg | `addr1qxyu2smu…q6r47pw` | $144.33 (live 22 Oct 22:22 UTC: $142.17) | Leaderboard equity $142.40 | ✅ within 0.2% |
 | — | `addr1qygw5tvm…q289x82` | $319.00 | | |
-| theprospector | `addr1q84l5rht…qy9xp5j` | $356.72 (live 22 Oct 22:22 UTC: $285.22) | Leaderboard equity $699.30 | ⚠ differs: active trader (601 trades); leaderboard is an hourly snapshot. Re-check on Portfolio-equivalent view |
+| theprospector | `addr1q84l5rht…qy9xp5j` | live 22 Oct 22:29 UTC: $287.56 = wallet_balance 506.08 + unrealized −218.52 | Leaderboard equity $699.29 = wallet_balance 506.08 + unrealized +193.21 (hourly snapshot) | ✅ wallet_balance identical; difference is only the stale unrealized PnL on the hourly leaderboard |
 | you (kanth, mainnet) | `0x43DDBD19381C8Ea8C1e4670d18DdB97c43fbEFDC` | $0.00 | | |
 
 Full addresses: run `npm run first-ratio` or see the table in the chat log of 22 Oct.
