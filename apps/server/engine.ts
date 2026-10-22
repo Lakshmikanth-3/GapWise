@@ -9,13 +9,13 @@ import { ethFlows, solanaFlows, cardanoFlows, bucketFlows, type Flow, type FlowC
 import { ethSafetyState, ethSafetyEventsBetween, openItems, type EthSafetyState, type SafetyEvent } from '../../packages/collectors/safety';
 import { client } from '../../packages/collectors/ethereum';
 import { solanaSafetyFull, solanaInstructionEvents, type SolanaInstructionEvent } from '../../packages/collectors/solana-program';
-import { assessRatio, confidence, formatGap, IN_TRANSIT, KNOWN_SURPLUS, type Assessment } from '../../packages/core/ratio';
+import { assessRatio, confidence, formatGap, IN_TRANSIT, type Assessment } from '../../packages/core/ratio';
 import { liabilityBreakdown, type LiabilityComponent } from '../../packages/core/liabilities';
 import { flowCheck, type FlowCheckRow } from '../../packages/core/flowCheck';
 import { evaluate, dedupe, type Alert } from '../../packages/alerts/rules';
 import { formatAlert, sendTelegram, telegramFromEnv } from '../../packages/alerts/telegram';
 import { openStore, toReserveRows, type Store } from '../../packages/db/queries';
-import { buildReport, reportFileName, type ScanReport } from '../../packages/core/report';
+import { buildReport, reportFileName, openNotes, type ScanReport } from '../../packages/core/report';
 import { env, NET, NETWORK } from '../../packages/core/config';
 
 const DATA = process.env.ZEROGAP_DATA_DIR ?? 'data';
@@ -38,7 +38,7 @@ export type State = {
     published: Assessment; reservesUsd: number; liabilitiesUsd: number;
     /** Σ depositors' vault shares vs the excluded vault accounts' own balances (should match). */
     vaultCrossCheck: { vaultAccountsUsd: number; depositorSharesUsd: number };
-    knownSurplus: { label: string; usd: number; confirmed: boolean };
+    openNotes: string[];
     confidence: string; failed: number; scanWindow: [number, number]; reservesTs: number;
     /** One price snapshot valued every reserve row of this scan (FR: same-instant pricing). */
     priceSnapshotAt?: number; inTransitNote: string;
@@ -113,7 +113,7 @@ export class Engine {
     const common = { reservesUsd: r.pricedUsd, unpricedReserves: r.unpriced.length, pendingLiabilityEstimateUsd: b.pendingEstimateUsd };
     const published = assessRatio({ ...common, liabilitiesUsd: b.exposedUsd });
     const conf = confidence(scan.listed + scan.discovered, scan.read, Date.now() - scan.ts);
-    this.state.ratio = { ts: Date.now(), value: { published, vaultCrossCheck: { vaultAccountsUsd: scan.vaultsUsd, depositorSharesUsd: scan.vaultSharesUsd }, knownSurplus: KNOWN_SURPLUS, reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, confidence: conf.label, failed: conf.failed, scanWindow: [scan.startedAt, scan.ts], reservesTs: r.ts, priceSnapshotAt: snap.takenAt(), inTransitNote: IN_TRANSIT.note } };
+    this.state.ratio = { ts: Date.now(), value: { published, vaultCrossCheck: { vaultAccountsUsd: scan.vaultsUsd, depositorSharesUsd: scan.vaultSharesUsd }, openNotes: openNotes(scan, r), reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, confidence: conf.label, failed: conf.failed, scanWindow: [scan.startedAt, scan.ts], reservesTs: r.ts, priceSnapshotAt: snap.takenAt(), inTransitNote: IN_TRANSIT.note } };
     this.lastReport = buildReport({ liab: scan, reserves: r, priceSnapshotAt: snap.takenAt(), strikeApi: env.strikeApi });
     this.state.report = { generatedAt: this.lastReport.generated_at, sha256: this.lastReport.content_sha256, commit: this.lastReport.code_commit, file: reportFileName(this.lastReport) };
     this.state.history.push({ ts: Date.now(), reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, ratio: published.ratio, status: published.status });

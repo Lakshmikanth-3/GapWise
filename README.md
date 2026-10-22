@@ -46,10 +46,11 @@ reserves    = Σ over lockers, assets:  amount × price
               amount  = raw on-chain integer ÷ 10^decimals   (Credit custody assets: Strike's raw_amount_scale)
               price   = Strike index price (ADA, ETH, SOL) | Strike Credit price (sUSDrf, LP, scaled aUSDC)
                         | 1.00 for fiat-redeemable stablecoins by contract (USDC, USDT, USDCx, USDM) | unpriced → excluded
-liabilities = Σ margin_balance − Σ lockedRewards        over every non-vault account + discovered sub-accounts
-            + Σ depositors' current vault shares     GET /v2/vault/{id}/depositors current_equity (not inside margin_balance)
-ratio       = (reserves − known surplus) ÷ liabilities   gap = (reserves − known surplus) − liabilities  (USD and %)
-              known surplus = unattributed V1 rewards (KNOWN_SURPLUS_USD, pending confirmation, default 0)
+liabilities = Σ margin_balance                       every non-vault account + sub-accounts (locked rewards included)
+            + Σ depositors' current vault shares  GET /v2/vault/{id}/depositors current_equity (not inside margin_balance)
+            + Σ stakingRewardBalance              GET /v2/balances (withdrawable; not inside margin_balance)
+            + commission                          pending: not yet exposed by Strike (no value added)
+ratio       = reserves ÷ liabilities                gap = reserves − liabilities  (USD and % of liabilities)
 status      = Balanced |gap| ≤ 0.01% · Drift ≤ 1% · Needs review > 1% (never published as insolvency)
               · In transit when |gap| ≤ the founder-stated in-transit amount ($10,000)
 ```
@@ -86,11 +87,10 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 
 - **Vault accounts are excluded** (no double counting), but `margin_balance` does **not** include a user's vault deposits,
   so each depositor's current vault share is added. Cross-check: Σ depositor shares ≈ each vault account's balance.
-- **Known surplus:** converted V1 platform rewards were deposited into the lockers without being attributed to any account,
-  so reserves may exceed liabilities slightly. Shown as "Unattributed V1 rewards (known surplus)"; the amount is pending.
+- **iUSD** counts as a reserve; it is valued at a labelled $1 placeholder until Strike confirms its price source.
 - **Coverage:** the leaderboard lists every account that has or once had a balance; accounts not on it never deposited.
-- **Rewards are excluded:** they are tradeable only, not withdrawable. `lockedRewards` sits inside `margin_balance` and is
-  subtracted; `stakingRewardBalance` and referral rewards are separate and not added.
+- **All rewards are owed:** staking rewards (`stakingRewardBalance`, separate from margin_balance) are added; locked rewards
+  are already inside margin_balance and counted once. Commission balances are withdrawable too: pending until Strike exposes them.
 - **Both Cardano scripts** count (deposit + protocol).
 - **Both Solana addresses** count: the vault account `Dj9NkHy…` and the USDC token account `BT85fg…`, de-duplicated.
 - **Prices** for sUSDrf, the SundaeSwap LP token and scaled aUSDC come from Strike's Credit API, never an assumed $1.
@@ -102,9 +102,8 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
   through the IOG bridge, can leave a temporary gap of a few thousand dollars. It is shown as "Known in-transit", never added.
 - **Price movement between scans:** the account scan takes about 3 minutes, and Strike values accounts with live prices while
   ZeroGap uses one snapshot right after the scan. Small residual gaps (tens to hundreds of dollars) are expected.
-- **Known surplus amount pending:** until Strike confirms the unattributed V1 rewards amount, the surplus is shown, not
-  subtracted, so the status can read Drift or Needs review even though the surplus is expected.
-- **iUSD** has no Strike price source, so it is listed as unpriced and excluded.
+- **Commission pending:** commission balances are owed but not yet exposed by Strike, so liabilities are slightly understated
+  until they are. The MARKET WIZARDS vault shows a small (~$400) account-vs-depositors difference, acknowledged by Strike.
 - Free public RPCs can be slow or rate-limited; optional free-tier keys make scans faster.
 
 ## Testnet view

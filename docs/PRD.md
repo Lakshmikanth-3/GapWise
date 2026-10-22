@@ -840,3 +840,15 @@ UX rules: the ratio is the first thing seen; both ends of the scale are bad; eve
 - [x] Corrected Solana IDL
 - [x] Price source for sUSDrf / LP tokens
 - [x] Rewards decision (excluded)
+
+## 10. Final formula (founder, 23 Oct 00:04–00:18 IST)
+
+```
+liabilities = Σ margin_balance (non-vault accounts + sub-accounts; locked rewards included, not subtracted)
+            + Σ per-depositor vault shares   (GET /v2/vault/{id}/depositors)
+            + Σ stakingRewardBalance          (GET /v2/balances; withdrawable)
+            + commission                       (pending: not yet exposed by Strike)
+reserves    = all locker balances (iUSD at a labelled $1 placeholder until its price source is confirmed)
+ratio       = reserves ÷ liabilities   (target 100.00%)
+```
+Superseded: "rewards excluded" and the known-surplus idea. Result on 23 Oct: 100.46%, gap +$8.1K (+0.46%), In transit.

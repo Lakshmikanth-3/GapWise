@@ -235,3 +235,26 @@
     **Known surplus:** "Unattributed V1 rewards (known surplus)" via `KNOWN_SURPLUS_USD` (default 0, pending
     confirmation); when set, it is subtracted from reserves before the gap and status, and the raw gap is kept in the report.
     The +$36.6k surplus is consistent with it. Accounts not on the leaderboard never deposited (founder) and are ignored.
+49. **Final liabilities formula (founder, 23 Oct 00:04–00:18).** Commission balances, staking rewards and locked rewards
+    are all owed to users.
+    `liabilities = Σ margin_balance (non-vault + sub-accounts; lockedRewards included, not subtracted) + Σ depositor vault
+    shares + Σ stakingRewardBalance`; commission is a pending line with no value (not exposed by Strike; TODO adapter).
+    This replaces #34 / #38 ("rewards excluded") and removes the KNOWN_SURPLUS idea.
+    **No double counting, with evidence from live /v2/account + /v2/balances + /v2/portfolio:**
+    - `stakingRewardBalance` is **not** inside margin_balance. Account `019d0c57…`: margin_balance 0.0048, walletBalance
+      0.0048, stakingRewardBalance 6.20; `/v2/portfolio` reports it separately as `staking_reward_balance`. So it is added once.
+    - `lockedRewards` **is** inside margin_balance (`019d5401…`: wallet 19.24 = withdrawable 14.41 + locked 4.83), so it is
+      counted once through margin_balance and never added again.
+    - Vault shares are **not** inside margin_balance (`019ed9c8…`: margin 0.004, vault share $144.8k), so they are added once.
+      The vault accounts themselves stay excluded.
+    - Commission: searched /v2/account, /v2/balances and /v2/portfolio for commission/referral/builder/rebate fields. Only
+      historical totals exist (`all_time_maker_rebates`, `capital_flows.all_time_reward_grants`), already reflected in
+      balances, so nothing is added.
+    **iUSD:** not present in `/v2/credit/collateral-assets` (ids: ADA, LP_SUNDAE_USDCx_USDM, SCALED_AAVE_V3_ETH_aUSDC, sUSDrf)
+    nor in `/v2/credit/settings` custody mappings or collateral assets (no "iUSD", "IUSD" or policy `f66d78b4…`). The founder
+    says it counts as a reserve, so it is valued at a labelled **$1 placeholder** (`status: placeholder`) until a source is
+    confirmed. **MARKET WIZARDS** vault difference (−$413.88 now): acknowledged by the founder, ignored for now, kept as a note.
+    **Live verify (21:46 UTC):** reserves $1,780,450.92 (ETH $163,161.59 · SOL $3,120.63 · Cardano $1,614,168.70);
+    liabilities $1,772,338.29 (margin $645,696.86 incl. locked $3,440.06 · vault shares $1,094,609.93 · staking $32,031.50);
+    **ratio 100.4577% → In transit · gap +$8,113 (+0.4577%)**. The iUSD placeholder adds about $5.7k of the surplus, and
+    commission (pending) would reduce it.

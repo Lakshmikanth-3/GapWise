@@ -26,15 +26,14 @@ export async function runVerify(outDir = process.env.ZEROGAP_REPORTS_DIR ?? 'rep
   if (report.reserves.failed_chains.length) log(`  !! failed chains: ${report.reserves.failed_chains.join(', ')}`);
   const l = report.liabilities;
   log(`\nLiabilities: ${l.accounts_listed} listed · ${l.vaults_excluded} vaults excluded · ${l.subaccounts_discovered} sub-accounts · ${l.accounts_read} read · ${l.accounts_failed.length} failed [${l.confidence}]`);
-  log(`  Σ margin_balance ${usd(l.margin_balance_usd)} − Σ lockedRewards ${usd(l.locked_rewards_usd)} + Σ vault shares ${usd(l.vault_shares_usd)} = ${usd(l.total_usd)}`);
+  log(`  Σ margin_balance ${usd(l.margin_balance_usd)} (incl. locked rewards ${usd(l.locked_rewards_usd)}) + Σ vault shares ${usd(l.vault_shares_usd)} + Σ staking rewards ${usd(l.staking_rewards_usd)} = ${usd(l.total_usd)} · commission: pending (not yet exposed by Strike)`);
   const res = report.result;
   log(`\nRatio: ${res.ratio === null ? 'n/a' : (res.ratio * 100).toFixed(4) + '%'} → ${res.status} · ${res.gap_text}`);
   log(`
 Vault cross-check (excluded vault accounts vs Σ depositor shares counted as liabilities):`);
   for (const p of res.vault_crosscheck.per_vault) log(`  ${p.vault_id}  vault ${usd(p.vault_account_usd).padStart(16)}  shares ${usd(p.depositor_shares_usd).padStart(16)}  (${p.depositors} depositors)  diff ${usd(p.difference_usd)}`);
   log(`  total vault ${usd(res.vault_crosscheck.vault_accounts_usd)} · shares ${usd(res.vault_crosscheck.depositor_shares_usd)} · diff ${usd(res.vault_crosscheck.difference_usd)}`);
-  if (res.known_surplus.usd) log(`  ${res.known_surplus.label}: ${usd(res.known_surplus.usd)} subtracted from reserves before the gap (raw gap ${usd(res.raw_gap_usd)})`);
-  else log(`  ${res.known_surplus.label}: amount pending confirmation (KNOWN_SURPLUS_USD not set)`);
+  for (const n of res.open_notes) log(`  note: ${n}`);
 
   await mkdir(outDir, { recursive: true });
   const file = `${outDir}/${reportFileName(report)}`;

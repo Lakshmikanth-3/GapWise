@@ -6,7 +6,8 @@ import type { Chain } from './types';
  * To wire a new official Strike endpoint (e.g. sUSDr / LP prices), add one adapter and put it before `pendingAdapter`.
  */
 export type AssetRef = { chain: Chain | string; asset: string; contract?: string };
-export type PriceStatus = 'priced' | 'stale' | 'unpriced';
+/** placeholder: a founder-approved stand-in price, always labelled, until the real source is confirmed. */
+export type PriceStatus = 'priced' | 'stale' | 'unpriced' | 'placeholder';
 export type PriceQuote = { usd?: number; source: string; ts: number; status: PriceStatus };
 export interface PriceAdapter {
   name: string;
@@ -170,6 +171,19 @@ export const pendingAdapter: PriceAdapter = {
   getPrice: async () => ({ source: 'pending: no official Strike price source for this asset', ts: Date.now(), status: 'unpriced' }),
 };
 
+/**
+ * iUSD counts as a reserve (founder, 23 Oct); its price source is still being asked, so it is valued at a labelled $1
+ * placeholder until confirmed. Never presented as a market price.
+ */
+export const PLACEHOLDER_PRICE: Record<string, { usd: number; reason: string }> = {
+  'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880': { usd: 1, reason: 'iUSD: placeholder $1 until Strike confirms the price source' },
+};
+export const placeholderAdapter: PriceAdapter = {
+  name: 'placeholder',
+  matches: byContract(PLACEHOLDER_PRICE),
+  getPrice: async a => { const p = PLACEHOLDER_PRICE[a.contract!] ?? PLACEHOLDER_PRICE[a.contract!.slice(0, 56)]; return { usd: p.usd, source: `placeholder: ${p.reason}`, ts: Date.now(), status: 'placeholder' }; },
+};
+
 export const unknownAdapter: PriceAdapter = {
   name: 'unknown',
   matches: () => true,
@@ -179,7 +193,7 @@ export const unknownAdapter: PriceAdapter = {
 export type GetPrice = (a: AssetRef) => Promise<PriceQuote>;
 
 /** First matching adapter wins; `unknownAdapter` always terminates the chain. */
-export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), pegAdapter, pendingAdapter]): GetPrice {
+export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), pegAdapter, placeholderAdapter, pendingAdapter]): GetPrice {
   const chain = [...adapters, unknownAdapter];
   return a => chain.find(x => x.matches(a))!.getPrice(a);
 }
@@ -190,6 +204,6 @@ export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), st
  */
 export function createSnapshotPricer(base = env.strikeApi): { getPrice: GetPrice; takenAt: () => number | undefined } {
   let takenAt: number | undefined;
-  const inner = createPricer([strikeFeedAdapter(base, fetch, Infinity), strikeCreditAdapter(base, fetch, Infinity), pegAdapter, pendingAdapter]);
+  const inner = createPricer([strikeFeedAdapter(base, fetch, Infinity), strikeCreditAdapter(base, fetch, Infinity), pegAdapter, placeholderAdapter, pendingAdapter]);
   return { getPrice: a => { takenAt ??= Date.now(); return inner(a); }, takenAt: () => takenAt };
 }

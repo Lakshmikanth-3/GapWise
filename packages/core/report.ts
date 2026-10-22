@@ -5,7 +5,7 @@ import { execSync } from 'node:child_process';
 import type { LiabilityScan } from '../collectors/accounts';
 import type { ReserveSnapshot } from '../collectors/reserves';
 import { LOCKERS, NETWORK } from './config';
-import { assessRatio, confidence, formatGap, IN_TRANSIT, KNOWN_SURPLUS } from './ratio';
+import { assessRatio, confidence, formatGap, IN_TRANSIT } from './ratio';
 import { liabilityBreakdown } from './liabilities';
 
 export const REPORT_VERSION = 1;
@@ -14,7 +14,7 @@ export const RULES = [
   'Reserves: on-chain balances of every Strike locker (Ethereum vault; Solana vault account, its treasury PDA and the named USDC token account, de-duplicated; both Cardano scripts).',
   'Prices: Strike /price/v2/premiumIndex index price for ADA/ETH/SOL; Strike /v2/credit/collateral-assets for sUSDrf, LP_SUNDAE_USDCx_USDM and scaled aUSDC; fiat-redeemable stablecoins (USDC, USDT, USDCx, USDM) at the 1:1 peg by contract id; anything else unpriced and excluded.',
   'Raw on-chain amounts of Credit custody assets are scaled with /v2/credit/settings raw_amount_scale.',
-  'Liabilities: Σ margin_balance of every non-vault leaderboard account plus discovered sub-accounts, minus Σ lockedRewards (inside margin_balance, not withdrawable), plus Σ depositors\x27 vault shares (/v2/vault/{id}/depositors current_equity; not inside margin_balance). stakingRewardBalance and referral rewards are not withdrawable and not added.',
+  'Liabilities (everything withdrawable): Σ margin_balance of every non-vault leaderboard account plus discovered sub-accounts, (lockedRewards are inside margin_balance and counted as owed), plus Σ depositors\x27 vault shares (/v2/vault/{id}/depositors; not inside margin_balance), plus Σ stakingRewardBalance (withdrawable; not inside margin_balance). Commission balances are withdrawable too; public source pending, listed as a pending line.',
   'Vault accounts (vault_id / vault_ prefix) are excluded so nothing is double counted; their margin_balance is a cross-check that should equal Σ depositor shares.',
   'One price snapshot values every reserve row; it is taken right after the account scan and both are timestamped.',
   'Status: Balanced within ±0.01%, Drift up to ±1%, Needs review beyond; a gap within the founder-stated in-transit amount is "In transit".',
@@ -64,8 +64,7 @@ export function buildReport(p: { liab: LiabilityScan; reserves: ReserveSnapshot;
     liabilities: {
       accounts_listed: liab.listed, vaults_excluded: liab.excludedVaults, subaccounts_discovered: liab.discovered,
       accounts_read: liab.read, accounts_failed: liab.failed, negative_accounts: liab.negative, confidence: conf.label,
-      margin_balance_usd: liab.totalUsd, locked_rewards_usd: liab.lockedRewardsUsd, vault_shares_usd: liab.vaultSharesUsd,
-      staking_rewards_usd_not_counted: liab.stakingRewardsUsd,
+      margin_balance_usd: liab.totalUsd, locked_rewards_usd: liab.lockedRewardsUsd, vault_shares_usd: liab.vaultSharesUsd, staking_rewards_usd: liab.stakingRewardsUsd, commission_usd: null,
       total_usd: b.exposedUsd,
       vault_accounts_crosscheck_usd: liab.vaultsUsd,
       accounts: liab.accounts, vaults: liab.vaults, vault_shares: liab.vaultShares,
@@ -73,8 +72,7 @@ export function buildReport(p: { liab: LiabilityScan; reserves: ReserveSnapshot;
     result: {
       ratio: published.ratio ?? null, status: published.status ?? null, explained_by: published.explainedBy ?? null,
       gap_usd: published.gapUsd ?? null, gap_pct: published.gapPct ?? null, gap_text: formatGap(published),
-      raw_gap_usd: published.rawGapUsd ?? null,
-      known_surplus: { label: KNOWN_SURPLUS.label, usd: KNOWN_SURPLUS.usd, status: KNOWN_SURPLUS.confirmed ? 'set' : 'pending confirmation' },
+      open_notes: openNotes(liab, reserves),
       in_transit: { tolerance_usd: IN_TRANSIT.toleranceUsd, note: IN_TRANSIT.note },
       vault_crosscheck: { vault_accounts_usd: liab.vaultsUsd, depositor_shares_usd: liab.vaultSharesUsd, difference_usd: liab.vaultsUsd - liab.vaultSharesUsd, per_vault: perVault(liab) },
     },
@@ -90,6 +88,15 @@ export function perVault(liab: Pick<LiabilityScan, 'vaults' | 'vaultShares'>) {
     const sum = shares.reduce((s, x) => s + Number(x.current_equity), 0);
     return { vault_id: v.vault_id, vault_account_usd: Number(v.margin_balance), depositor_shares_usd: sum, depositors: shares.length, difference_usd: Number(v.margin_balance) - sum };
   });
+}
+
+/** Open items shown as notes until the founder answers (never folded into the numbers). */
+export function openNotes(liab: Pick<LiabilityScan, 'vaults' | 'vaultShares'>, reserves: Pick<ReserveSnapshot, 'rows'>): string[] {
+  const notes: string[] = ['Commission balances are withdrawable liabilities; their public source is pending from Strike, so they are not added yet.',
+    'Locked rewards are inside margin_balance and counted as owed (founder, 23 Oct).'];
+  for (const v of perVault(liab)) if (Math.abs(v.difference_usd) > 10) notes.push(`Vault ${v.vault_id}: vault account ${v.vault_account_usd.toFixed(2)} vs Σ depositor shares ${v.depositor_shares_usd.toFixed(2)} (difference ${v.difference_usd.toFixed(2)}): acknowledged by Strike, ignored for now.`);
+  for (const r of reserves.rows) if (r.quote.status === 'placeholder') notes.push(`${r.asset} (${r.chain}) counted at a placeholder price of ${r.quote.usd}; price source pending from Strike.`);
+  return notes;
 }
 
 export type ScanReport = ReturnType<typeof buildReport>;

@@ -142,11 +142,11 @@ npm run verify        # or: npx zerogap verify</pre>
 
   <section id="method" class="card" style="border: 1px dashed var(--line2); background: transparent; gap: 10px">
     <h2 style="margin: 0; font-size: 18px; font-weight: 600">How we compute</h2>
-    <p class="mono" style="margin: 0; font-size: 14px; color: var(--ink2)">ratio = Σ locker balances × price ÷ (Σ account value − Σ locked rewards + Σ depositors' vault shares)</p>
+    <p class="mono" style="margin: 0; font-size: 14px; color: var(--ink2)">ratio = Σ locker balances × price ÷ (Σ account value + Σ depositors' vault shares + Σ staking rewards)</p>
     <p style="margin: 0; font-size: 14px; color: var(--dim); line-height: 1.6">
       Reserves: balances read directly from the lockers (Ethereum <code>eth_call</code>, Solana RPC, Cardano Koios/Blockfrost); ADA/ETH/SOL priced with Strike's
       <code>/price/v2/premiumIndex</code> index price, fiat-redeemable stablecoins at their 1:1 peg (labelled), anything else listed as unpriced — never guessed.<br>
-      Liabilities: every account from <code>/stat/v1/stats/leaderboard</code> read live via <code>/v2/account</code> (margin_balance) and <code>/v2/balances</code> (lockedRewards, subtracted), sub-accounts included; vault accounts excluded and each depositor's vault share added from <code>/v2/vault/{id}/depositors</code>; ≤ 40 requests/s.<br>
+      Liabilities: every account from <code>/stat/v1/stats/leaderboard</code> read live via <code>/v2/account</code> (margin_balance) and <code>/v2/balances</code> (stakingRewardBalance, added), sub-accounts included; vault accounts excluded and each depositor's vault share added from <code>/v2/vault/{id}/depositors</code>; ≤ 40 requests/s.<br>
       Status: Balanced within ±0.01%, Drift up to ±1%, Needs review beyond (never published as insolvency). Gaps explained by components Strike does not expose yet show as Incomplete.
       Read-only, open source (MIT): <a id="gh" href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>.
     </p>

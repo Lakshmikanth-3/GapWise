@@ -35,13 +35,14 @@ describe('verify report (founder request: independently verifiable)', () => {
   });
 
   it('recomputes liabilities and the ratio from the rows it publishes', () => {
-    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.margin_balance) - Number(a.lockedRewards), 0)
-      + r.liabilities.vault_shares.reduce((s, v) => s + Number(v.current_equity), 0);
-    expect(fromRows).toBeCloseTo(r.liabilities.total_usd, 9); // 98 − 0 … + 49.5 = 147.5
-    expect(r.result.ratio).toBeCloseTo(98 / 147.5, 9);
+    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.margin_balance), 0)
+      + r.liabilities.vault_shares.reduce((s, v) => s + Number(v.current_equity), 0)
+      + r.liabilities.accounts.reduce((s, a) => s + Number(a.stakingRewardBalance), 0);
+    expect(fromRows).toBeCloseTo(r.liabilities.total_usd, 9); // 98.5 + 49.5 + 3 = 151
+    expect(r.result.ratio).toBeCloseTo(98 / 151, 9);
     expect(r.result.vault_crosscheck).toEqual({ vault_accounts_usd: 50, depositor_shares_usd: 49.5, difference_usd: 0.5,
       per_vault: [{ vault_id: 'v-uuid', vault_account_usd: 50, depositor_shares_usd: 49.5, depositors: 1, difference_usd: 0.5 }] });
-    expect(r.result.known_surplus).toMatchObject({ label: 'Unattributed V1 rewards (known surplus)' });
+    expect(r.result.open_notes.join(' ')).toMatch(/Commission/);
   });
 
   it('content_sha256 is the hash of the report body, so anyone can check integrity', () => {

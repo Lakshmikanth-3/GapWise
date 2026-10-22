@@ -61,11 +61,11 @@ describe('pluggable pricer: adding one adapter prices a pending asset', () => {
 });
 
 describe('liabilities = withdrawable value: margin_balance minus locked rewards; other rewards excluded', () => {
-  it('margin_balance minus locked rewards plus depositor vault shares; no staking or referral line (founder rules)', () => {
-    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30, vaultSharesUsd: 500 });
-    expect(b.exposedUsd).toBe(1470);
-    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'deducted'], ['Vault', 'counted']]);
-    expect(JSON.stringify(b)).not.toMatch(/Staking|Referral/);
+  it('margin_balance (locked rewards included) + vault shares + staking rewards; commission pending (founder rules)', () => {
+    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30, vaultSharesUsd: 500, stakingRewardsUsd: 40 });
+    expect(b.exposedUsd).toBe(1540); // locked rewards are inside margin_balance: counted once, never subtracted or re-added
+    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'included'], ['Vault', 'counted'], ['Staking', 'counted'], ['Commission', 'pending']]);
+    expect(b.components.find(c => c.status === 'pending')!.usd).toBeUndefined();
   });
 
   const row = (o: Partial<BalanceRow>): BalanceRow => ({ asset: 'USDT', walletBalance: '100', maxWithdrawAmount: '100', maxWithdrawAfterRewards: '100', lockedRewards: '0', stakingRewardBalance: '0', ...o });
@@ -134,14 +134,11 @@ describe('custody scale and one price snapshot per scan', () => {
   });
 });
 
-describe('known surplus: unattributed V1 rewards (founder, 22 Oct 23:33)', () => {
-  const p = { unpricedReserves: 0, pendingLiabilityEstimateUsd: 0, inTransitToleranceUsd: 0 };
-  it('is subtracted from reserves before the gap and status, and the raw gap is kept', () => {
-    const a = assessRatio({ ...p, reservesUsd: 1_036_000, liabilitiesUsd: 1_000_000, knownSurplusUsd: 36_000 });
-    expect(a).toMatchObject({ status: 'Balanced', gapUsd: 0, rawGapUsd: 36_000 });
-  });
-  it('defaults to 0 (pending confirmation): nothing is hidden', () => {
-    const a = assessRatio({ ...p, reservesUsd: 1_036_000, liabilitiesUsd: 1_000_000, knownSurplusUsd: 0 });
-    expect(a).toMatchObject({ status: 'Needs review', gapUsd: 36_000 });
+
+describe('iUSD placeholder (founder, 23 Oct: counts as a reserve; price source pending)', () => {
+  it('is valued at a labelled $1 placeholder, never presented as a market price', async () => {
+    const { placeholderAdapter } = await import('../../packages/collectors/prices');
+    const q = await createPricer([placeholderAdapter])({ chain: 'cardano', asset: 'iUSD', contract: 'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b6988069555344' });
+    expect(q).toMatchObject({ usd: 1, status: 'placeholder', source: expect.stringMatching(/^placeholder: iUSD/) });
   });
 });

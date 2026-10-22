@@ -22,21 +22,8 @@ export function ratioStatus(ratio: number | undefined): RatioStatus | undefined 
 
 export type Assessment = {
   ratio?: number; status?: RatioStatus | 'Incomplete' | 'In transit'; explainedBy?: string;
-  /** (reserves − known surplus) − liabilities, in USD and as % of liabilities, e.g. −12 / −0.0004. */
+  /** reserves − liabilities, in USD and as % of liabilities, e.g. −12 / −0.0004. */
   gapUsd?: number; gapPct?: number;
-  /** reserves − liabilities before subtracting the known surplus. */
-  rawGapUsd?: number;
-};
-
-/**
- * Known surplus (founder, 22 Oct 23:33): converted V1 platform rewards were deposited into the lockers without being
- * attributed to any account. Amount pending confirmation: KNOWN_SURPLUS_USD (default 0). When set, it is subtracted from
- * reserves before the gap and status are computed, and shown as its own labelled line.
- */
-export const KNOWN_SURPLUS = {
-  usd: Number(process.env.KNOWN_SURPLUS_USD ?? 0),
-  label: 'Unattributed V1 rewards (known surplus)',
-  confirmed: process.env.KNOWN_SURPLUS_USD !== undefined && process.env.KNOWN_SURPLUS_USD !== '',
 };
 
 /** Known in-transit amounts (founder, 22 Oct): ETH LP withdrawal + Cardano↔Ethereum IOG bridge. A gap this size is not Drift. */
@@ -51,13 +38,11 @@ export const IN_TRANSIT = {
  * - a shortfall while some reserves are still unpriced → 'Incomplete';
  * - a surplus no larger than an estimate of liabilities Strike does not expose yet → 'Incomplete'.
  */
-export function assessRatio(p: { reservesUsd: number; liabilitiesUsd: number; unpricedReserves: number; pendingLiabilityEstimateUsd: number; inTransitToleranceUsd?: number; knownSurplusUsd?: number }): Assessment {
-  const surplus = p.knownSurplusUsd ?? KNOWN_SURPLUS.usd;
-  const reserves = p.reservesUsd - surplus;
-  const ratio = reserveRatio(reserves, p.liabilitiesUsd);
+export function assessRatio(p: { reservesUsd: number; liabilitiesUsd: number; unpricedReserves: number; pendingLiabilityEstimateUsd: number; inTransitToleranceUsd?: number }): Assessment {
+  const ratio = reserveRatio(p.reservesUsd, p.liabilitiesUsd);
   const status = ratioStatus(ratio);
-  const gapUsd = reserves - p.liabilitiesUsd;
-  const base = { ratio, gapUsd, rawGapUsd: p.reservesUsd - p.liabilitiesUsd, gapPct: p.liabilitiesUsd > 0 ? (gapUsd / p.liabilitiesUsd) * 100 : undefined };
+  const gapUsd = p.reservesUsd - p.liabilitiesUsd;
+  const base = { ratio, gapUsd, gapPct: p.liabilitiesUsd > 0 ? (gapUsd / p.liabilitiesUsd) * 100 : undefined };
   if (ratio === undefined || status === 'Balanced') return { ...base, status };
   const tol = p.inTransitToleranceUsd ?? IN_TRANSIT.toleranceUsd;
   if (Math.abs(gapUsd) <= tol) return { ...base, status: 'In transit', explainedBy: `known in-transit funds (≤ $${tol.toLocaleString('en-US')})` };

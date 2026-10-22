@@ -35,8 +35,8 @@ async function main() {
   console.log(`Accounts listed: ${liab.listed} | vaults excluded: ${liab.excludedVaults} | sub-accounts discovered: ${liab.discovered} | read: ${liab.read} | failed: ${liab.failed.length} | negative: ${liab.negative.length}  [${c.label}]`);
   console.log(`Scan window: ${new Date(liab.startedAt).toISOString()} → ${new Date(liab.ts).toISOString()} · price snapshot ${new Date(snap.takenAt() ?? v.ts).toISOString()}`);
   console.table([
-    ...b.components.map(x => ({ component: x.name, status: x.status, usd: usd(x.usd), source: x.source })),
-    { component: 'TOTAL', status: '', usd: usd(b.exposedUsd), source: 'Σ margin_balance − Σ lockedRewards' },
+    ...b.components.map(x => ({ component: x.name, status: x.status, usd: x.usd === undefined ? 'pending' : usd(x.usd), source: x.source })),
+    { component: 'TOTAL', status: '', usd: usd(b.exposedUsd), source: 'Σ margin_balance + Σ vault shares + Σ staking rewards' },
   ]);
   console.log(`Rewards evidence: lockedRewards inside walletBalance for ${liab.lockedInWallet.consistent} account(s), not for ${liab.lockedInWallet.inconsistent} · stakingRewardBalance Σ ${usd(liab.stakingRewardsUsd)} is separate (not added)`);
 
