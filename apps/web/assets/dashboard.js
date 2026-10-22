@@ -144,5 +144,11 @@ async function renderHistory() {
   } catch { /* keep last render */ }
 }
 
-poll((s) => { renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); });
+/** T3.2: data older than 10 minutes shows a warning banner (values stay visible, marked stale). */
+export function staleMessage(s, now = Date.now()) {
+  const age = now - (s.ratio?.ts ?? s.now ?? 0);
+  return age > 10 * 60_000 ? `Stale data: last full scan ${Math.round(age / 60_000)} min ago. Values below are the last good snapshot.` : '';
+}
+
+poll((s) => { const m = staleMessage(s); $('stale-banner').textContent = m; $('stale-banner').style.display = m ? '' : 'none'; renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); });
 renderHistory(); setInterval(renderHistory, 60000);

@@ -26,7 +26,7 @@ describe('accounts collector (mocked fixtures)', () => {
     expect(excludedVaults).toBe(1);
   });
 
-  it('T2.3 sums margin_balance, discovers a sub-account once; T2.12 scan is timestamped', async () => {
+  it('T2.3 sums margin_balance, discovers a sub-account once; T2.4 negative equity included as-is and flagged; scan is timestamped', async () => {
     const [a0, a1] = leaderboard.entries.map(e => e.account_id);
     const requested: string[] = [];
     server.use(

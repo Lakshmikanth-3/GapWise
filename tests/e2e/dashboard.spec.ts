@@ -38,3 +38,16 @@ for (const path of ['/', '/dashboard', '/my-safety']) {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }
+
+test('T3.2 a snapshot older than 10 minutes shows a stale warning banner', async ({ page }) => {
+  await page.route('**/api/state', async route => {
+    const res = await route.fetch();
+    const body = await res.json();
+    const old = Date.now() - 25 * 60_000;
+    body.now = old; if (body.ratio) body.ratio.ts = old;
+    await route.fulfill({ json: body });
+  });
+  await page.goto('/dashboard');
+  await expect(page.locator('#stale-banner')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#stale-banner')).toContainText('Stale data');
+});

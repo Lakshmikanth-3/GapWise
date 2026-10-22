@@ -1,5 +1,7 @@
 # ZeroGap
 
+[![CI](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml) [![ZeroGap engine](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml)
+
 **Independent, read-only proof of solvency and safety monitor for [Strike Finance](https://docs.strikefinance.org/)**
 (strikefinance.org; not the Bitcoin app "Strike"). Built for the Strike Finance Hackathon, October 2026.
 
