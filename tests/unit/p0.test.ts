@@ -48,9 +48,9 @@ describe('T1.8 pricing never assumes $1 by name; pending tokens are unpriced', a
     expect(v.rows[0]).toMatchObject({ usdValue: 10, quote: { source: expect.stringMatching(/^peg/) } });
     expect(v.rows[2]).toMatchObject({ usdValue: 7 });
   });
-  it('sUSDr, iUSD and LP are "pending"; spoofed tokens are "unknown"; all unpriced', () => {
+  it('without the Strike credit adapter sUSDrf/LP stay unpriced; iUSD is "pending"; spoofed tokens are "unknown"', () => {
     expect(v.unpriced.map(u => u.asset)).toEqual(['USDM', 'sUSDr', 'iUSD', 'LP', 'ETH']);
-    expect(v.rows[3].quote.source).toMatch(/^pending/);
+    expect(v.rows[4].quote.source).toMatch(/^pending/);
     expect(v.rows[1].quote.source).toMatch(/^unknown/);
   });
   it('natives priced from the feed, stale flag carried', () => {

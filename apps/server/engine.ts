@@ -8,6 +8,7 @@ import { reportedTransfers } from '../../packages/collectors/stats';
 import { ethFlows, solanaFlows, cardanoFlows, bucketFlows, type Flow, type FlowCoverage } from '../../packages/collectors/flows';
 import { ethSafetyState, ethSafetyEventsBetween, openItems, type EthSafetyState, type SafetyEvent } from '../../packages/collectors/safety';
 import { client } from '../../packages/collectors/ethereum';
+import { solanaSafetyState, type SolanaVaultState } from '../../packages/collectors/solana';
 import { assessRatio, confidence, type Assessment } from '../../packages/core/ratio';
 import { liabilityBreakdown, type LiabilityComponent } from '../../packages/core/liabilities';
 import { flowCheck, type FlowCheckRow } from '../../packages/core/flowCheck';
@@ -36,6 +37,7 @@ export type State = {
     confidence: string; failed: number; scanWindow: [number, number]; reservesTs: number;
   }>;
   safety?: Timed<EthSafetyState>;
+  solanaSafety?: Timed<SolanaVaultState & { address: string; slot: number }>;
   events: SafetyEvent[];
   lastEventBlock?: number;
   flows?: Timed<{ rows: FlowCheckRow[]; coverage: FlowCoverage[]; moves: number }>;
@@ -104,7 +106,7 @@ export class Engine {
     await this.store?.insert('liability_snapshots', [{
       ts: new Date(scan.ts).toISOString(), started_at: new Date(scan.startedAt).toISOString(), accounts_listed: scan.listed, vaults_excluded: scan.excludedVaults,
       subaccounts_discovered: scan.discovered, accounts_read: scan.read, failures: scan.failed.length, margin_usd: scan.totalUsd,
-      staking_rewards_usd: scan.stakingRewardsUsd, locked_rewards_usd: scan.lockedRewardsUsd, pending_components: JSON.stringify(b.components.filter(c => c.status === 'pending')),
+      staking_rewards_usd: scan.stakingRewardsUsd, locked_rewards_usd: scan.lockedRewardsUsd, pending_components: JSON.stringify(b.components.filter(c => c.status !== 'counted')),
       vaults_audit_usd: scan.vaultsUsd, total_usd: b.exposedUsd,
     }]);
     await this.store?.insert('ratio_snapshots', [{
@@ -115,8 +117,9 @@ export class Engine {
   });
 
   safetyJob = () => this.guarded('safety', async () => {
-    const s = await ethSafetyState();
+    const [s, sol] = await Promise.all([ethSafetyState(), solanaSafetyState().catch(e => { this.state.errors.solanaSafety = { at: Date.now(), message: (e as Error).message }; return undefined; })]);
     this.state.safety = { value: s, ts: s.ts };
+    if (sol) { this.state.solanaSafety = { value: sol, ts: Date.now() }; delete this.state.errors.solanaSafety; }
     const head = BigInt(s.block);
     const first = this.state.lastEventBlock === undefined;
     const from = first ? head - EVENT_LOOKBACK_BLOCKS : BigInt(this.state.lastEventBlock! + 1);
@@ -168,7 +171,10 @@ export class Engine {
     return evaluate({
       assessment: s.ratio?.value.published ?? {},
       flowMismatches: (s.flows?.value.rows ?? []).filter(r => r.mismatch && r.day === latestDay),
-      paused: s.safety ? [{ chain: 'ethereum', paused: s.safety.value.paused }] : [],
+      paused: [
+        ...(s.safety ? [{ chain: 'ethereum', paused: s.safety.value.paused }] : []),
+        ...(s.solanaSafety ? [{ chain: 'solana', paused: s.solanaSafety.value.paused || s.solanaSafety.value.recovered }] : []),
+      ],
       queued: open.queued.map(e => ({ id: e.args.requestID, amount: Number(e.args.amount) / 1e6, token: 'USDC', executableAt: Number(e.args.executableAt) * 1000, tx: e.tx })),
       actions: open.actions.map(e => ({ id: e.args.actionId, kind: e.args.kind, tx: e.tx })),
       controlEvents: s.events.filter(e => !['Withdraw', 'Deposit', 'LargeWithdrawalQueued', 'LargeWithdrawalExecuted', 'LargeWithdrawalCancelled', 'ActionProposed', 'ActionFinalized', 'ActionCancelled', 'Paused', 'Unpaused'].includes(e.type))

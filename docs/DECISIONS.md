@@ -108,3 +108,24 @@
     this server-side), and each one needs the user's own wallet signature.
 30. **No simulation mode** (owner's decision, 22 Oct): alerts fire only on real events. The PRD's `[SIMULATION]` demo
     path is removed. Tests still use recorded real API responses so CI never depends on the network.
+
+## 2026-10-22 (founder update, 13:12–14:30)
+
+31. **Official prices for sUSDrf, LP and aUSDC:** `GET /v2/credit/collateral-assets` (Strike Credit, docs `/api/credit`) gives
+    price, `price_available` and `price_fresh` per collateral asset. The custody mapping comes from `/v2/credit/settings`.
+    Implemented as `strikeCreditAdapter` (one adapter, as planned). The on-chain `sUSDr` token is Strike's `sUSDrf`.
+    Only iUSD is still unpriced (it is not a Credit collateral asset).
+32. **LP decimals:** the SundaeSwap LP token has empty CIP-68 metadata, so Koios reports 0 decimals. Strike's custody
+    mapping says `raw_amount_scale` 6. Strike's 36,624.5 LP × $1.0164 = $37,227, matching our earlier pool look-through
+    of $37.2k.
+33. **New reserve found: aEthUSDC.** The Ethereum locker holds 1,857.09 aEthUSDC (Aave V3, whitelisted in the vault).
+    It is reported in scaled units and priced with Strike's `SCALED_AAVE_V3_ETH_aUSDC` price.
+34. **Rewards discounted** (founder: "only tradeable and not withdrawable"). Liabilities = Σ margin_balance − Σ
+    lockedRewards. Staking rewards and referral rewards are shown but not counted. This replaces DECISIONS #20.
+35. **Solana:** the corrected IDL (`strike_vault`, same program) is installed. The founder confirmed `BT85fgyh…` holds the USDC.
+    VaultState PDA `6zPB32Hh…` is decoded (paused, pending_withdrawal_count, recovered, global usage windows). Cross-check:
+    its 24h usage of 3,979 equals the Solana outflow the flow match decoded for 21 Oct (3,978.90 USDC).
+36. **Vault exclusion vs data (live, 12:28 UTC, after #31–#34):** priced reserves $1,869,545; withdrawable liabilities $744,060.
+    With vaults excluded: **251.26%**. With vaults included ($1,086,607): **102.12%**. The founder said the gap should
+    be a few thousand dollars, with an Ethereum LP withdrawal and funds in the IOG bridge in flight. Only the vaults-included
+    figure is close to that. Still asking the founder; the published ratio follows his rule until then.

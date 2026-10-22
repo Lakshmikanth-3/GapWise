@@ -32,11 +32,10 @@ async function main() {
   console.log(`Accounts listed: ${liab.listed} | vaults excluded: ${liab.excludedVaults} | sub-accounts discovered: ${liab.discovered} | read: ${liab.read} | failed: ${liab.failed.length} | negative: ${liab.negative.length}  [${c.label}]`);
   console.log(`Scan window: ${new Date(liab.startedAt).toISOString()} → ${new Date(liab.ts).toISOString()}`);
   console.table([
-    ...b.components.map(x => ({ component: x.name, usd: x.usd !== undefined ? usd(x.usd) : `PENDING${x.estimateUsd ? ` (~${usd(x.estimateUsd)})` : ''}`, source: x.source })),
-    { component: 'TOTAL (exposed)', usd: usd(b.exposedUsd), source: b.pendingEstimateUsd ? 'excludes pending lines' : '' },
+    ...b.components.map(x => ({ component: x.name, status: x.status, usd: x.usd !== undefined ? usd(x.usd) : "-", source: x.source })),
+    { component: "TOTAL (withdrawable liabilities)", status: "", usd: usd(b.exposedUsd), source: "margin_balance - lockedRewards" },
   ]);
-  console.log(`lockedRewards Σ ${usd(liab.lockedRewardsUsd)} (logged, not added) — inside walletBalance for ${liab.lockedInWallet.consistent} account(s), NOT for ${liab.lockedInWallet.inconsistent}`);
-  console.log('Known unexposed liabilities: ' + b.components.filter(x => x.status === 'pending').map(x => x.name).join(', '));
+  console.log(`lockedRewards inside walletBalance for ${liab.lockedInWallet.consistent} account(s), not for ${liab.lockedInWallet.inconsistent}`);
 
   const common = { reservesUsd: v.pricedUsd, unpricedReserves: v.unpriced.length, pendingLiabilityEstimateUsd: b.pendingEstimateUsd };
   console.log('\n=== Ratio (priced reserves only) ===');

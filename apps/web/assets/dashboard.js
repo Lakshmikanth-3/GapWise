@@ -79,12 +79,12 @@ function renderLiabilities(s) {
   if (!l) return;
   $('h-acc').textContent = l.read.toLocaleString('en-US');
   $('lia-sub').textContent = `${l.read.toLocaleString('en-US')} accounts read · ${l.failedCount} failed · ${ago(l.ts)}`;
-  const rows = l.components.map((c) => `<tr><td>${esc(c.name === 'margin_balance' ? 'Account value' : c.name)}</td><td style="color:${c.status === 'pending' ? 'var(--amber)' : 'var(--dim)'}">${esc(c.status === 'pending' ? 'pending' : c.source.replace('GET ', ''))}</td><td class="r" style="${c.status === 'pending' ? 'color:var(--dim)' : ''}">${c.usd === undefined ? '—' : num(c.usd, 0)}</td></tr>`);
-  rows.push(`<tr><td>Vault accounts (excluded)</td><td style="color:var(--dim)">${l.excludedVaults} vaults</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
-  rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
+  const fmt = (c) => c.usd === undefined ? '—' : c.status === 'deducted' ? `−${num(c.usd, 0)}` : num(c.usd, 0);
+  const rows = l.components.map((c) => `<tr><td>${esc(c.name === 'margin_balance' ? 'Account value' : c.name)}</td><td style="color:var(--dim)">${esc(c.source.replace('GET ', ''))}</td><td class="r" style="${c.status === 'excluded' ? 'color:var(--dim)' : ''}">${c.status === 'excluded' ? `${fmt(c)} <span class="src">not counted</span>` : fmt(c)}</td></tr>`);
+  rows.push(`<tr><td>Vault accounts (excluded)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} audit</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
+  rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
-  const pending = l.components.filter((c) => c.status === 'pending');
-  $('pending-notes').innerHTML = pending.map((p) => `<div class="note">Known unexposed liability: ${esc(p.name)}${p.estimateUsd ? ` (~${usd(p.estimateUsd)})` : ''} is not exposed by Strike yet and is left out. Shown separately once the endpoint ships.</div>`).join('');
+  $('pending-notes').innerHTML = '<div class="note">Rewards are tradeable but not withdrawable, so they are not backed by the lockers and are not counted (per Strike). Staking and referral rewards are excluded; locked rewards are deducted from account value.</div>';
 }
 
 function renderFlows(s) {
@@ -107,10 +107,12 @@ function renderFlows(s) {
 function renderSafety(s) {
   const sf = s.safety;
   if (!sf) return;
-  const queuedOpen = sf.largeWithdrawal.pendingCount;
+  const sol = s.solanaSafety;
+  const anyPaused = sf.paused || !!(sol && (sol.paused || sol.recovered));
+  const queuedOpen = sf.largeWithdrawal.pendingCount + (sol?.pendingWithdrawalCount ?? 0);
   const timelocked = s.events.filter((e) => e.type === 'ActionProposed').length - s.events.filter((e) => e.type === 'ActionFinalized' || e.type === 'ActionCancelled').length;
   $('safety-cards').innerHTML = [
-    `<div class="card"><div class="label">Vault status</div><div style="font-size:22px;font-weight:600;color:${sf.paused ? 'var(--red)' : 'var(--green2)'}">${sf.paused ? 'PAUSED' : 'Not paused'}</div><div class="label">Ethereum checked on-chain · Solana pending corrected IDL</div></div>`,
+    `<div class="card"><div class="label">Vault status</div><div style="font-size:22px;font-weight:600;color:${anyPaused ? 'var(--red)' : 'var(--green2)'}">${anyPaused ? 'PAUSED' : 'Not paused'}</div><div class="label">Ethereum ${sf.paused ? 'PAUSED' : 'ok'} · Solana ${sol ? (sol.paused ? 'PAUSED' : sol.recovered ? 'RECOVERED' : 'ok') + ` · ${sol.pendingWithdrawalCount} queued` : 'not read'} · on-chain</div></div>`,
     `<div class="card"><div class="label">Large withdrawals queued</div><div class="mono" style="font-size:22px;font-weight:700">${queuedOpen}</div><div class="label">Queue delay ${Math.round(sf.largeWithdrawal.queueDelaySecs / 3600)} h before payout · cap ${sf.largeWithdrawal.maxPending}</div></div>`,
     `<div class="card"><div class="label">Timelocked changes</div><div class="mono" style="font-size:22px;font-weight:700">${Math.max(0, timelocked)} pending</div><div class="label">Upgrades, limits, roles · ${Math.round(sf.timelock.delaySecs / 3600)} h timelock</div></div>`,
     `<div class="card" style="gap:10px"><div class="label">24h withdrawal limit used (USDC)</div><div class="mono" style="font-size:22px;font-weight:700">${sf.usdc24h.usedPct.toFixed(1)}%</div><div class="bar"><div style="width:${Math.min(100, sf.usdc24h.usedPct)}%"></div></div><div class="label">${num(sf.usdc24h.current, 0)} of ${num(sf.usdc24h.limit, 0)} USDC · 1h ${sf.usdc1h.usedPct.toFixed(1)}%</div></div>`,

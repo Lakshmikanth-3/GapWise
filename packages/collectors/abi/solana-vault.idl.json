@@ -1,10 +1,10 @@
 {
   "address": "7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8",
   "metadata": {
-    "name": "strike_example",
+    "name": "strike_vault",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "Created with Anchor"
+    "description": "Strike Finance V2 Solana vault (mainnet program 7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8)"
   },
   "instructions": [
     {

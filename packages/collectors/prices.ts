@@ -72,18 +72,55 @@ export const pegAdapter: PriceAdapter = {
   getPrice: async () => ({ usd: 1, source: 'peg 1:1 (fiat-redeemable stablecoin)', ts: Date.now(), status: 'priced' }),
 };
 
-/** Assets with an official Strike price API that is not public yet. Never priced by us. */
-export const PENDING_PRICE: Record<string, string> = {
-  '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae': 'sUSDr',
-  'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880': 'iUSD',
-  '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56': 'LP USDCx/USDM',
+// Official Strike Credit collateral prices (docs /api/credit/collateral, pointed to by the founder on 22 Oct):
+// GET {STRIKE_API}/v2/credit/collateral-assets -> { assets: { sUSDrf: { price, price_available, price_fresh, price_observed_at }, ... } }
+export const CREDIT_PATH = '/v2/credit/collateral-assets';
+/** On-chain custody asset (contract / Cardano policy) → Strike Credit collateral id (per /v2/credit/settings custody mappings). */
+export const CREDIT_ASSET: Record<string, string> = {
+  '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae': 'sUSDrf',
+  '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56': 'LP_SUNDAE_USDCx_USDM',
+  // Priced per *scaled* unit (includes the Aave liquidity index); the Ethereum collector reports scaled units.
+  '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c': 'SCALED_AAVE_V3_ETH_aUSDC',
 };
 
-// TODO(founder): replace with the official Strike price adapter for sUSDr / iUSD / LP once documented.
+export function strikeCreditAdapter(base = env.strikeApi, fetchFn: typeof fetch = fetch, ttlMs = 30_000): PriceAdapter {
+  const lastGood = new Map<string, { usd: number; ts: number }>();
+  let fetchedAt = 0; let inflight: Promise<boolean> | undefined;
+  const refresh = () => (inflight ??= (async () => {
+    try {
+      const res = await fetchFn(`${base}${CREDIT_PATH}`);
+      if (!res.ok) throw new Error(`credit ${res.status}`);
+      const body = await res.json() as { assets: Record<string, { price: string; price_available: boolean; price_fresh: boolean; price_observed_at: number }> };
+      for (const [id, a] of Object.entries(body.assets)) {
+        const usd = Number(a.price);
+        if (a.price_available && a.price_fresh && usd > 0) lastGood.set(id, { usd, ts: a.price_observed_at });
+      }
+      fetchedAt = Date.now(); return true;
+    } catch { return false; } finally { inflight = undefined; }
+  })());
+  const idOf = (a: AssetRef) => (a.contract ? CREDIT_ASSET[a.contract] ?? CREDIT_ASSET[a.contract.slice(0, 56)] : undefined);
+  return {
+    name: 'strike-credit',
+    matches: a => !!idOf(a),
+    async getPrice(a) {
+      const fresh = Date.now() - fetchedAt < ttlMs || await refresh();
+      const p = lastGood.get(idOf(a)!);
+      const source = `${base}${CREDIT_PATH} (${idOf(a)})`;
+      if (!p) return { source, ts: Date.now(), status: 'unpriced' };
+      return { usd: p.usd, ts: p.ts, source, status: fresh ? 'priced' : 'stale' };
+    },
+  };
+}
+
+/** Assets with no official Strike price source (not a Credit collateral asset). Never priced by us. */
+export const PENDING_PRICE: Record<string, string> = {
+  'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880': 'iUSD',
+};
+
 export const pendingAdapter: PriceAdapter = {
   name: 'pending',
   matches: byContract(PENDING_PRICE),
-  getPrice: async () => ({ source: 'pending: official Strike price API not yet public', ts: Date.now(), status: 'unpriced' }),
+  getPrice: async () => ({ source: 'pending: no official Strike price source for this asset', ts: Date.now(), status: 'unpriced' }),
 };
 
 export const unknownAdapter: PriceAdapter = {
@@ -95,7 +132,7 @@ export const unknownAdapter: PriceAdapter = {
 export type GetPrice = (a: AssetRef) => Promise<PriceQuote>;
 
 /** First matching adapter wins; `unknownAdapter` always terminates the chain. */
-export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), pegAdapter, pendingAdapter]): GetPrice {
+export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), pegAdapter, pendingAdapter]): GetPrice {
   const chain = [...adapters, unknownAdapter];
   return a => chain.find(x => x.matches(a))!.getPrice(a);
 }

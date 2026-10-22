@@ -9,7 +9,15 @@ export const CARDANO_POLICIES: Record<string, string> = {
   '1f3aec8bfe7ea4fe14c5f121e2a92e301afe414147860d557cac7e34': 'USDCx',
   'c48cbb3d5e57ed56e276bc45f99ab39abe94e6cd7ac39fb402da47ad': 'USDM',
   'f66d78b4a3cb3d37afa0ec36461e51ecbde00f26c8f0a68f94b69880': 'iUSD',
-  '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae': 'sUSDr',
+  '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae': 'sUSDrf',
+  '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56': 'LP_SUNDAE_USDCx_USDM',
+};
+/**
+ * Decimals from Strike's /v2/credit/settings custody mappings (raw_amount_scale) where token metadata is missing:
+ * the SundaeSwap LP token has empty CIP-68 metadata, so Koios reports 0 decimals; Strike values it with 6.
+ */
+export const CARDANO_DECIMALS: Record<string, number> = {
+  '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56': 6,
 };
 /** Protocol state tokens held by the script (e.g. STRIKE_V21_PROTOCOL); not reserves. */
 export const CARDANO_NON_RESERVE = new Set(['43dfa7d041840e1280102ab87ccb17051bb4e5c14bf27bda2608e9fc']);
@@ -21,7 +29,8 @@ export function toReserves(holder: string, lovelace: bigint, tokens: Token[]): R
   for (const t of tokens) {
     if (CARDANO_NON_RESERVE.has(t.policy)) continue;
     const name = Buffer.from(t.nameHex, 'hex').toString('utf8').replace(/[^\x20-\x7e]/g, '') || t.nameHex;
-    out.push({ chain: 'cardano', asset: CARDANO_POLICIES[t.policy] ?? name, amount: Number(t.quantity) / 10 ** t.decimals, raw: t.quantity.toString(), decimals: t.decimals, contract: t.policy + t.nameHex, holder });
+    const decimals = CARDANO_DECIMALS[t.policy] ?? t.decimals;
+    out.push({ chain: 'cardano', asset: CARDANO_POLICIES[t.policy] ?? name, amount: Number(t.quantity) / 10 ** decimals, raw: t.quantity.toString(), decimals, contract: t.policy + t.nameHex, holder });
   }
   return out;
 }

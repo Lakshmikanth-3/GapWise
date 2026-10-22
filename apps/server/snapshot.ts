@@ -30,6 +30,7 @@ export function snapshot(s: State) {
     liabilities: s.liabilities && (({ failed, negative, ...rest }) => ({ ...rest, failedCount: failed.length, negativeCount: negative.length }))({ ...s.liabilities.value, ts: s.liabilities.ts }),
     ratio: s.ratio && { ...s.ratio.value, ts: s.ratio.ts },
     safety: s.safety && s.safety.value,
+    solanaSafety: s.solanaSafety && { ...s.solanaSafety.value, ts: s.solanaSafety.ts },
     events: s.events.slice(-50).reverse(),
     flows: s.flows && { ...s.flows.value, ts: s.flows.ts },
     feed: s.feed.slice(0, 30),

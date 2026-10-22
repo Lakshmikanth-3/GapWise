@@ -1,33 +1,27 @@
 /**
- * Liabilities = margin_balance + rewards owed that are NOT inside margin_balance (founder, 22 Oct).
- * Components that Strike does not expose yet are carried as `pending` lines so the gap is visible, never hidden.
+ * Liabilities = what users can actually withdraw (founder, 22 Oct 14:30): "make sure to discount rewards, since they are
+ * only tradeable and not withdrawable". So:
+ *  - margin_balance counts;
+ *  - lockedRewards (docs: "rewards still locked against withdrawal", tradeable inside the balance) are subtracted;
+ *  - stakingRewardBalance (docs: "segregated; excluded from margin and withdrawals") and referral rewards are not added.
+ * Excluded lines stay visible so the method is auditable.
  */
 export type LiabilityComponent = {
   name: string;
-  status: 'exposed' | 'pending';
+  /** counted: added · deducted: subtracted · excluded: shown, not counted (not withdrawable). */
+  status: 'counted' | 'deducted' | 'excluded';
   usd?: number;
-  /** Founder-supplied order of magnitude for a pending line; used only to explain a gap, never added. */
-  estimateUsd?: number;
   source: string;
 };
 
-// TODO(founder): replace with a real adapter once the referral rewards endpoint is public.
-export const REFERRAL_REWARDS_PENDING: LiabilityComponent = {
-  name: 'Referral rewards', status: 'pending', estimateUsd: 25_000, source: 'pending (not yet exposed by Strike)',
-};
-
-export function liabilityBreakdown(
-  scan: { totalUsd: number; stakingRewardsUsd: number },
-  pending: LiabilityComponent[] = [REFERRAL_REWARDS_PENDING],
-): { components: LiabilityComponent[]; exposedUsd: number; pendingEstimateUsd: number } {
+export function liabilityBreakdown(scan: { totalUsd: number; stakingRewardsUsd: number; lockedRewardsUsd: number }): {
+  components: LiabilityComponent[]; exposedUsd: number; pendingEstimateUsd: number;
+} {
   const components: LiabilityComponent[] = [
-    { name: 'margin_balance', status: 'exposed', usd: scan.totalUsd, source: 'GET /v2/account' },
-    { name: 'Staking rewards', status: 'exposed', usd: scan.stakingRewardsUsd, source: 'GET /v2/balances stakingRewardBalance' },
-    ...pending,
+    { name: 'margin_balance', status: 'counted', usd: scan.totalUsd, source: 'GET /v2/account' },
+    { name: 'Locked rewards (not withdrawable)', status: 'deducted', usd: scan.lockedRewardsUsd, source: 'GET /v2/balances lockedRewards' },
+    { name: 'Staking rewards (not withdrawable)', status: 'excluded', usd: scan.stakingRewardsUsd, source: 'GET /v2/balances stakingRewardBalance' },
+    { name: 'Referral rewards (not withdrawable)', status: 'excluded', source: 'rewards are discounted per Strike' },
   ];
-  return {
-    components,
-    exposedUsd: components.reduce((s, c) => s + (c.status === 'exposed' ? c.usd ?? 0 : 0), 0),
-    pendingEstimateUsd: pending.reduce((s, c) => s + (c.estimateUsd ?? 0), 0),
-  };
+  return { components, exposedUsd: scan.totalUsd - scan.lockedRewardsUsd, pendingEstimateUsd: 0 };
 }

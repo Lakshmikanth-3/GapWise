@@ -8,10 +8,10 @@ import { solanaReserves, treasuryPda } from '../../packages/collectors/solana';
 import { snapshotReserves } from '../../packages/collectors/reserves';
 import { pegAdapter, createPricer } from '../../packages/collectors/prices';
 import { jsonlStore, toReserveRows } from '../../packages/db/queries';
-import { LOCKERS } from '../../packages/core/config';
+import { LOCKERS, env } from '../../packages/core/config';
 
-const ETH_RPC = 'https://ethereum-rpc.publicnode.com';
-const SOL_RPC = 'https://api.mainnet-beta.solana.com';
+const ETH_RPC = env.ethRpc().split('?')[0];
+const SOL_RPC = env.solRpc().split('?')[0];
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());

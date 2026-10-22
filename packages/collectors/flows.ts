@@ -1,5 +1,6 @@
 import { formatUnits } from 'viem';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { solConnection } from './solana';
 import { client, vaultAbi } from './ethereum';
 import { env, LOCKERS } from '../core/config';
 import { dayOf } from './stats';
@@ -71,7 +72,7 @@ export async function ethFlows(sinceMs: number, getPrice: GetPrice, chunk = BigI
 // ---------- Solana: token-balance deltas of the locker's token accounts ----------
 
 export async function solanaFlows(sinceMs: number, getPrice: GetPrice): Promise<{ flows: Flow[]; coverage: FlowCoverage }> {
-  const conn = new Connection(env.solRpc(), 'confirmed');
+  const conn = solConnection();
   const owner = new PublicKey(LOCKERS.solana);
   const accounts = (await conn.getParsedTokenAccountsByOwner(owner, { programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') })).value;
   const flows: Flow[] = [];

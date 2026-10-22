@@ -1,4 +1,4 @@
-import { createPublicClient, http, erc20Abi, formatUnits, type Abi } from 'viem';
+import { createPublicClient, http, erc20Abi, formatUnits, parseAbi, type Abi } from 'viem';
 import { mainnet } from 'viem/chains';
 import vaultAbiJson from './abi/ethereum-vault.json' with { type: 'json' };
 import { env, LOCKERS } from '../core/config';
@@ -29,8 +29,14 @@ export async function ethReserves(): Promise<Reserve[]> {
     ]);
     if (raw > 0n) out.push({ chain: 'ethereum', asset: sym, amount: Number(formatUnits(raw, dec)), raw: raw.toString(), decimals: dec, contract: token, holder: vault });
   }
+  // Aave V3 aUSDC (whitelisted in the vault; mapped by Strike to SCALED_AAVE_V3_ETH_aUSDC). Reported in *scaled*
+  // units because Strike's Credit price is per scaled unit (it already includes the Aave liquidity index).
+  const scaled = await c.readContract({ address: AAVE_AUSDC, abi: parseAbi(['function scaledBalanceOf(address) view returns (uint256)']), functionName: 'scaledBalanceOf', args: [vault] });
+  if (scaled > 0n) out.push({ chain: 'ethereum', asset: 'aEthUSDC (scaled)', amount: Number(formatUnits(scaled, 6)), raw: scaled.toString(), decimals: 6, contract: AAVE_AUSDC, holder: vault });
   return out;
 }
+
+export const AAVE_AUSDC = '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c' as const;
 
 export const SAFETY_EVENTS = [
   'LargeWithdrawalQueued', 'LargeWithdrawalExecuted', 'LargeWithdrawalCancelled',
