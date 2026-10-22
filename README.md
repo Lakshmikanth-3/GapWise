@@ -1,108 +1,146 @@
 # ZeroGap
 
-[![CI](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml) [![ZeroGap engine](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml)
+[![CI](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml) [![ZeroGap engine](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml) [![Hourly verify](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml)
 
-**Independent, read-only proof of solvency and safety monitor for [Strike Finance](https://docs.strikefinance.org/)**
-(strikefinance.org; not the Bitcoin app "Strike"). Built for the Strike Finance Hackathon, October 2026.
+**Every dollar on Strike, proven on-chain.** ZeroGap is an independent, open-source, read-only proof-of-solvency and
+safety monitor for [Strike Finance](https://docs.strikefinance.org/). It counts every dollar in Strike's on-chain lockers,
+counts every dollar Strike owes its users, and shows the gap live. Anyone can re-run the whole check with one command.
 
-Strike runs matching off-chain on the Strike Node, while custody sits in on-chain lockers. ZeroGap checks both sides live:
+> **ZeroGap is an independent project. It is not affiliated with, endorsed by, or operated by Strike Finance.**
+> (Strike Finance is strikefinance.org, not the Bitcoin app "Strike".)
 
-- **Reserves (M1):** balances read directly from Strike's lockers: the Ethereum vault, the Solana vault account and its
-  treasury, and both Cardano scripts (deposit + protocol). Priced with Strike's own index prices.
-- **Liabilities and ratio (M2):** every account from Strike's public API: `margin_balance` minus locked rewards (rewards are tradeable, not withdrawable), with
-  sub-accounts included, vault accounts excluded, and ≤ 40 req/s. Strike is not a CEX, so the target is **exactly 100%**.
-- **Flow match (M2):** Strike's reported daily deposits and withdrawals per chain vs what actually moved on-chain.
-- **Safety monitor (M3):** decoded Ethereum vault events (large-withdrawal queue, pause, timelock, upgrades, roles,
-  rate limits, admin withdrawals) plus live `isPaused()`, `largeWithdrawalConfig()` and `rateLimitBucket()`. Telegram alerts
-  fire on real events only, with no repeats.
-- **My Safety (M4):** connect your wallet with **Strike Builder Connect** (Phantom, MetaMask/Rabby or a CIP-30 Cardano wallet),
-  see your balance and withdrawable amount next to the platform ratio, and withdraw by signing in your own wallet.
+Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_alerts** · Scan history: [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports)
 
-Every number on the site shows its source and timestamp. Nothing is simulated or estimated: unpriced assets and
-liabilities Strike does not expose yet are shown as separate lines, never folded in.
-
-## Run it (4 commands)
+## Verify it yourself
 
 ```bash
 git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
 npm install
-cp .env.example .env        # add your keys (see below)
-npm start                   # http://localhost:8787
+npm run verify          # or: npx zerogap verify
 ```
 
-Pages: `/` landing · `/dashboard` live dashboard · `/my-safety` Builder Connect. API: `/api/state`, `/api/history`,
-`/api/config`, `/api/health`.
+No keys are needed. It scans every Strike account (about 3 minutes at ≤40 requests/s), reads every locker on-chain, and prints
+reserves by chain and address, the liabilities (accounts read, vaults excluded, failures), the price snapshot used,
+the ratio, and the gap in USD and %. It also writes **`reports/<network>-<timestamp>.json`**, a plain JSON file with
+every input: addresses, raw on-chain balances, decimals, prices with sources and timestamps, every account's raw
+`margin_balance` / `lockedRewards`, the vault audit rows, the code commit and a `content_sha256`. Diff it against any
+published scan: the dashboard's **Download this scan (JSON)** button, `GET /api/report`, or the hourly files in the
+`reports` branch.
 
-Other commands: `npm run first-ratio` (one full scan, printed) · `npm run flow-match -- 7` · `npm test` (unit and mocked
-integration, CI) · `npm run test:live` (mainnet smoke) · `npm run test:e2e` (Playwright against a running server).
+## What ZeroGap checks
 
-### Keys (`.env`)
+1. **Reserves:** on-chain balances of every Strike locker, priced in USD.
+2. **Liabilities:** what Strike owes users, summed live account by account from Strike's public API.
+3. **Ratio = reserves ÷ liabilities.** Strike is not a CEX, so the target is **exactly 100.00%**. Above is as suspicious as below.
+4. **Flow match:** Strike-reported daily deposits and withdrawals per chain vs what actually moved on-chain.
+5. **Safety controls:** vault pause state, queued large withdrawals, timelocked changes, upgrades, admin withdrawals and
+   rate-limit usage on Ethereum (ABI-decoded events and state) and Solana (IDL-decoded accounts and instructions), with
+   real-time Telegram alerts.
+6. **My Safety (`/me`):** a trader connects a wallet through Strike Builder Connect, sees their balance backed by the
+   lockers, and can withdraw by signing in their own wallet (proven on Strike testnet).
 
-| Variable | Needed for | Without it |
+## The exact formula
+
+```
+reserves    = Σ over lockers, assets:  amount × price
+              amount  = raw on-chain integer ÷ 10^decimals   (Credit custody assets: Strike's raw_amount_scale)
+              price   = Strike index price (ADA, ETH, SOL) | Strike Credit price (sUSDrf, LP, scaled aUSDC)
+                        | 1.00 for fiat-redeemable stablecoins by contract (USDC, USDT, USDCx, USDM) | unpriced → excluded
+liabilities = Σ margin_balance − Σ lockedRewards        over every non-vault account + discovered sub-accounts
+ratio       = reserves ÷ liabilities                    gap = reserves − liabilities  (USD and % of liabilities)
+status      = Balanced |gap| ≤ 0.01% · Drift ≤ 1% · Needs review > 1% (never published as insolvency)
+              · In transit when |gap| ≤ the founder-stated in-transit amount ($10,000)
+```
+
+One price snapshot values every reserve row; it is taken right after the account scan, and both are timestamped.
+
+## Addresses and endpoints
+
+| Locker | Address | Holds (22 Oct) |
 | --- | --- | --- |
-| `STRIKE_BUILDER_CODE` | My Safety (Builder Connect) | Connect is disabled and the page says why |
-| `ETH_RPC_URL` (Alchemy) | Full Ethereum log history for flow match | Public RPC: about 10k blocks of logs, so recent days only |
-| `SOLANA_RPC_URL` (Helius) | Faster Solana reads | Public RPC (rate-limited) |
-| `BLOCKFROST_PROJECT_ID` | Cardano reads | Koios public API (same on-chain data) |
-| `DATABASE_URL` (Supabase) | Postgres history; run `packages/db/schema.sql` once | Local `data/*.jsonl` |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Alert delivery | Alerts are recorded and shown on the dashboard as "not sent" |
+| Ethereum vault | [`0xbF4cFccd11257e568A936a7867D138f54A43cffa`](https://etherscan.io/address/0xbF4cFccd11257e568A936a7867D138f54A43cffa) | USDC, aEthUSDC (Aave V3) |
+| Solana vault account | [`Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt`](https://solscan.io/account/Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt) | SOL (rent); owns the USDC token account |
+| Solana USDC token account | [`BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6`](https://solscan.io/account/BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6) | USDC |
+| Solana treasury PDA | [`H4nZyX3qGQwGH6wQn8G53uZ6LX8TqPZDakCN2M54icSH`](https://solscan.io/account/H4nZyX3qGQwGH6wQn8G53uZ6LX8TqPZDakCN2M54icSH) | SOL |
+| Cardano deposit script | [`addr1w9yg…kls3`](https://cardanoscan.io/address/addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3) | ADA, USDM, USDCx, sUSDrf, LP_SUNDAE_USDCx_USDM, iUSD |
+| Cardano protocol script | [`addr1w9m5…7jf2`](https://cardanoscan.io/address/addr1w9m5m4v8vfpq74n6cd0z33r3jlatfkfsykpcjaxze8af33qxh7jf2) | ADA, USDM |
 
-## How the ratio is computed
+Solana program `7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8` (IDL `strike_vault`, `packages/collectors/abi/`).
+Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 
+| Purpose | Strike endpoint (public, no key) |
+| --- | --- |
+| Account list | [`GET /stat/v1/stats/leaderboard`](https://docs.strikefinance.org/api/platform-stats/leaderboard.md) (ids only; balances lag) |
+| Account value | [`GET /v2/account?account_id=`](https://docs.strikefinance.org/api/user/rest-api/account.md) → `margin_balance`, `sub_accounts` |
+| Rewards | `GET /v2/balances?account_id=` → `lockedRewards`, `stakingRewardBalance` |
+| Index prices | [`GET /price/v2/premiumIndex`](https://docs.strikefinance.org/api/market/rest-api/prices.md) |
+| Credit prices | [`GET /v2/credit/collateral-assets`](https://docs.strikefinance.org/api/credit/collateral.md) |
+| Custody mapping | [`GET /v2/credit/settings`](https://docs.strikefinance.org/api/credit/settings.md) → `custody_asset_mappings` |
+| Reported flows | [`GET /stat/v1/dashboard/transfers`](https://docs.strikefinance.org/api/platform-stats/platform-dashboard.md) |
+| My Safety | [Builder Connect](https://docs.strikefinance.org/api/builder-codes.md) `/auth/builder/*`, `/v2/withdraw/*` (builder code `zerogap`) |
+
+## Founder-confirmed rules (Strike Finance, 21–22 Oct 2026)
+
+- **Vault accounts are excluded** from liabilities: a depositor's vault share is in their own account value. Their total is
+  still reported as an audit figure (see Known limits).
+- **Rewards are excluded:** they are tradeable only, not withdrawable. `lockedRewards` sits inside `margin_balance` and is
+  subtracted; `stakingRewardBalance` and referral rewards are separate and not added.
+- **Both Cardano scripts** count (deposit + protocol).
+- **Both Solana addresses** count: the vault account `Dj9NkHy…` and the USDC token account `BT85fg…`, de-duplicated.
+- **Prices** for sUSDrf, the SundaeSwap LP token and scaled aUSDC come from Strike's Credit API, never an assumed $1.
+- Rate limit: ≤ 40 requests/second to Strike (the founder asked for under 50).
+
+## Known limits
+
+- **In-transit funds:** a large LP withdrawal on Ethereum, and Cardano USDCx deposits / USDC withdrawals bridged back
+  through the IOG bridge, can leave a temporary gap of a few thousand dollars. It is shown as "Known in-transit", never added.
+- **Price movement between scans:** the account scan takes about 3 minutes, and Strike values accounts with live prices while
+  ZeroGap uses one snapshot right after the scan. Small residual gaps (tens to hundreds of dollars) are expected.
+- **Vault accounts vs data:** with vaults excluded, reserves are currently far above liabilities; with them included the
+  gap is about 2%. ZeroGap publishes the founder's rule and flags "Needs review" until resolved (`docs/DECISIONS.md` #11, #36).
+- **iUSD** has no Strike price source, so it is listed as unpriced and excluded.
+- Free public RPCs can be slow or rate-limited; optional free-tier keys make scans faster.
+
+## Run the live monitor
+
+```bash
+cp .env.example .env    # optional keys, all free tiers
+npm start               # http://localhost:8787  (/, /dashboard, /me, /api/state, /api/report)
 ```
-ratio = Σ(locker balance × price) ÷ (Σ margin_balance − Σ lockedRewards)   [non-vault accounts + sub-accounts]
+
+| Optional key (free tier) | Effect |
+| --- | --- |
+| `ETH_RPC_URL` (Alchemy) | Faster Ethereum state reads (logs use a wide-range public RPC) |
+| `SOLANA_RPC_URL` (Alchemy or Helius) | Avoids public Solana rate limits |
+| `BLOCKFROST_PROJECT_ID` | Cardano via Blockfrost instead of public Koios |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Alert delivery |
+| `STRIKE_BUILDER_CODE` | Enables My Safety (Builder Connect) |
+| `DATABASE_URL` (Supabase) | Postgres history (`packages/db/schema.sql`); otherwise `data/*.jsonl` |
+
+Deployment: Vercel serves the pages and read-only API. The `ZeroGap engine` workflow runs one engine cycle on a schedule
+and publishes state to the `zerogap-data` branch. The `Hourly verify` workflow appends a verify report to the `reports` branch.
+Any always-on host can instead run `docker build -t zerogap . && docker run -p 8787:8787 --env-file .env zerogap`.
+
+## Tests
+
+```bash
+npm test             # unit + mocked integration (recorded real fixtures; no network) — runs in CI on every push
+npm run test:live    # mainnet smoke tests
+npm run test:e2e     # Playwright against a running server (ZEROGAP_URL=…)
+npm run test:t6.6    # fresh clone + npm install + npm run verify with no keys, compared with the live dashboard
 ```
 
-- **Prices:** Strike `GET /price/v2/premiumIndex` index price for ADA/ETH/SOL. Fiat-redeemable stablecoins (USDC, USDT,
-  USDCx, USDM), identified by contract, never by name, use the 1:1 peg and are labelled `peg`. sUSDr, iUSD and the
-  SundaeSwap USDCx/USDM LP token have their own official Strike prices that are not public yet, so they are listed as
-  **unpriced** and left out of the ratio. Pricing is pluggable (`packages/collectors/prices.ts`), so each new price source
-  is one adapter.
-- **Liabilities:** account list from `GET /stat/v1/stats/leaderboard` (ids only, since its balances lag). Each account is read live
-  with `GET /v2/account` and `GET /v2/balances`. Vault accounts are excluded per Strike's founder: a depositor's vault share is
-  in their own account value. The vault total is still read and logged as an audit line.
-- **Status bands:** **Balanced** within ±0.01% · **Drift** 0.01–1% · **Needs review** beyond 1%, which is logged for
-  investigation and never published or alerted as insolvency. A gap that components Strike does not expose yet could
-  explain shows as **Incomplete**.
-- **Timing:** a full scan takes about 3 minutes while balances keep moving. Reserves are read right after each scan, and both
-  sides are stored with the scan window, so a tiny drift can be timing alone.
+## Security
 
-## Current status (honest limits)
-
-- The published ratio is **Needs review**. With vault accounts excluded (the founder's rule), reserves are about 2× the
-  exposed liabilities. With the vaults included, the priced reserves cover about 84%, and the unpriced sUSDr, iUSD and LP
-  (about $300k) would bring it close to 100%. The evidence is in `docs/DECISIONS.md` #11 and #23; this is waiting on Strike.
-- Referral rewards (about $25K) are not exposed by Strike yet, so they are shown as a pending line.
-- The Solana IDL in the repo is Strike's example file, so Solana is read for balances only. Its pause state is not decoded yet.
-- Flow match: Ethereum matches 97–99% on the days covered. Cardano deposits don't match yet (likely unpriced token
-  moves); the mismatch is shown, not hidden.
-
-## Architecture
-
-```
-packages/collectors   ethereum · solana · cardano · accounts · prices · stats · flows · safety
-packages/core         ratio bands · liabilities · valuation · flow check · rate limiter · units   (pure, unit-tested)
-packages/alerts       rules · telegram
-packages/db           schema.sql · Postgres / JSONL store
-apps/server           engine (scheduled jobs, last-good state) + read-only HTTP API + static pages
-apps/web              landing · dashboard · my-safety (vanilla JS, ZeroGap design)
-```
-
-Security: the server is read-only (GET only). For My Safety, the Ed25519 API-wallet key is generated in the browser and never
-leaves the tab; Strike's API allows CORS, so the browser talks to Strike directly. Strike only pays withdrawals to the wallet
-you connected with, and each one needs your own wallet signature.
-
-## Deploy
-
-**Docker** (Railway, Render, Fly or any VPS): `docker build -t zerogap . && docker run -p 8787:8787 --env-file .env zerogap`.
-The engine runs inside the same process, so one always-on instance is enough. Set `PUBLIC_URL` to the public address so
-Telegram alerts link to the dashboard. Vercel alone is not a fit for the always-on engine.
+Read-only: the server answers GET requests only, and no key that can move funds is ever stored. For My Safety, the Ed25519
+API-wallet key is generated in the browser and never leaves the tab; withdrawals go only to the user's own wallet and need
+the user's own signature. No secrets are committed (`.env` is git-ignored; `.env.example` holds placeholders only).
 
 ## Docs
 
-`docs/PRD.md` (plan) · `docs/DECISIONS.md` (every deviation and finding) · `docs/PROGRESS.md` (phase log and test results) ·
-`docs/design/ZeroGap UI.html` (design reference).
+`docs/PRD.md` (plan) · `docs/DECISIONS.md` (every decision and finding, with evidence) · `docs/PROGRESS.md` (phase log and
+test results) · `docs/MANUAL-CHECKS.md` (explorer and app spot checks) · `docs/design/ZeroGap UI.html` (design).
 
 ## Licence
 
-MIT
+MIT. See `LICENSE`.
