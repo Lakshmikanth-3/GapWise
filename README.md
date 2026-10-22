@@ -11,6 +11,100 @@ counts every dollar Strike owes its users, and shows the gap live. Anyone can re
 
 Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_alerts** · Scan history: [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports)
 
+## Hackathon submission at a glance
+
+| | |
+| --- | --- |
+| **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
+| **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
+| **Result** | **100.46%**: $1.78M in lockers vs $1.77M owed to 3,470 accounts, cross-checked per vault, confirmed with Strike's founder. |
+| **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
+| **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
+| **Quality** | 105 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Chains["On-chain lockers (read-only)"]
+    ETH["Ethereum vault<br/>USDC · aEthUSDC"]
+    SOL["Solana vault + USDC account<br/>+ treasury PDA"]
+    ADA["Cardano deposit +<br/>protocol scripts"]
+  end
+  subgraph Strike["Strike public API"]
+    LB["/stat/v1/stats/leaderboard"]
+    ACC["/v2/account · /v2/balances"]
+    VD["/v2/vault/{id}/depositors"]
+    PR["/price/v2/premiumIndex<br/>/v2/credit/*"]
+    TR["/stat/v1/dashboard/transfers"]
+  end
+  subgraph Engine["ZeroGap engine (TypeScript)"]
+    COL["Collectors<br/>ethereum · solana · cardano<br/>accounts · prices · flows · safety"]
+    CORE["Core (pure, tested)<br/>valuation · liabilities · ratio<br/>flow check · alert rules"]
+    REP["Verify report<br/>JSON + sha256 + commit"]
+  end
+  subgraph Out["Outputs"]
+    WEB["Dashboard · Landing · My Safety<br/>(Vercel)"]
+    TG["Telegram alerts"]
+    GH["GitHub branches<br/>zerogap-data · reports"]
+  end
+  ETH & SOL & ADA --> COL
+  LB & ACC & VD & PR & TR --> COL
+  COL --> CORE --> REP
+  CORE --> TG
+  REP --> GH --> WEB
+  USER(("Trader")) -- "Builder Connect<br/>(signs in own wallet)" --> WEB
+```
+
+Collectors only read; the core is pure functions; outputs only read stored results, so a slow chain never blanks the dashboard.
+Scheduled GitHub Actions run the engine (`scan.yml`) and the public hourly verify (`verify.yml`).
+
+## How a scan works
+
+```mermaid
+flowchart TD
+  A["List accounts<br/>leaderboard (exclude 6 vault accounts)"] --> B["Read every account live<br/>≤ 40 req/s · margin_balance + stakingRewardBalance<br/>+ discovered sub-accounts"]
+  B --> C["Add depositors' vault shares<br/>/v2/vault/{id}/depositors"]
+  C --> D["Cross-check: Σ shares ≈ each vault account"]
+  B --> E["Read lockers on-chain<br/>Ethereum · Solana · Cardano"]
+  E --> F["Price with ONE snapshot<br/>Strike index + Credit prices · stablecoins by contract"]
+  D --> G["Liabilities = margin + vault shares + staking"]
+  F --> H["Reserves"]
+  G & H --> I{"Ratio = reserves ÷ liabilities<br/>target 100.00%"}
+  I -->|"≤ ±0.01%"| J["Balanced"]
+  I -->|"≤ ±1% or known in-transit"| K["Drift / In transit"]
+  I -->|"> ±1%"| L["Needs review<br/>(never published as insolvency)"]
+  J & K & L --> M["Publish: dashboard + JSON report + history"]
+  E --> N["Safety monitor<br/>pause · queues · timelocks · rate limits · admin withdrawals"]
+  N --> O["Telegram alert (de-duplicated)"]
+```
+
+## My Safety flow (Builder Connect)
+
+```mermaid
+sequenceDiagram
+  actor U as Trader (wallet)
+  participant B as Browser (ZeroGap page)
+  participant S as Strike API
+  B->>B: Generate Ed25519 API-wallet key (stays in this tab)
+  B->>S: POST /auth/builder/request-signature (code=zerogap, public key)
+  S-->>B: message_to_sign
+  B->>U: Sign connect message
+  U-->>B: wallet signature
+  B->>S: POST /auth/builder/verify-signature
+  S-->>B: account_id
+  B->>S: GET /v2/account, /v2/balances
+  B-->>U: Account value, withdrawable now, checks vs lockers + platform ratio
+  B->>S: POST /v2/withdraw/quote (signed with API-wallet key)
+  S-->>B: message_to_sign (destination = user's own wallet)
+  B->>U: Sign withdrawal
+  U-->>B: wallet signature
+  B->>S: POST /v2/withdraw
+  S-->>B: status pending
+```
+
+ZeroGap never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
+
 ## Latest result (23 Oct 2026, 21:46 UTC, `npm run verify`)
 
 | | USD |
