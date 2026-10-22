@@ -6,6 +6,8 @@ import type { Reserve } from './types';
 
 export const vaultAbi = vaultAbiJson as Abi;
 export const client = () => createPublicClient({ chain: mainnet, transport: http(env.ethRpc()) });
+/** Client for eth_getLogs (wide block ranges); state reads use `client()`. */
+export const logsClient = () => createPublicClient({ chain: mainnet, transport: http(env.ethLogsRpc()) });
 const vault = LOCKERS.ethereum as `0x${string}`;
 
 // Candidate tokens, filtered on-chain via isAssetWhitelisted(). TODO(P1): discover from AssetWhitelisted events.

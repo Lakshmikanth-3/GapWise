@@ -34,6 +34,8 @@ export const env = {
   strikeApi: process.env.STRIKE_API ?? 'https://api.strikefinance.org',
   // Keyless public endpoints keep P0 runnable without keys; set real keys for production.
   ethRpc: () => (isPlaceholder(process.env.ETH_RPC_URL) ? 'https://ethereum-rpc.publicnode.com' : process.env.ETH_RPC_URL!),
+  // Event logs need wide block ranges; Alchemy free tier allows only 10 blocks per eth_getLogs, publicnode ~5,000 (recent).
+  ethLogsRpc: () => process.env.ETH_LOGS_RPC_URL || 'https://ethereum-rpc.publicnode.com',
   solRpc: () => (isPlaceholder(process.env.SOLANA_RPC_URL) ? 'https://api.mainnet-beta.solana.com' : process.env.SOLANA_RPC_URL!),
   blockfrost: (): string | undefined => (isPlaceholder(process.env.BLOCKFROST_PROJECT_ID) ? undefined : process.env.BLOCKFROST_PROJECT_ID),
   rps: Number(process.env.STRIKE_RPS ?? 40),

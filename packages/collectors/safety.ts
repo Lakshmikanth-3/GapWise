@@ -1,4 +1,4 @@
-import { client, vaultAbi, SAFETY_EVENTS } from './ethereum';
+import { client, logsClient, vaultAbi, SAFETY_EVENTS } from './ethereum';
 import { LOCKERS } from '../core/config';
 
 const vault = () => LOCKERS.ethereum as `0x${string}`;
@@ -58,7 +58,7 @@ const plain = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(
 
 /** Decoded safety-relevant events in [fromBlock, toBlock] (FR-3.1). */
 export async function ethSafetyEventsBetween(fromBlock: bigint, toBlock: bigint): Promise<SafetyEvent[]> {
-  const c = client();
+  const c = logsClient();
   const logs = await c.getContractEvents({ address: vault(), abi: vaultAbi, fromBlock, toBlock });
   const ts = new Map<bigint, number>();
   const out: SafetyEvent[] = [];

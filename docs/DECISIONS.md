@@ -168,3 +168,13 @@
     bulk_withdraw). Pause/recovery and queued/timelocked items feed the same alert rules as Ethereum. Admin, config,
     pause and governance instructions alert; deposits and payouts are feed-only.
 43. **PRD Sections 8–9 added** to docs/PRD.md from the owner's updated copy. Deviations kept on purpose: no simulation mode (owner's decision, #30); static pages served by the engine instead of Next.js (owner chose to serve the ZeroGap UI design directly); `/me` route added (alias of `/my-safety`).
+44. **Full-history Ethereum check (Alchemy Transfers API, `scripts/eth-history-check.ts`, 22 Oct):**
+    1,103 inbound and 1,156 outbound vault transfers since deployment.
+    - **Tokens:** only USDC and aEthUSDC are whitelisted, and both are read by ZeroGap. Every other token received
+      (HEX, DIXT, YRISE, "ha138com", "Duhash.games", a fake "USD") is unsolicited spam, `isAssetWhitelisted = false`,
+      correctly ignored. The vault has never held ETH. This closes the "discover whitelisted tokens" TODO.
+    - **Coverage:** 86 depositor wallets. 69 are in the leaderboard; 2 have accounts that are not listed but hold $0; 15 have
+      no Strike account (bridges, relayers, contracts). No missing account holds money, which supports DECISIONS #24.
+45. **Two Ethereum RPCs.** Alchemy's free tier allows only 10-block `eth_getLogs`, so state reads use `ETH_RPC_URL`
+    (Alchemy) and log queries use `ETH_LOGS_RPC_URL` (default publicnode, about 5,000 recent blocks). Full history comes
+    from Alchemy's Transfers API instead of logs.

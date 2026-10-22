@@ -1,7 +1,7 @@
 import { formatUnits } from 'viem';
 import { PublicKey } from '@solana/web3.js';
 import { solConnection } from './solana';
-import { client, vaultAbi } from './ethereum';
+import { logsClient, vaultAbi } from './ethereum';
 import { env, LOCKERS } from '../core/config';
 import { dayOf } from './stats';
 import type { GetPrice } from './prices';
@@ -32,7 +32,7 @@ const ETH_DECIMALS: Record<string, number> = { '0xa0b86991c6218b36c1d19d4a2e9eb0
 const NATIVE = '0x0000000000000000000000000000000000000000';
 
 export async function ethFlows(sinceMs: number, getPrice: GetPrice, chunk = BigInt(process.env.ETH_LOGS_CHUNK ?? 5000)): Promise<{ flows: Flow[]; coverage: FlowCoverage }> {
-  const c = client();
+  const c = logsClient();
   const head = await c.getBlock();
   const headTs = Number(head.timestamp) * 1000;
   // ~12 s blocks; refined below from real block timestamps.
