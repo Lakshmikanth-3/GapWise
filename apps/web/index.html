@@ -26,7 +26,7 @@
 <header class="top" style="background: var(--bg)">
   <a class="brand" href="/"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="#4ADE80"/><path d="M9 11h14L9 21h14" fill="none" stroke="#06110D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><b style="font-size: 21px">ZEROGAP</b></a>
   <nav class="sections" aria-label="Main" style="align-items: center; gap: 8px; font-size: 15px">
-    <a href="#how">How it works</a><a href="#features">Features</a><a href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>
+    <a href="#how">How it works</a><a href="#features">Features</a><a href="#verify">Verify</a><a href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>
     <a class="btn" href="/dashboard" style="color: #06110D">Launch Dashboard</a>
   </nav>
 </header>
@@ -80,6 +80,17 @@
       <a class="chainpill" style="color: var(--ink); text-decoration: none" href="https://solscan.io/account/Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt"><svg width="12" height="12"><circle cx="6" cy="6" r="6" fill="#C084FC"/></svg>Solana</a>
       <a class="chainpill" style="color: var(--ink); text-decoration: none" href="https://cardanoscan.io/address/addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3"><svg width="12" height="12"><circle cx="6" cy="6" r="6" fill="#60A5FA"/></svg>Cardano · 2 scripts</a>
     </div>
+  </div>
+</section>
+
+<section id="verify" class="block">
+  <div class="wrap" style="gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 12px; max-width: 720px"><span class="eyebrow">VERIFY IT YOURSELF</span><h2 class="big">Don't trust us either.</h2>
+    <p style="margin: 0; font-size: 18px; line-height: 1.5; color: var(--mute)">ZeroGap is open source (MIT). One command recomputes Strike's ratio from public data and writes a JSON report with every input, so you can diff your run against ours.</p></div>
+    <pre class="mono" style="margin: 0; padding: 18px 20px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); color: var(--ink2); font-size: 15px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
+npm install
+npm run verify        # or: npx zerogap verify</pre>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px"><a class="btn" href="/api/report?download">Download the latest scan (JSON)</a><a class="btn ghost" href="https://github.com/Lakshmikanth-3/ZeroGap/tree/reports">Scan history (reports branch)</a></div>
   </div>
 </section>
 

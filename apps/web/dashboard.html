@@ -20,7 +20,7 @@
 <header class="top">
   <a class="brand" href="/"><span id="logo"></span><b>ZeroGap</b><span>for Strike Finance</span></a>
   <nav class="sections" aria-label="Sections">
-    <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a>
+    <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a><a href="#verify">Verify</a>
   </nav>
   <a class="btn" href="/me">Check my funds</a>
 </header>
@@ -118,6 +118,19 @@
       <a id="tg-link" href="#" style="font-size: 14px; display: none">Get alerts on Telegram ↗</a>
     </div>
     <ul class="feed" id="feed"></ul>
+  </section>
+
+
+  <section id="verify" class="card" style="gap: 12px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 600">Verify it yourself</h2>
+      <a class="btn ghost" id="dl-report" href="/api/report?download" style="min-height: 44px">Download this scan (JSON)</a>
+    </div>
+    <p style="margin: 0; font-size: 15px; color: var(--mute); line-height: 1.5">Re-run the whole check from scratch with only public data. Your report lists every address, raw balance, price and account value, so you can diff it against this scan.</p>
+    <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
+npm install
+npm run verify        # or: npx zerogap verify</pre>
+    <div class="src" id="scan-proof">Scan provenance loading…</div>
   </section>
 
   <section id="method" class="card" style="border: 1px dashed var(--line2); background: transparent; gap: 10px">

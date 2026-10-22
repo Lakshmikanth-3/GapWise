@@ -24,6 +24,7 @@ async function main() {
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(405, { error: 'read-only' });
       if (url.pathname === '/api/state') return json(200, snapshot(engine.state));
       if (url.pathname === '/api/history') return json(200, engine.state.history);
+      if (url.pathname === '/api/report') return engine.lastReport ? json(200, engine.lastReport) : json(503, { error: 'no scan yet' });
       if (url.pathname === '/api/config') return json(200, publicConfig());
       if (url.pathname === '/api/health') return json(200, { ok: true, startedAt: engine.state.startedAt, errors: engine.state.errors, strikeApi: env.strikeApi });
       if (url.pathname === '/vendor/nacl-fast.min.js') { res.writeHead(200, { 'content-type': TYPES['.js'] }); return res.end(await readFile(join(process.cwd(), 'node_modules', 'tweetnacl', 'nacl-fast.min.js'))); }

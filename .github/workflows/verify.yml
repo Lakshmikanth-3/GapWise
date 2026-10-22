@@ -1,0 +1,47 @@
+name: ZeroGap verify (hourly public report)
+# Runs `npm run verify` from a clean checkout with only public data (+ optional free-tier RPC keys) and appends the JSON
+# report to the `reports` branch: a public, timestamped history of Strike Finance's reserve ratio anyone can diff.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zerogap-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Verify (public data only)
+        env:
+          ZEROGAP_REPORTS_DIR: out
+          ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        run: npm run verify
+      - name: Append report to the reports branch
+        run: |
+          mkdir -p history && cd history
+          git init -q -b reports
+          git config user.name "zerogap-verify"
+          git config user.email "zerogap-verify@users.noreply.github.com"
+          url="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git fetch -q --depth=1 "$url" reports 2>/dev/null; then git reset -q --soft FETCH_HEAD && git checkout -q FETCH_HEAD -- . ; fi
+          mkdir -p reports && cp ../out/*.json reports/
+          f=$(ls ../out/*.json | head -1)
+          node -e 'const r=require(process.argv[1]);const fs=require("fs");const line=`${r.generated_at},${r.network},${r.result.ratio},${r.result.status},${r.result.gap_usd},${r.result.gap_pct},${r.reserves.priced_usd},${r.liabilities.total_usd},${r.liabilities.accounts_read},${r.code_commit},${r.content_sha256}\n`;if(!fs.existsSync("index.csv"))fs.writeFileSync("index.csv","generated_at,network,ratio,status,gap_usd,gap_pct,reserves_usd,liabilities_usd,accounts_read,code_commit,content_sha256\n");fs.appendFileSync("index.csv",line)' "$(realpath $f)"
+          printf '# ZeroGap scan reports\n\nOne JSON report per hourly `npm run verify` run (see `index.csv`). Each file lists every input; recompute with the same commit to diff.\n' > README.md
+          git add -A
+          git commit -qm "verify report $(date -u +%FT%TZ)"
+          git push -q "$url" HEAD:reports

@@ -15,6 +15,8 @@ import { flowCheck, type FlowCheckRow } from '../../packages/core/flowCheck';
 import { evaluate, dedupe, type Alert } from '../../packages/alerts/rules';
 import { formatAlert, sendTelegram, telegramFromEnv } from '../../packages/alerts/telegram';
 import { openStore, toReserveRows, type Store } from '../../packages/db/queries';
+import { buildReport, reportFileName, type ScanReport } from '../../packages/core/report';
+import { env } from '../../packages/core/config';
 
 const DATA = process.env.ZEROGAP_DATA_DIR ?? 'data';
 const RESERVES_MS = Number(process.env.RESERVES_INTERVAL_MS ?? 60_000);
@@ -46,6 +48,8 @@ export type State = {
   lastEventBlock?: number;
   flows?: Timed<{ rows: FlowCheckRow[]; coverage: FlowCoverage[]; moves: number }>;
   history: RatioPoint[];
+  /** Metadata of the full verify-format report for the latest scan (the report itself is published as a file). */
+  report?: { generatedAt: string; sha256: string; commit: string; file: string };
   feed: FeedItem[];
   alerts: (Alert & { ts: number; sent: boolean; error?: string })[];
   errors: Record<string, { at: number; message: string }>;
@@ -58,6 +62,8 @@ export class Engine {
   private sent = new Set<string>();
   private running = new Set<string>();
   private flowsRaw: Flow[] = [];
+  /** Full verify-format report of the latest scan (large: every account row). */
+  lastReport?: ScanReport;
 
   async init() {
     await mkdir(DATA, { recursive: true });
@@ -94,7 +100,7 @@ export class Engine {
   scanJob = () => this.guarded('liabilities', async () => {
     const scan = await scanLiabilities();
     const b = liabilityBreakdown(scan);
-    this.state.liabilities = { value: { ...scan, ...b }, ts: scan.ts };
+    this.state.liabilities = { value: { ...scan, accounts: [], vaults: [], ...b }, ts: scan.ts }; // raw rows live in the report file
     // Reserves read right after the scan, valued with ONE price snapshot, so both sides are timestamped together.
     const snap = createSnapshotPricer();
     const r = await snapshotReserves(snap.getPrice);
@@ -106,6 +112,8 @@ export class Engine {
     const audit = assessRatio({ ...common, liabilitiesUsd: b.exposedUsd + scan.vaultsUsd });
     const conf = confidence(scan.listed + scan.discovered, scan.read, Date.now() - scan.ts);
     this.state.ratio = { ts: Date.now(), value: { published, vaultsIncludedAudit: audit, reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, confidence: conf.label, failed: conf.failed, scanWindow: [scan.startedAt, scan.ts], reservesTs: r.ts, priceSnapshotAt: snap.takenAt(), inTransitNote: IN_TRANSIT.note } };
+    this.lastReport = buildReport({ liab: scan, reserves: r, priceSnapshotAt: snap.takenAt(), strikeApi: env.strikeApi });
+    this.state.report = { generatedAt: this.lastReport.generated_at, sha256: this.lastReport.content_sha256, commit: this.lastReport.code_commit, file: reportFileName(this.lastReport) };
     this.state.history.push({ ts: Date.now(), reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, ratio: published.ratio, status: published.status });
     this.state.history = this.state.history.slice(-2000);
     this.feed({ ts: Date.now(), kind: published.status ?? 'Scan', text: `Scan complete · ${scan.read.toLocaleString('en-US')} accounts · ${scan.failed.length} failed · ${formatGap(published)}` });

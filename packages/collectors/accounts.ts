@@ -8,7 +8,12 @@ type Account = { account_id: string; margin_balance: string; sub_accounts?: { ac
 // GET /v2/balances?account_id= → one row per collateral asset (live: a single USDT row).
 export type BalanceRow = { asset: string; walletBalance: string; maxWithdrawAmount: string; maxWithdrawAfterRewards: string; lockedRewards: string; stakingRewardBalance: string };
 
+/** Raw per-account values as returned by Strike (strings preserved) — published in verify reports for diffing. */
+export type AccountRow = { account_id: string; sub_account: boolean; margin_balance: string; lockedRewards: string; stakingRewardBalance: string };
+export type VaultRow = { vault_id: string; margin_balance: string };
+
 export type LiabilityScan = {
+  accounts: AccountRow[]; vaults: VaultRow[];
   listed: number; excludedVaults: number;
   /** Σ margin_balance of the excluded vault accounts, read separately for audit; NOT in totalUsd. */
   vaultsUsd: number; discovered: number; read: number; failed: string[];
@@ -75,6 +80,7 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   const failed: string[] = []; const negative: string[] = [];
   const lockedInWallet = { consistent: 0, inconsistent: 0 };
   let total = 0, staking = 0, locked = 0, read = 0, discovered = 0;
+  const accounts: AccountRow[] = []; const vaults: VaultRow[] = []; const subs = new Set<string>();
 
   async function one(id: string) {
     const q = `account_id=${encodeURIComponent(id)}`;
@@ -84,11 +90,12 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
       const v = Number(a.margin_balance);
       const r = rewardsOf(bal);
       total += v; staking += r.staking; locked += r.locked; read++;
+      accounts.push({ account_id: a.account_id || id, sub_account: subs.has(id), margin_balance: a.margin_balance, lockedRewards: String(r.locked), stakingRewardBalance: String(r.staking) });
       if (r.lockedInWallet !== undefined) lockedInWallet[r.lockedInWallet ? 'consistent' : 'inconsistent']++;
       if (v < 0) negative.push(id);
       for (const s of a.sub_accounts ?? []) {
         if (seen.has(s.account_id) || s.account_id.startsWith('vault_')) continue;
-        seen.add(s.account_id); discovered++; queue.push(s.account_id);
+        seen.add(s.account_id); subs.add(s.account_id); discovered++; queue.push(s.account_id);
       }
     } catch { failed.push(id); }
   }
@@ -108,11 +115,11 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   // exclusion can be checked against the data (see docs/DECISIONS.md #11).
   let vaultsUsd = 0;
   for (const vid of vaultIds) {
-    try { vaultsUsd += Number((await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`)).margin_balance); }
+    try { const va = await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`); vaultsUsd += Number(va.margin_balance); vaults.push({ vault_id: vid, margin_balance: va.margin_balance }); }
     catch { failed.push(`vault:${vid}`); }
   }
   return {
     listed, excludedVaults, vaultsUsd, discovered, read, failed, totalUsd: total,
-    stakingRewardsUsd: staking, lockedRewardsUsd: locked, lockedInWallet, negative, startedAt, ts: Date.now(),
+    stakingRewardsUsd: staking, lockedRewardsUsd: locked, lockedInWallet, negative, startedAt, ts: Date.now(), accounts, vaults,
   };
 }

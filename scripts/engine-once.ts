@@ -17,6 +17,7 @@ await engine.alertJob();
 
 await writeFile(`${DATA}/snapshot.json`, JSON.stringify(snapshot(engine.state)));
 await writeFile(`${DATA}/history.json`, JSON.stringify(engine.state.history));
+if (engine.lastReport) await writeFile(`${DATA}/latest-report.json`, JSON.stringify(engine.lastReport, null, 1));
 const r = engine.state.ratio?.value;
 console.log(`cycle done in ${((Date.now() - t0) / 1000).toFixed(0)} s · ratio ${r?.published.ratio?.toFixed(4)} ${r?.published.status} · errors ${JSON.stringify(engine.state.errors)}`);
 process.exit(0);

@@ -122,6 +122,13 @@ function renderSafety(s) {
   $('safety-src').textContent = `${sf.source} · read ${ago(sf.ts)} · global budget 24h ${sf.global24h.usedPct.toFixed(1)}% used`;
 }
 
+function renderProof(s) {
+  const r = s.report;
+  if (!r) { $('scan-proof').textContent = 'No published scan report yet.'; return; }
+  const gh = config?.github ?? 'https://github.com/Lakshmikanth-3/ZeroGap';
+  $('scan-proof').innerHTML = `Scan ${esc(r.generatedAt)} · produced by code <a href="${gh}/commit/${esc(r.commit)}" target="_blank" rel="noopener">${esc(r.commit.slice(0, 7))}</a> · report sha256 <span title="${esc(r.sha256)}">${esc(r.sha256.slice(0, 16))}…</span> · <a href="/api/report" target="_blank" rel="noopener">view JSON</a> · history: <a href="${gh}/tree/reports" target="_blank" rel="noopener">reports branch</a>`;
+}
+
 function renderFeed(s) {
   const items = s.feed ?? [];
   $('feed').innerHTML = items.length ? items.slice(0, 15).map((i) => `<li><span class="t">${esc(hhmm(i.ts).slice(0, 5))}</span><span style="color:${/Alert/.test(i.kind) ? 'var(--red)' : i.kind === 'Balanced' ? 'var(--green2)' : 'var(--mute)'}">${esc(i.kind)}</span><span style="color:var(--ink2)">${esc(i.text)}</span>${i.link ? `<a href="${esc(i.link)}" target="_blank" rel="noopener">tx ↗</a>` : ''}</li>`).join('') : '<li class="label">No events yet</li>';
@@ -150,5 +157,5 @@ export function staleMessage(s, now = Date.now()) {
   return age > 10 * 60_000 ? `Stale data: last full scan ${Math.round(age / 60_000)} min ago. Values below are the last good snapshot.` : '';
 }
 
-poll((s) => { const m = staleMessage(s); $('stale-banner').textContent = m; $('stale-banner').style.display = m ? '' : 'none'; renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); });
+poll((s) => { const m = staleMessage(s); $('stale-banner').textContent = m; $('stale-banner').style.display = m ? '' : 'none'; renderReserves(s); renderLiabilities(s); renderRatio(s); renderFlows(s); renderSafety(s); renderFeed(s); renderProof(s); });
 renderHistory(); setInterval(renderHistory, 60000);

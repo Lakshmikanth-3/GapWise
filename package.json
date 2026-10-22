@@ -18,7 +18,9 @@
     "start": "tsx apps/server/server.ts",
     "dev": "tsx watch apps/server/server.ts",
     "flow-match": "tsx scripts/flow-match.ts",
-    "worker": "tsx scripts/reserves-worker.ts"
+    "worker": "tsx scripts/reserves-worker.ts",
+    "verify": "tsx scripts/verify.ts",
+    "test:t6.6": "tsx scripts/t6.6-fresh-clone.ts"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.8",
@@ -37,5 +39,13 @@
     "msw": "^2.4.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
+  },
+  "bin": {
+    "zerogap": "bin/zerogap.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lakshmikanth-3/ZeroGap.git"
   }
 }
