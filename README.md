@@ -17,10 +17,20 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
 | **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
-| **Result** | **100.46%**: $1.78M in lockers vs $1.77M owed to 3,470 accounts, cross-checked per vault, confirmed with Strike's founder. |
+| **Result** | **100.46%**: $1.78M in lockers vs $1.77M owed to 3,470 accounts, cross-checked per vault, using the founder-confirmed formula. Open question: margin_balance leaves out isolated-margin positions ($73.5k in 47 accounts; ~96.5% if counted), found by our own manual check and raised with Strike ([DECISIONS #50](docs/DECISIONS.md)). |
 | **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
 | **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
 | **Quality** | 105 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
+
+## How ZeroGap meets the judging criteria
+
+| Criterion | ZeroGap |
+| --- | --- |
+| **Innovation and creativity** | The first independent proof-of-solvency for a hybrid DEX: an off-chain order book checked against on-chain lockers on three chains at once, with a target of exactly 100% (over is as suspicious as under). |
+| **Integration with Strike** | Reads Strike's locker contracts on Ethereum, Solana and Cardano (ABI and IDL decoded); the leaderboard, `/v2/account`, `/v2/balances`, vault depositors, price index, Credit prices and transfer stats; **Builder Connect** with registered builder code `zerogap` for My Safety (testnet withdrawal proven). |
+| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues: flow mismatches, and isolated-margin balances missing from `margin_balance`. |
+| **Technical execution** | TypeScript monorepo; read-only collectors; pure, tested core; 112 unit and integration tests, Playwright E2E, a live smoke test and a fresh-clone verify, all in CI; live on Vercel with scheduled GitHub Actions; every number carries its source, timestamp and confidence. |
+| **Future potential** | Can become Strike's public transparency page: per-user proofs, more chains and lockers as Strike adds them, an alerting API for partners, and hourly signed reports already published to the `reports` branch. |
 
 ## Architecture
 
