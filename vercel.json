@@ -6,15 +6,15 @@
   "rewrites": [
     {
       "source": "/dashboard",
-      "destination": "/dashboard.html"
+      "destination": "/dashboard"
     },
     {
       "source": "/my-safety",
-      "destination": "/my-safety.html"
+      "destination": "/my-safety"
     },
     {
       "source": "/me",
-      "destination": "/my-safety.html"
+      "destination": "/my-safety"
     }
   ],
   "headers": [
