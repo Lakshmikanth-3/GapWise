@@ -265,4 +265,4 @@
     Σ(wallet_balance + unrealized_pnl) $717,690.02 vs Σ margin_balance $644,140.48, a difference of **$73,549.54 in 47
     accounts, all with an isolated-margin symbol setting** (0 differences in cross-only accounts). Counting it would put
     liabilities near $1.845M and the ratio near **96.5%, about −$65k**. The published formula is unchanged until the founder
-    confirms which field is the account's owed value; the question has been sent. Not alerted, never shown as insolvency.
+    confirms which field is the account's owed value; the question goes to the founder on Discord. Not alerted, never shown as insolvency.
