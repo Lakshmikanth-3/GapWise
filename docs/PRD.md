@@ -795,3 +795,48 @@ describe('rate limiter (T2.5)', () => {
 - Read Cardano native-token decimals from Blockfrost `/assets/{unit}`.
 - Replace the Solana address and add `VaultState` decoding once the corrected IDL arrives.
 - Verify the leaderboard full-list response shape on a live call before trusting field names.
+
+## 8. Final updates (22 Oct, 02:00 IST)
+
+### Name
+
+The product is **ZeroGap** ("Strike Watchtower" was the working name). Tagline: "Every dollar on Strike, proven on-chain." The footer must say: independent project, not affiliated with Strike Finance.
+
+### Liabilities formula (superseded by Section 9: rewards are excluded)
+
+```
+liabilities = Σ margin_balance (all non-vault accounts + sub-accounts)
+            + Σ stakingRewardBalance (/v2/balances)
+            + referral rewards (endpoint pending from Strike)
+reserves    = ETH vault + Solana treasury + Cardano deposit script + Cardano protocol script, priced in USD
+ratio       = reserves ÷ liabilities   (target exactly 100.00%)
+```
+
+- Exclude ALL vault accounts (double counting otherwise, ~170% too high).
+- sUSDrf, iUSD and LP tokens are never priced at $1; the price API is coming from Strike. Until then: an "unpriced" line.
+- Pending components show as "Known unexposed liabilities" and must not trigger Drift/Needs review.
+
+### UI/UX (design canvas "ZeroGap UI")
+
+| Screen | Route | Purpose |
+| --- | --- | --- |
+| Landing | `/` | Hero "Reserves on chain. Gap at zero.", stats row, how it works, features, chains, CTA |
+| Dashboard | `/dashboard` | Ratio + deviation scale, reserves vs liabilities, chain cards with explorer links, liabilities table, flow match, safety controls, events |
+| My Safety | `/me` | Wallet connect, account value, withdrawable now, 4 checks, withdraw shortcut (user signs) |
+| Telegram alert | bot | Balanced message + large-withdrawal alert |
+
+Design tokens: ground #060B0A (grid texture rgba(74,222,128,0.06), 48–56 px) · card #0B1714 · border #173129 · accent/Balanced #4ADE80 · Drift/pending #E8C46A · liabilities bar #5E8BFF · fonts Space Grotesk (UI) and JetBrains Mono (numbers).
+
+UX rules: the ratio is the first thing seen; both ends of the scale are bad; every number has a source link and timestamp; sample or simulated data is always labelled; touch targets ≥ 44 px; works at phone width.
+
+## 9. Founder update (22 Oct, 13:12–14:30 IST)
+
+- **Solana:** USDC sits in `BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6`. The IDL (program `7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8`) is correct; only its metadata was wrong (now `strike_vault`). Read both `Dj9NkHy…` and `BT85fg…`, de-duplicated.
+- **Prices:** `GET /v2/credit/collateral-assets` gives a USD price (+ `price_fresh`, `price_expires_at`) for ADA, sUSDrf, LP_SUNDAE_USDCx_USDM and SCALED_AAVE_V3_ETH_aUSDC (USD per scaled unit, above $1). `GET /v2/credit/settings` gives `custody_asset_mappings` (on-chain asset → collateral ID, `raw_amount_scale`).
+- **Rewards: DISCOUNT them.** Staking and referral rewards are tradeable only, not withdrawable, so they are NOT liabilities against the lockers. Remove the staking-rewards line; referral rewards are not needed.
+- **Expected gap today:** a few $K missing is known: a large LP withdrawal on Ethereum, and Cardano users depositing USDCx and withdrawing USDC, with funds in transit in the IOG bridge. Label it "Known in-transit", not insolvency.
+- **Target by hackathon end:** within a few hundred dollars (as low as ~$10), explained by price moves between scans. Show the gap in USD as well as %.
+
+- [x] Corrected Solana IDL
+- [x] Price source for sUSDrf / LP tokens
+- [x] Rewards decision (excluded)

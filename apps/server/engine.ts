@@ -217,7 +217,7 @@ export class Engine {
       const rec: State['alerts'][number] = { ...a, ts: Date.now(), sent: false };
       if (tg) {
         try { await sendTelegram(tg, formatAlert(a, new Date(), tg.dashboardUrl)); rec.sent = true; }
-        catch (e) { rec.error = (e as Error).message; this.sent.delete(`${a.rule}|${a.key}`); } // retry next cycle
+        catch (e) { rec.error = `not sent: ${(e as Error).message}`; } // kept as one record; re-sent by the held-back loop next cycle
       } else rec.error = 'not sent: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set'; // recorded once, shown on the dashboard
       if (rec.error && this.state.alerts.some(x => x.rule === a.rule && x.key === a.key)) continue;
       this.state.alerts.unshift(rec);

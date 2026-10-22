@@ -85,6 +85,8 @@ describe('T2.11 ratio status bands (target exactly 100%)', () => {
     [1, 'Balanced'], [1.0001, 'Balanced'], [0.9999, 'Balanced'],
     [1.00011, 'Drift'], [0.995, 'Drift'], [1.01, 'Drift'],
     [1.0101, 'Needs review'], [0.85, 'Needs review'], [1.7, 'Needs review'],
+    // T2.12 (PRD): 1.0001 and 0.9999 Balanced; 1.0002 Drift; 1.02 Needs review
+    [1.0002, 'Drift'], [1.02, 'Needs review'],
   ])('%f → %s', (r, s) => expect(ratioStatus(r)).toBe(s));
   it('undefined ratio has no status', () => expect(ratioStatus(reserveRatio(1, 0))).toBeUndefined());
 });

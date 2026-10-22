@@ -167,4 +167,4 @@
     and an instruction watcher that names program instructions by IDL discriminator (recent mainnet activity: deposit,
     bulk_withdraw). Pause/recovery and queued/timelocked items feed the same alert rules as Ethereum. Admin, config,
     pause and governance instructions alert; deposits and payouts are feed-only.
-43. **docs/PRD.md has no Sections 8 or 9** (the repo copy ends at Section 7). Applied the founder update as written.
+43. **PRD Sections 8–9 added** to docs/PRD.md from the owner's updated copy. Deviations kept on purpose: no simulation mode (owner's decision, #30); static pages served by the engine instead of Next.js (owner chose to serve the ZeroGap UI design directly); `/me` route added (alias of `/my-safety`).
