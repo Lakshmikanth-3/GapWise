@@ -258,3 +258,11 @@
     liabilities $1,772,338.29 (margin $645,696.86 incl. locked $3,440.06 · vault shares $1,094,609.93 · staking $32,031.50);
     **ratio 100.4577% → In transit · gap +$8,113 (+0.4577%)**. The iUSD placeholder adds about $5.7k of the surplus, and
     commission (pending) would reduce it.
+
+50. **Isolated-margin positions are missing from `margin_balance` (found in manual check T2.9, 23 Oct, open with Strike):**
+    account `019f1044…` (ADA-USD isolated, 3x) shows margin_balance $319.00, but wallet_balance $2,228.97 + unrealized
+    −$473.17 = $1,755.79; margin_balance equals available_balance (cross margin only). Full scan of 3,472 accounts:
+    Σ(wallet_balance + unrealized_pnl) $717,690.02 vs Σ margin_balance $644,140.48, a difference of **$73,549.54 in 47
+    accounts, all with an isolated-margin symbol setting** (0 differences in cross-only accounts). Counting it would put
+    liabilities near $1.845M and the ratio near **96.5%, about −$65k**. The published formula is unchanged until the founder
+    confirms which field is the account's owed value; the question has been sent. Not alerted, never shown as insolvency.
