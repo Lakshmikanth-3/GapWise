@@ -179,6 +179,11 @@ export class Engine {
 
   alertJob = async () => {
     const tg = telegramFromEnv();
+    // Alerts recorded while Telegram was not configured are delivered once it is (oldest first).
+    if (tg) for (const rec of [...this.state.alerts].reverse().filter(x => !x.sent && x.error?.startsWith('not sent'))) {
+      try { await sendTelegram(tg, formatAlert(rec, new Date(rec.ts), tg.dashboardUrl)); rec.sent = true; delete rec.error; }
+      catch (e) { rec.error = `not sent: ${(e as Error).message}`; }
+    }
     for (const a of dedupe(this.buildAlerts(), this.sent)) {
       const rec: State['alerts'][number] = { ...a, ts: Date.now(), sent: false };
       if (tg) {
