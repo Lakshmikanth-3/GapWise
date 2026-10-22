@@ -20,22 +20,42 @@ export function ratioStatus(ratio: number | undefined): RatioStatus | undefined 
   return 'Needs review';
 }
 
-export type Assessment = { ratio?: number; status?: RatioStatus | 'Incomplete'; explainedBy?: string };
+export type Assessment = {
+  ratio?: number; status?: RatioStatus | 'Incomplete' | 'In transit'; explainedBy?: string;
+  /** reserves − liabilities (USD) and as % of liabilities, e.g. −12 / −0.0004. */
+  gapUsd?: number; gapPct?: number;
+};
+
+/** Known in-transit amounts (founder, 22 Oct): ETH LP withdrawal + Cardano↔Ethereum IOG bridge. A gap this size is not Drift. */
+export const IN_TRANSIT = {
+  toleranceUsd: Number(process.env.IN_TRANSIT_TOLERANCE_USD ?? 10_000),
+  note: 'Known in-transit: a large LP withdrawal on Ethereum and Cardano USDCx deposits / USDC withdrawals being bridged back through the IOG bridge (per Strike). The missing amount is not added or faked.',
+};
 
 /**
- * Band the ratio, but don't call a gap Drift / Needs review when components we know are missing could explain it:
- * - a shortfall (ratio < 1) while some reserves are still unpriced (their value would raise reserves);
- * - a surplus (ratio > 1) no larger than the estimate of liabilities Strike does not expose yet.
- * Such results are 'Incomplete' (never green, never an alert) until every component exists.
+ * Band the ratio, but don't call a gap Drift / Needs review when something known explains it:
+ * - |gap| within the founder-stated in-transit amount → 'In transit' (shown as a note, never an alert);
+ * - a shortfall while some reserves are still unpriced → 'Incomplete';
+ * - a surplus no larger than an estimate of liabilities Strike does not expose yet → 'Incomplete'.
  */
-export function assessRatio(p: { reservesUsd: number; liabilitiesUsd: number; unpricedReserves: number; pendingLiabilityEstimateUsd: number }): Assessment {
+export function assessRatio(p: { reservesUsd: number; liabilitiesUsd: number; unpricedReserves: number; pendingLiabilityEstimateUsd: number; inTransitToleranceUsd?: number }): Assessment {
   const ratio = reserveRatio(p.reservesUsd, p.liabilitiesUsd);
   const status = ratioStatus(ratio);
-  if (ratio === undefined || status === 'Balanced') return { ratio, status };
-  if (ratio < 1 && p.unpricedReserves > 0) return { ratio, status: 'Incomplete', explainedBy: `${p.unpricedReserves} unpriced reserve asset(s)` };
-  const surplus = p.reservesUsd - p.liabilitiesUsd;
-  if (ratio > 1 && surplus <= p.pendingLiabilityEstimateUsd) return { ratio, status: 'Incomplete', explainedBy: `pending liabilities (~$${p.pendingLiabilityEstimateUsd.toLocaleString('en-US')})` };
-  return { ratio, status };
+  const gapUsd = p.reservesUsd - p.liabilitiesUsd;
+  const base = { ratio, gapUsd, gapPct: p.liabilitiesUsd > 0 ? (gapUsd / p.liabilitiesUsd) * 100 : undefined };
+  if (ratio === undefined || status === 'Balanced') return { ...base, status };
+  const tol = p.inTransitToleranceUsd ?? IN_TRANSIT.toleranceUsd;
+  if (Math.abs(gapUsd) <= tol) return { ...base, status: 'In transit', explainedBy: `known in-transit funds (≤ $${tol.toLocaleString('en-US')})` };
+  if (ratio < 1 && p.unpricedReserves > 0) return { ...base, status: 'Incomplete', explainedBy: `${p.unpricedReserves} unpriced reserve asset(s)` };
+  if (ratio > 1 && gapUsd <= p.pendingLiabilityEstimateUsd) return { ...base, status: 'Incomplete', explainedBy: `pending liabilities (~$${p.pendingLiabilityEstimateUsd.toLocaleString('en-US')})` };
+  return { ...base, status };
+}
+
+/** "Gap $12 · −0.0004%" */
+export function formatGap(a: Assessment): string {
+  if (a.gapUsd === undefined || a.gapPct === undefined) return 'Gap n/a';
+  const sign = a.gapUsd < 0 ? '−' : '+';
+  return `Gap ${sign}$${Math.abs(a.gapUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })} · ${sign}${Math.abs(a.gapPct).toFixed(4)}%`;
 }
 
 export function confidence(listed: number, read: number, ageMs: number): { label: Confidence; failed: number } {

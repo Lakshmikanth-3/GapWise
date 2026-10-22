@@ -49,14 +49,18 @@ export async function listAccounts(base = env.strikeApi): Promise<{ ids: string[
 }
 
 /** Rewards from one /v2/balances response, plus whether lockedRewards is already inside walletBalance. */
+/**
+ * Rewards from one /v2/balances response. lockedRewards counts as "inside the wallet" when the withdrawable amount leaves
+ * room for it: walletBalance − maxWithdrawAmount ≥ lockedRewards (live evidence: wallet 19.24, locked 4.83, max 14.41).
+ */
 export function rewardsOf(rows: BalanceRow[]): { staking: number; locked: number; lockedInWallet?: boolean } {
-  let staking = 0, locked = 0, withdrawGap = 0;
+  let staking = 0, locked = 0, notWithdrawable = 0;
   for (const r of rows) {
     staking += Number(r.stakingRewardBalance ?? 0);
     locked += Number(r.lockedRewards ?? 0);
-    withdrawGap += Number(r.maxWithdrawAmount ?? 0) - Number(r.maxWithdrawAfterRewards ?? 0);
+    notWithdrawable += Number(r.walletBalance ?? 0) - Number(r.maxWithdrawAmount ?? 0);
   }
-  return { staking, locked, lockedInWallet: locked > 0 ? Math.abs(withdrawGap - locked) < 1e-6 : undefined };
+  return { staking, locked, lockedInWallet: locked > 0 ? notWithdrawable >= locked - 1e-6 : undefined };
 }
 
 export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts: { retryBaseMs?: number } = {}): Promise<LiabilityScan> {

@@ -7,7 +7,7 @@ Strike runs matching off-chain on the Strike Node, while custody sits in on-chai
 
 - **Reserves (M1):** balances read directly from Strike's lockers: the Ethereum vault, the Solana vault account and its
   treasury, and both Cardano scripts (deposit + protocol). Priced with Strike's own index prices.
-- **Liabilities and ratio (M2):** every account from Strike's public API, `margin_balance` plus staking rewards, with
+- **Liabilities and ratio (M2):** every account from Strike's public API: `margin_balance` minus locked rewards (rewards are tradeable, not withdrawable), with
   sub-accounts included, vault accounts excluded, and ≤ 40 req/s. Strike is not a CEX, so the target is **exactly 100%**.
 - **Flow match (M2):** Strike's reported daily deposits and withdrawals per chain vs what actually moved on-chain.
 - **Safety monitor (M3):** decoded Ethereum vault events (large-withdrawal queue, pause, timelock, upgrades, roles,
@@ -48,7 +48,7 @@ integration, CI) · `npm run test:live` (mainnet smoke) · `npm run test:e2e` (P
 ## How the ratio is computed
 
 ```
-ratio = Σ(locker balance × price) ÷ (Σ margin_balance + Σ stakingRewardBalance [+ referral rewards, pending])
+ratio = Σ(locker balance × price) ÷ (Σ margin_balance − Σ lockedRewards)   [non-vault accounts + sub-accounts]
 ```
 
 - **Prices:** Strike `GET /price/v2/premiumIndex` index price for ADA/ETH/SOL. Fiat-redeemable stablecoins (USDC, USDT,

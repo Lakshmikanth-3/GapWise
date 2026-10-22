@@ -40,7 +40,7 @@ export function strikeFeedAdapter(base = env.strikeApi, fetchFn: typeof fetch = 
     name: 'strike-feed',
     matches: a => !!symbol(a),
     async getPrice(a) {
-      const fresh = Date.now() - fetchedAt < ttlMs || await refresh();
+      const fresh = (fetchedAt > 0 && Date.now() - fetchedAt < ttlMs) || await refresh();
       const p = lastGood.get(symbol(a)!);
       const source = `${base}${PRICE_PATH}`;
       if (!p) return { source, ts: Date.now(), status: 'unpriced' };
@@ -83,33 +83,78 @@ export const CREDIT_ASSET: Record<string, string> = {
   '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c': 'SCALED_AAVE_V3_ETH_aUSDC',
 };
 
+type CreditAsset = { price: string; price_available: boolean; price_fresh: boolean; price_observed_at: number; price_expires_at: number };
+
+/**
+ * Strike Credit prices. A price counts as current only if `price_available && price_fresh` and it has not passed
+ * `price_expires_at`; otherwise the last good price is returned and flagged `stale`. Nothing is ever assumed to be $1.
+ */
 export function strikeCreditAdapter(base = env.strikeApi, fetchFn: typeof fetch = fetch, ttlMs = 30_000): PriceAdapter {
-  const lastGood = new Map<string, { usd: number; ts: number }>();
+  const lastGood = new Map<string, { usd: number; ts: number; expiresAt: number }>();
+  const currentIds = new Set<string>();
   let fetchedAt = 0; let inflight: Promise<boolean> | undefined;
   const refresh = () => (inflight ??= (async () => {
     try {
       const res = await fetchFn(`${base}${CREDIT_PATH}`);
       if (!res.ok) throw new Error(`credit ${res.status}`);
-      const body = await res.json() as { assets: Record<string, { price: string; price_available: boolean; price_fresh: boolean; price_observed_at: number }> };
+      const body = await res.json() as { assets: Record<string, CreditAsset> };
+      currentIds.clear();
       for (const [id, a] of Object.entries(body.assets)) {
         const usd = Number(a.price);
-        if (a.price_available && a.price_fresh && usd > 0) lastGood.set(id, { usd, ts: a.price_observed_at });
+        if (a.price_available && a.price_fresh && usd > 0) {
+          lastGood.set(id, { usd, ts: a.price_observed_at, expiresAt: a.price_expires_at });
+          currentIds.add(id);
+        }
       }
       fetchedAt = Date.now(); return true;
-    } catch { return false; } finally { inflight = undefined; }
+    } catch { currentIds.clear(); return false; } finally { inflight = undefined; }
   })());
   const idOf = (a: AssetRef) => (a.contract ? CREDIT_ASSET[a.contract] ?? CREDIT_ASSET[a.contract.slice(0, 56)] : undefined);
   return {
     name: 'strike-credit',
     matches: a => !!idOf(a),
     async getPrice(a) {
-      const fresh = Date.now() - fetchedAt < ttlMs || await refresh();
-      const p = lastGood.get(idOf(a)!);
-      const source = `${base}${CREDIT_PATH} (${idOf(a)})`;
+      if (fetchedAt === 0 || Date.now() - fetchedAt >= ttlMs) await refresh();
+      const id = idOf(a)!;
+      const p = lastGood.get(id);
+      const source = `${base}${CREDIT_PATH} (${id})`;
       if (!p) return { source, ts: Date.now(), status: 'unpriced' };
-      return { usd: p.usd, ts: p.ts, source, status: fresh ? 'priced' : 'stale' };
+      const current = currentIds.has(id) && (!p.expiresAt || Date.now() < p.expiresAt + ttlMs);
+      return { usd: p.usd, ts: p.ts, source, status: current ? 'priced' : 'stale' };
     },
   };
+}
+
+// GET {STRIKE_API}/v2/credit/settings -> settings.custody_asset_mappings[chain][onchainAsset] = { custody_asset, raw_amount_scale }
+export const CREDIT_SETTINGS_PATH = '/v2/credit/settings';
+export type CustodyMappings = Record<string, Record<string, { custody_asset: string; raw_amount_scale: number }>>;
+/** Our on-chain identifier (contract / Cardano policy) → the key Strike uses in custody_asset_mappings[chain]. */
+export const CUSTODY_KEY: Record<string, { chain: string; key: string }> = {
+  '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae': { chain: 'cardano', key: 'sUSDrf' },
+  '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d56': { chain: 'cardano', key: 'LP_SUNDAE_USDCx_USDM' },
+  '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c': { chain: 'ethereum', key: 'AAVE_V3_aUSDC' },
+};
+
+export async function creditCustodyMappings(base = env.strikeApi, fetchFn: typeof fetch = fetch): Promise<CustodyMappings> {
+  const res = await fetchFn(`${base}${CREDIT_SETTINGS_PATH}`);
+  if (!res.ok) throw new Error(`credit settings ${res.status}`);
+  return ((await res.json()) as { settings: { custody_asset_mappings: CustodyMappings } }).settings.custody_asset_mappings;
+}
+
+/**
+ * Re-derives each custody asset's amount from its raw on-chain integer using Strike's raw_amount_scale, and checks the
+ * price id we use matches Strike's custody_asset. Rows Strike does not map are returned unchanged.
+ */
+export function applyCustodyScale<R extends { contract?: string; raw?: string; amount: number; decimals?: number }>(rows: R[], mappings: CustodyMappings): R[] {
+  return rows.map(r => {
+    if (!r.contract || r.raw === undefined) return r;
+    const ref = CUSTODY_KEY[r.contract] ?? CUSTODY_KEY[r.contract.slice(0, 56)];
+    const m = ref && mappings[ref.chain]?.[ref.key];
+    if (!m) return r;
+    const expectedId = CREDIT_ASSET[r.contract] ?? CREDIT_ASSET[r.contract.slice(0, 56)];
+    if (expectedId && m.custody_asset !== expectedId) throw new Error(`custody mapping changed: ${ref.key} → ${m.custody_asset} (expected ${expectedId})`);
+    return { ...r, amount: Number(r.raw) / 10 ** m.raw_amount_scale, decimals: m.raw_amount_scale };
+  });
 }
 
 /** Assets with no official Strike price source (not a Credit collateral asset). Never priced by us. */
@@ -135,4 +180,14 @@ export type GetPrice = (a: AssetRef) => Promise<PriceQuote>;
 export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), pegAdapter, pendingAdapter]): GetPrice {
   const chain = [...adapters, unknownAdapter];
   return a => chain.find(x => x.matches(a))!.getPrice(a);
+}
+
+/**
+ * One price snapshot for a whole scan: each source is fetched once (on first use) and never refreshed, so every
+ * reserve row in the scan is valued at the same instant. `takenAt` is recorded next to the liability scan window.
+ */
+export function createSnapshotPricer(base = env.strikeApi): { getPrice: GetPrice; takenAt: () => number | undefined } {
+  let takenAt: number | undefined;
+  const inner = createPricer([strikeFeedAdapter(base, fetch, Infinity), strikeCreditAdapter(base, fetch, Infinity), pegAdapter, pendingAdapter]);
+  return { getPrice: a => { takenAt ??= Date.now(); return inner(a); }, takenAt: () => takenAt };
 }

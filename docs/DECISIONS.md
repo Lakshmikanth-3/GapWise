@@ -129,3 +129,42 @@
     With vaults excluded: **251.26%**. With vaults included ($1,086,607): **102.12%**. The founder said the gap should
     be a few thousand dollars, with an Ethereum LP withdrawal and funds in the IOG bridge in flight. Only the vaults-included
     figure is close to that. Still asking the founder; the published ratio follows his rule until then.
+
+## 2026-10-22 (founder update: full spec, applied 18:20 IST)
+
+37. **Which address holds what (live 12:51 UTC):**
+    - Ethereum `0xbF4c…cffa` (vault): 139,519.19 USDC + 1,559.78 scaled aEthUSDC; 0 ETH.
+    - Solana `BT85fgyh…CAA6` (USDC token account, owner `Dj9NkHy…Prrt`): 3,209.30 USDC.
+    - Solana `Dj9NkHy…Prrt` (Vault account): 0.0836 SOL (its own rent; counted, about $8.7).
+    - Solana `H4nZyX…ic5H` (treasury PDA): 0.00095 SOL.
+    - Cardano `addr1w9yg…kls3` (deposit script): 316,251 ADA, 478,570 USDCx, 770,081 USDM, 269,232 sUSDrf,
+      36,624.5 LP_SUNDAE_USDCx_USDM, 5,725 iUSD (unpriced).
+    - Cardano `addr1w9m5…7jf2` (protocol script): 2 ADA, 140 USDM.
+
+    SPL token accounts are read from both owners (the vault account and the treasury PDA) plus the named account `BT85…`
+    directly. They are de-duplicated by token-account address, so `BT85…` is counted once. Lamports held inside a token
+    account are its rent and are not counted as reserves.
+38. **Rewards inside margin_balance, from live `/v2/balances`:**
+    - `lockedRewards` **is inside** walletBalance/margin_balance. Account `019d5401…`: wallet 19.24, locked 4.83, max
+      withdrawable 14.41 (= 19.24 − 4.83). Account `019d58b0…`: wallet 10, locked 10, max withdrawable 0. Across a full
+      scan, 595 of 606 accounts with locked rewards satisfy walletBalance − maxWithdrawAmount ≥ lockedRewards; the other 11
+      are accounts where other holds (margin) dominate. So locked rewards are **subtracted** ($3,449 total).
+    - `stakingRewardBalance` is **separate**. Account `019d0c57…`: margin 0.0048, staking 6.20. It is **not added** ($32,045
+      total). The staking and referral reward liability lines are removed from code and UI.
+    - My earlier test (DECISIONS #21) compared maxWithdrawAmount with maxWithdrawAfterRewards; both already exclude locked
+      rewards, which is why it found "not inside". Corrected.
+39. **Strike custody mappings drive unit conversion.** `/v2/credit/settings` `custody_asset_mappings` re-derives each
+    mapped asset's amount from its raw integer (`raw_amount_scale`) and checks that the price id we use equals Strike's
+    `custody_asset`; a mismatch fails loudly. Credit prices are current only if available, fresh and before
+    `price_expires_at`; otherwise the last good price is used and flagged `stale`.
+40. **One price snapshot per scan.** Reserves are read right after the liability scan and valued with a single frozen
+    snapshot of the Strike feed and Credit prices. `priceSnapshotAt` is stored next to the scan window.
+41. **Known in-transit gap.** |reserves − liabilities| ≤ `IN_TRANSIT_TOLERANCE_USD` (default $10,000, from the founder's
+    "a few $K") is shown as **In transit** with a note: not Drift, not an alert, and the missing amount is never added.
+    The gap is always shown in USD and % ("Gap −$12 · −0.0004%").
+42. **Solana M3:** full VaultState decode (adds asset_usage[20], admin_withdrawal_count, last_admin_withdrawal),
+    PendingWithdrawal and PendingAction decoders (found via getProgramAccounts with a discriminator filter; 0 open now),
+    and an instruction watcher that names program instructions by IDL discriminator (recent mainnet activity: deposit,
+    bulk_withdraw). Pause/recovery and queued/timelocked items feed the same alert rules as Ethereum. Admin, config,
+    pause and governance instructions alert; deposits and payouts are feed-only.
+43. **docs/PRD.md has no Sections 8 or 9** (the repo copy ends at Section 7). Applied the founder update as written.

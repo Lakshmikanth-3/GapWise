@@ -2,10 +2,12 @@ import 'dotenv/config';
 
 export const LOCKERS = {
   ethereum: '0xbF4cFccd11257e568A936a7867D138f54A43cffa',
-  // Vault config account of program 7XASQ24f… (discriminator matches `Vault`). Funds sit in the
-  // treasury PDA ["treasury", vault] — see docs/DECISIONS.md. TODO: re-confirm with corrected IDL.
+  // `Vault` account of program 7XASQ24f… ("strike_vault", IDL confirmed 22 Oct). SOL sits in the treasury PDA
+  // ["treasury", vault]; SPL tokens in token accounts owned by this account (see docs/DECISIONS.md #37).
   solana: 'Dj9NkHyMMLyQGnYz2necVuHF6ELXqxUa3EsRZNHiPrrt',
   solanaProgram: '7XASQ24fiwoNHmTnQdi3k3WXMUXRaj7MdcHvkSducrB8',
+  // USDC token account named by the founder (22 Oct); owned by the vault account above.
+  solanaTokenAccounts: ['BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6'],
   // Both scripts count (confirmed by Shan): deposit script + protocol script holding batched funds.
   cardano: [
     'addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3',

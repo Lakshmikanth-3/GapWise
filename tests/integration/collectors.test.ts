@@ -40,17 +40,22 @@ describe('T1.4 collectors parse recorded RPC responses', () => {
     ]);
   });
 
-  it('solana: SOL + SPL tokens of the locker and the treasury PDA', async () => {
+  it('solana: SOL + SPL of the vault account and treasury PDA, plus the named USDC token account, counted once', async () => {
     const treasury = treasuryPda().toBase58();
     server.use(http.post(SOL_RPC, async ({ request }) => {
       const r = await request.json() as { id: string; method: string; params: [string] };
       if (r.method === 'getBalance') return HttpResponse.json({ jsonrpc: '2.0', id: r.id, result: { context: { slot: 1 }, value: r.params[0] === treasury ? 946560 : 83604770 } });
+      // Direct read of the founder-named token account returns the same account the owner scan already found.
+      if (r.method === 'getAccountInfo') return HttpResponse.json({ jsonrpc: '2.0', id: r.id, result: { context: { slot: 1 }, value: solTokens.result.value[0].account } });
       if (r.params[0] === LOCKERS.solana) return HttpResponse.json({ ...solTokens, id: r.id });
       return HttpResponse.json({ jsonrpc: '2.0', id: r.id, result: { context: { slot: 1 }, value: [] } });
     }));
     const rows = await solanaReserves();
     expect(rows.find(r => r.asset === 'USDC')).toMatchObject({ amount: Number(solTokens.result.value[0].account.data.parsed.info.tokenAmount.uiAmountString), contract: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' });
     expect(rows.filter(r => r.asset === 'SOL').map(r => r.holder)).toEqual([LOCKERS.solana, treasury]);
+    const usdc = rows.filter(r => r.asset === 'USDC');
+    expect(usdc).toHaveLength(1); // de-duplicated by token-account address
+    expect(usdc[0]).toMatchObject({ holder: 'BT85fgyhyZhCtaNdciKEGoj7mU8E3EeFijPy6XCmCAA6', owner: LOCKERS.solana });
   });
 });
 
@@ -60,7 +65,7 @@ describe('reserve snapshot + storage', () => {
       ethereum: async () => [{ chain: 'ethereum', asset: 'USDC', amount: 5, contract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' }],
       cardano: async () => { throw new Error('Koios 503'); },
       solana: async () => [],
-    });
+    }, async () => ({}));
     expect(s.failedChains).toEqual(['cardano']);
     expect(s.pricedUsd).toBe(5);
   });
@@ -72,7 +77,7 @@ describe('reserve snapshot + storage', () => {
       ethereum: async () => [{ chain: 'ethereum', asset: 'USDC', amount: 5, contract: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' }],
       cardano: async () => [{ chain: 'cardano', asset: 'ADA', amount: 1 }],
       solana: async () => [],
-    });
+    }, async () => ({}));
     await jsonlStore(dir).insert('reserve_snapshots', toReserveRows(s.ts, s.rows));
     const lines = (await readFile(`${dir}/reserve_snapshots.jsonl`, 'utf8')).trim().split('\n').map(l => JSON.parse(l));
     expect(lines).toEqual([

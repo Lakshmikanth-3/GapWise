@@ -33,7 +33,7 @@ describe('accounts collector (mocked fixtures)', () => {
       http.get(`${B}/stat/v1/stats/leaderboard`, () => HttpResponse.json(leaderboard)),
       http.get(`${B}/v2/balances`, ({ request }) => {
         const id = new URL(request.url).searchParams.get('account_id');
-        return HttpResponse.json([{ ...balances[0], stakingRewardBalance: id === a0 ? '1.5' : '0', lockedRewards: id === a1 ? '4' : '0', maxWithdrawAfterRewards: id === a1 ? String(Number(balances[0].maxWithdrawAmount) - 4) : balances[0].maxWithdrawAmount }]);
+        return HttpResponse.json([{ ...balances[0], stakingRewardBalance: id === a0 ? '1.5' : '0', lockedRewards: id === a1 ? '4' : '0', maxWithdrawAmount: id === a1 ? String(Number(balances[0].walletBalance) - 4) : balances[0].maxWithdrawAmount }]);
       }),
       http.get(`${B}/v2/account`, ({ request }) => {
         const q = new URL(request.url).searchParams;

@@ -12,7 +12,7 @@ export function ago(ts) {
   return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago`;
 }
 export const hhmm = (ts) => new Date(ts).toISOString().slice(11, 16) + ' UTC';
-export const statusClass = (s) => (s === 'Needs review' ? 'Needs' : s || '');
+export const statusClass = (s) => (s === 'Needs review' ? 'Needs' : s === 'In transit' ? 'Drift' : s || '');
 
 export async function getJSON(path) {
   const r = await fetch(path, { cache: 'no-store' });

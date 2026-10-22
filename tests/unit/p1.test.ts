@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toBaseUnits, fromBaseUnits, DECIMALS } from '../../packages/core/units';
-import { usdValue, assessRatio } from '../../packages/core/ratio';
+import { usdValue, assessRatio, formatGap } from '../../packages/core/ratio';
 import { liabilityBreakdown } from '../../packages/core/liabilities';
 import { strikeCreditAdapter } from '../../packages/collectors/prices';
 import { rewardsOf, type BalanceRow } from '../../packages/collectors/accounts';
@@ -61,23 +61,24 @@ describe('pluggable pricer: adding one adapter prices a pending asset', () => {
 });
 
 describe('liabilities = withdrawable value: margin_balance minus locked rewards; other rewards excluded', () => {
-  it('discounts rewards (founder rule) and keeps excluded lines visible', () => {
-    const b = liabilityBreakdown({ totalUsd: 1000, stakingRewardsUsd: 50, lockedRewardsUsd: 30 });
+  it('discounts rewards: margin_balance minus locked rewards; no staking or referral line (founder rule)', () => {
+    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30 });
     expect(b.exposedUsd).toBe(970);
-    expect(b.pendingEstimateUsd).toBe(0);
-    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'deducted'], ['Staking', 'excluded'], ['Referral', 'excluded']]);
+    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'deducted']]);
+    expect(JSON.stringify(b)).not.toMatch(/Staking|Referral/);
   });
 
   const row = (o: Partial<BalanceRow>): BalanceRow => ({ asset: 'USDT', walletBalance: '100', maxWithdrawAmount: '100', maxWithdrawAfterRewards: '100', lockedRewards: '0', stakingRewardBalance: '0', ...o });
   it('reads stakingRewardBalance and tests whether lockedRewards sits inside walletBalance', () => {
     expect(rewardsOf([row({ stakingRewardBalance: '6.2' })])).toEqual({ staking: 6.2, locked: 0, lockedInWallet: undefined });
-    expect(rewardsOf([row({ lockedRewards: '10', maxWithdrawAfterRewards: '90' })]).lockedInWallet).toBe(true);
-    expect(rewardsOf([row({ lockedRewards: '10' })]).lockedInWallet).toBe(false);
+    // Live account 019d5401…: wallet 19.24, locked 4.83, max withdrawable 14.41 → locked rewards are inside the wallet.
+    expect(rewardsOf([row({ walletBalance: '19.24002118', lockedRewards: '4.82532652', maxWithdrawAmount: '14.41469466' })]).lockedInWallet).toBe(true);
+    expect(rewardsOf([row({ lockedRewards: '10' })]).lockedInWallet).toBe(false); // fully withdrawable → not inside
   });
 });
 
 describe('assessRatio: pending components are not Drift / Needs review', () => {
-  const base = { unpricedReserves: 0, pendingLiabilityEstimateUsd: 25_000 };
+  const base = { unpricedReserves: 0, pendingLiabilityEstimateUsd: 25_000, inTransitToleranceUsd: 0 };
   it('Balanced stays Balanced', () => expect(assessRatio({ ...base, reservesUsd: 1_000_050, liabilitiesUsd: 1_000_000 }).status).toBe('Balanced'));
   it('surplus within the pending referral estimate → Incomplete', () => {
     expect(assessRatio({ ...base, reservesUsd: 1_020_000, liabilitiesUsd: 1_000_000 })).toMatchObject({ status: 'Incomplete', explainedBy: expect.stringMatching(/pending liabilities/) });
@@ -88,5 +89,47 @@ describe('assessRatio: pending components are not Drift / Needs review', () => {
   it('shortfall with unpriced reserves → Incomplete; without → banded', () => {
     expect(assessRatio({ ...base, unpricedReserves: 2, reservesUsd: 900_000, liabilitiesUsd: 1_000_000 }).status).toBe('Incomplete');
     expect(assessRatio({ ...base, reservesUsd: 995_000, liabilitiesUsd: 1_000_000 }).status).toBe('Drift');
+  });
+});
+
+describe('known in-transit gap (founder, 22 Oct) and gap display', () => {
+  const p = { unpricedReserves: 0, pendingLiabilityEstimateUsd: 0, inTransitToleranceUsd: 10_000 };
+  it('a few $K either way is "In transit", not Drift; the amount is never added', () => {
+    const a = assessRatio({ ...p, reservesUsd: 1_826_000, liabilitiesUsd: 1_830_000 });
+    expect(a).toMatchObject({ status: 'In transit', gapUsd: -4000 });
+    expect(a.ratio).toBeCloseTo(1_826_000 / 1_830_000, 10);
+  });
+  it('beyond the stated in-transit amount it is banded normally', () => {
+    expect(assessRatio({ ...p, reservesUsd: 1_800_000, liabilitiesUsd: 1_830_000 }).status).toBe('Needs review');
+  });
+  it('within ±0.01% stays Balanced', () => {
+    expect(assessRatio({ ...p, reservesUsd: 1_830_012, liabilitiesUsd: 1_830_000 }).status).toBe('Balanced');
+  });
+  it('formats the gap in USD and %', () => {
+    expect(formatGap(assessRatio({ ...p, reservesUsd: 2_999_988, liabilitiesUsd: 3_000_000 }))).toBe('Gap −$12 · −0.0004%');
+    expect(formatGap(assessRatio({ ...p, reservesUsd: 1_000_250, liabilitiesUsd: 1_000_000 }))).toBe('Gap +$250 · +0.0250%');
+  });
+});
+
+describe('custody scale and one price snapshot per scan', () => {
+  it('re-derives amounts from raw with Strike raw_amount_scale (LP: Koios says 0 decimals, Strike says 6)', async () => {
+    const { applyCustodyScale } = await import('../../packages/collectors/prices');
+    const rows = applyCustodyScale([{ contract: '4de79a0c17180030bff4c36825cb6e99caa007bc632f789561a26d560014df10aa', raw: '36624526431', amount: 36624526431, decimals: 0 }],
+      { cardano: { LP_SUNDAE_USDCx_USDM: { custody_asset: 'LP_SUNDAE_USDCx_USDM', raw_amount_scale: 6 } } });
+    expect(rows[0]).toMatchObject({ amount: 36624.526431, decimals: 6 });
+  });
+  it('fails loudly if Strike remaps a custody asset to a different price id', async () => {
+    const { applyCustodyScale } = await import('../../packages/collectors/prices');
+    expect(() => applyCustodyScale([{ contract: '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae7355534472', raw: '1', amount: 1 }],
+      { cardano: { sUSDrf: { custody_asset: 'SOMETHING_ELSE', raw_amount_scale: 6 } } })).toThrow(/custody mapping changed/);
+  });
+  it('a stale Credit price is returned as last good and flagged stale', async () => {
+    let fresh = true;
+    const fake = (async () => new Response(JSON.stringify({ assets: { sUSDrf: { price: '1.0057', price_available: true, price_fresh: fresh, price_observed_at: 1, price_expires_at: Date.now() + 60_000 } } }))) as unknown as typeof fetch;
+    const p = createPricer([strikeCreditAdapter('https://x', fake, 0)]);
+    const ref = { chain: 'cardano', asset: 'sUSDrf', contract: '7d9e4a0ee1a3f5d5ff8159ea91a83310cf2795ee7a87170c7aea05ae' };
+    expect(await p(ref)).toMatchObject({ usd: 1.0057, status: 'priced' });
+    fresh = false;
+    expect(await p(ref)).toMatchObject({ usd: 1.0057, status: 'stale' });
   });
 });

@@ -3,13 +3,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { scanLiabilities, type LiabilityScan } from '../../packages/collectors/accounts';
 import { snapshotReserves, type ReserveSnapshot } from '../../packages/collectors/reserves';
-import { createPricer } from '../../packages/collectors/prices';
+import { createPricer, createSnapshotPricer } from '../../packages/collectors/prices';
 import { reportedTransfers } from '../../packages/collectors/stats';
 import { ethFlows, solanaFlows, cardanoFlows, bucketFlows, type Flow, type FlowCoverage } from '../../packages/collectors/flows';
 import { ethSafetyState, ethSafetyEventsBetween, openItems, type EthSafetyState, type SafetyEvent } from '../../packages/collectors/safety';
 import { client } from '../../packages/collectors/ethereum';
-import { solanaSafetyState, type SolanaVaultState } from '../../packages/collectors/solana';
-import { assessRatio, confidence, type Assessment } from '../../packages/core/ratio';
+import { solanaSafetyFull, solanaInstructionEvents, type SolanaInstructionEvent } from '../../packages/collectors/solana-program';
+import { assessRatio, confidence, formatGap, IN_TRANSIT, type Assessment } from '../../packages/core/ratio';
 import { liabilityBreakdown, type LiabilityComponent } from '../../packages/core/liabilities';
 import { flowCheck, type FlowCheckRow } from '../../packages/core/flowCheck';
 import { evaluate, dedupe, type Alert } from '../../packages/alerts/rules';
@@ -35,9 +35,13 @@ export type State = {
   ratio?: Timed<{
     published: Assessment; vaultsIncludedAudit: Assessment; reservesUsd: number; liabilitiesUsd: number;
     confidence: string; failed: number; scanWindow: [number, number]; reservesTs: number;
+    /** One price snapshot valued every reserve row of this scan (FR: same-instant pricing). */
+    priceSnapshotAt?: number; inTransitNote: string;
   }>;
   safety?: Timed<EthSafetyState>;
-  solanaSafety?: Timed<SolanaVaultState & { address: string; slot: number }>;
+  solanaSafety?: Timed<Awaited<ReturnType<typeof solanaSafetyFull>>>;
+  solanaEvents?: SolanaInstructionEvent[];
+  lastSolanaSignature?: string;
   events: SafetyEvent[];
   lastEventBlock?: number;
   flows?: Timed<{ rows: FlowCheckRow[]; coverage: FlowCoverage[]; moves: number }>;
@@ -91,18 +95,20 @@ export class Engine {
     const scan = await scanLiabilities();
     const b = liabilityBreakdown(scan);
     this.state.liabilities = { value: { ...scan, ...b }, ts: scan.ts };
-    // Reserves read right after the scan so both sides are timestamped together.
-    await this.reservesJob();
-    const r = this.state.reserves?.value;
-    if (!r || Date.now() - r.ts > 5 * 60_000) throw new Error('no fresh reserves to pair with the liability scan');
+    // Reserves read right after the scan, valued with ONE price snapshot, so both sides are timestamped together.
+    const snap = createSnapshotPricer();
+    const r = await snapshotReserves(snap.getPrice);
+    if (r.failedChains.length) throw new Error(`collectors failed: ${r.failedChains.join(', ')} — ratio not computed`);
+    this.state.reserves = { value: r, ts: r.ts };
+    await this.store?.insert('reserve_snapshots', toReserveRows(r.ts, r.rows));
     const common = { reservesUsd: r.pricedUsd, unpricedReserves: r.unpriced.length, pendingLiabilityEstimateUsd: b.pendingEstimateUsd };
     const published = assessRatio({ ...common, liabilitiesUsd: b.exposedUsd });
     const audit = assessRatio({ ...common, liabilitiesUsd: b.exposedUsd + scan.vaultsUsd });
     const conf = confidence(scan.listed + scan.discovered, scan.read, Date.now() - scan.ts);
-    this.state.ratio = { ts: Date.now(), value: { published, vaultsIncludedAudit: audit, reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, confidence: conf.label, failed: conf.failed, scanWindow: [scan.startedAt, scan.ts], reservesTs: r.ts } };
+    this.state.ratio = { ts: Date.now(), value: { published, vaultsIncludedAudit: audit, reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, confidence: conf.label, failed: conf.failed, scanWindow: [scan.startedAt, scan.ts], reservesTs: r.ts, priceSnapshotAt: snap.takenAt(), inTransitNote: IN_TRANSIT.note } };
     this.state.history.push({ ts: Date.now(), reservesUsd: r.pricedUsd, liabilitiesUsd: b.exposedUsd, ratio: published.ratio, status: published.status });
     this.state.history = this.state.history.slice(-2000);
-    this.feed({ ts: Date.now(), kind: published.status ?? 'Scan', text: `Scan complete · ${scan.read.toLocaleString('en-US')} accounts · ${scan.failed.length} failed` });
+    this.feed({ ts: Date.now(), kind: published.status ?? 'Scan', text: `Scan complete · ${scan.read.toLocaleString('en-US')} accounts · ${scan.failed.length} failed · ${formatGap(published)}` });
     await this.store?.insert('liability_snapshots', [{
       ts: new Date(scan.ts).toISOString(), started_at: new Date(scan.startedAt).toISOString(), accounts_listed: scan.listed, vaults_excluded: scan.excludedVaults,
       subaccounts_discovered: scan.discovered, accounts_read: scan.read, failures: scan.failed.length, margin_usd: scan.totalUsd,
@@ -117,9 +123,19 @@ export class Engine {
   });
 
   safetyJob = () => this.guarded('safety', async () => {
-    const [s, sol] = await Promise.all([ethSafetyState(), solanaSafetyState().catch(e => { this.state.errors.solanaSafety = { at: Date.now(), message: (e as Error).message }; return undefined; })]);
+    const [s, sol] = await Promise.all([ethSafetyState(), solanaSafetyFull().catch(e => { this.state.errors.solanaSafety = { at: Date.now(), message: (e as Error).message }; return undefined; })]);
     this.state.safety = { value: s, ts: s.ts };
     if (sol) { this.state.solanaSafety = { value: sol, ts: Date.now() }; delete this.state.errors.solanaSafety; }
+    // Solana program instructions (IDL-decoded) since the last seen signature.
+    const solFirst = this.state.lastSolanaSignature === undefined;
+    try {
+      const { events, newest } = await solanaInstructionEvents(this.state.lastSolanaSignature, solFirst ? 10 : 25);
+      this.state.lastSolanaSignature = newest;
+      this.state.solanaEvents = [...events.reverse(), ...(this.state.solanaEvents ?? [])].slice(0, 200);
+      for (const e of events) this.feed({ ts: e.ts, kind: `Solana · ${e.type}`, text: `Solana vault instruction ${e.type}`, link: `https://solscan.io/tx/${e.signature}` });
+      delete this.state.errors.solanaEvents;
+    } catch (e) { this.state.errors.solanaEvents = { at: Date.now(), message: (e as Error).message.split('\n')[0] }; }
+    if (solFirst) for (const a of this.buildAlerts()) this.sent.add(`${a.rule}|${a.key}`);
     const head = BigInt(s.block);
     const first = this.state.lastEventBlock === undefined;
     const from = first ? head - EVENT_LOOKBACK_BLOCKS : BigInt(this.state.lastEventBlock! + 1);
@@ -175,10 +191,17 @@ export class Engine {
         ...(s.safety ? [{ chain: 'ethereum', paused: s.safety.value.paused }] : []),
         ...(s.solanaSafety ? [{ chain: 'solana', paused: s.solanaSafety.value.paused || s.solanaSafety.value.recovered }] : []),
       ],
-      queued: open.queued.map(e => ({ id: e.args.requestID, amount: Number(e.args.amount) / 1e6, token: 'USDC', executableAt: Number(e.args.executableAt) * 1000, tx: e.tx })),
-      actions: open.actions.map(e => ({ id: e.args.actionId, kind: e.args.kind, tx: e.tx })),
+      queued: [
+        ...open.queued.map(e => ({ id: e.args.requestID, amount: Number(e.args.amount) / 1e6, token: 'USDC', executableAt: Number(e.args.executableAt) * 1000, tx: e.tx })),
+        ...(s.solanaSafety?.value.pending.withdrawals ?? []).map(w => ({ id: w.requestId, amount: w.amount / (w.asset.kind === 'Sol' ? 1e9 : 1e6), token: w.asset.kind === 'Sol' ? 'SOL' : 'USDC', executableAt: w.executableAt * 1000, tx: w.address })),
+      ],
+      actions: [
+        ...open.actions.map(e => ({ id: e.args.actionId, kind: e.args.kind, tx: e.tx })),
+        ...(s.solanaSafety?.value.pending.actions ?? []).map(a => ({ id: a.requestId, kind: `Solana ${a.kind}`, tx: a.address })),
+      ],
       controlEvents: s.events.filter(e => !['Withdraw', 'Deposit', 'LargeWithdrawalQueued', 'LargeWithdrawalExecuted', 'LargeWithdrawalCancelled', 'ActionProposed', 'ActionFinalized', 'ActionCancelled', 'Paused', 'Unpaused'].includes(e.type))
-        .map(e => ({ type: e.type, tx: e.tx, detail: describeEvent(e) })),
+        .map(e => ({ type: e.type, tx: e.tx, detail: describeEvent(e) }))
+        .concat((s.solanaEvents ?? []).filter(e => !SOLANA_ROUTINE.has(e.type)).map(e => ({ type: `Solana ${e.type}`, tx: e.signature, detail: `Solana vault instruction ${e.type} (slot ${e.slot})` }))),
       outflow1hUsd: lastHour, avgHourlyOutflowUsd: enoughHistory ? outs.reduce((x, f) => x - f.usd!, 0) / span : 0, hourBucket: Math.floor(now / 3_600_000),
     });
   }
@@ -212,6 +235,9 @@ export class Engine {
     every(FLOWS_MS, this.flowsJob);
   }
 }
+
+/** Routine Solana vault instructions: shown in the feed, not alerted on their own (queues are alerted via PendingWithdrawal). */
+const SOLANA_ROUTINE = new Set(['deposit', 'withdraw', 'bulk_withdraw', 'execute_large_withdrawal']);
 
 export function describeEvent(e: SafetyEvent): string {
   const usdc = (v?: string) => (v ? `${(Number(v) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC` : '');

@@ -29,12 +29,13 @@ function renderRatio(s) {
   $('ratio').style.fontSize = st === 'Needs review' ? '56px' : '';
   $('status').className = `status ${statusClass(st)}`;
   $('status').textContent = st ?? '—';
-  const gap = a.ratio !== undefined ? (a.ratio - 1) * 100 : undefined;
-  $('gap').textContent = gap === undefined ? '' : st === 'Needs review' ? `computed ${pct(a.ratio, 2)} · not published` : `Gap ${gap >= 0 ? '+' : '−'}${Math.abs(gap).toFixed(4)}%`;
+  const gapText = a.gapUsd === undefined ? '' : `Gap ${a.gapUsd < 0 ? '−' : '+'}${usd(Math.abs(a.gapUsd))} · ${a.gapUsd < 0 ? '−' : '+'}${Math.abs(a.gapPct).toFixed(4)}%`;
+  $('gap').textContent = st === 'Needs review' ? `computed ${pct(a.ratio, 2)} · ${gapText} · not published` : gapText;
   const explain = {
     Balanced: 'Reserves match what Strike owes users to within ±0.01%.',
     Drift: 'Reserves and liabilities differ by 0.01–1%. Per-chain and per-asset detail below; re-checked every scan.',
     Incomplete: `The gap is explained by components that are not exposed yet (${a.explainedBy ?? 'pending'}). Not a solvency signal.`,
+    'In transit': `The gap is within funds Strike reports as in transit (${a.explainedBy ?? ''}). Not Drift, not insolvency; the missing amount is not added.`,
     'Needs review': 'The two sides differ by more than 1%. This is logged for investigation and is NOT published as insolvency — most often a missed asset, an unpriced token or an accounting rule to confirm with Strike.',
   };
   $('ratio-explain').textContent = `${explain[st] ?? ''} Strike is not a CEX: the ratio should be exactly 100%; above or below both need a look.`;
@@ -84,7 +85,8 @@ function renderLiabilities(s) {
   rows.push(`<tr><td>Vault accounts (excluded)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} audit</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
-  $('pending-notes').innerHTML = '<div class="note">Rewards are tradeable but not withdrawable, so they are not backed by the lockers and are not counted (per Strike). Staking and referral rewards are excluded; locked rewards are deducted from account value.</div>';
+  $('pending-notes').innerHTML = (s.ratio?.inTransitNote ? `<div class="note">${esc(s.ratio.inTransitNote)}</div>` : '')
+    + '<div class="note" style="background:transparent">Liabilities are what users can withdraw: account value minus locked rewards (rewards are tradeable only, per Strike).</div>';
 }
 
 function renderFlows(s) {
