@@ -112,10 +112,10 @@ export function mountHeroViz(host) {
       pLia.v.textContent = usd(L); pLia.bar.setAttribute('width', (108 * L / m).toFixed(1));
     }
     if (a) {
-      const st = a.status === 'Needs review' ? 'UNDER REVIEW WITH STRIKE' : String(a.status).toUpperCase();
+      const st = a.status === 'Needs review' ? 'RECONCILING' : String(a.status).toUpperCase();
       const ok = a.status === 'Balanced';
       status.textContent = `${(a.ratio * 100).toFixed(2)}% · ${st}`;
-      sub.textContent = ok ? 'RESERVES MATCH LIABILITIES' : 'RESERVES VS LIABILITIES · GAP UNDER INVESTIGATION';
+      sub.textContent = ok ? 'RESERVES MATCH LIABILITIES' : 'RESERVES VS LIABILITIES';
       mark.setAttribute('opacity', ok ? 1 : 0);
       ring.setAttribute('stroke', ok ? '#c7c2ff' : '#e8c46a'); pulse.setAttribute('stroke', ok ? '#c7c2ff' : '#e8c46a');
     }

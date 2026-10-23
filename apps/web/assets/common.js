@@ -14,7 +14,7 @@ export function ago(ts) {
 export const hhmm = (ts) => new Date(ts).toISOString().slice(11, 16) + ' UTC';
 // A gap beyond ±1% is shown as under review with Strike (founder, 23 Oct): amber, never a red alarm or "insolvent".
 export const statusClass = (s) => (s === 'Needs review' || s === 'In transit' ? 'Drift' : s || '');
-export const statusLabel = (s) => (s === 'Needs review' ? 'Under review with Strike' : s ?? '—');
+export const statusLabel = (s) => (s === 'Needs review' ? 'Reconciling' : s ?? '—');
 export const statusColor = (s) => (s === 'Balanced' ? 'var(--green)' : 'var(--amber)');
 
 /** Which deployment the page shows: the published mainnet result (default) or the labelled testnet one. */

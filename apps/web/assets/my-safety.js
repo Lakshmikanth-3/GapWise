@@ -62,7 +62,7 @@ async function refresh() {
     $('title').textContent = value > 0 ? 'Here is how your funds are backed' : 'Your account is connected';
     $('subtitle').textContent = `Checked against Strike's on-chain lockers · platform scan ${ago(state.ratio?.ts)}.`;
     const a = state.ratio?.published;
-    $('a-ratio').textContent = a ? (a.status === 'Needs review' ? 'Under review with Strike' : pct(a.ratio, 2)) : '…';
+    $('a-ratio').textContent = a ? (a.status === 'Needs review' ? 'Reconciling' : pct(a.ratio, 2)) : '…';
     $('a-ratio').style.color = a?.status === 'Balanced' ? 'var(--green)' : 'var(--amber)';
     $('a-ratio-sub').textContent = a ? `${a.status}${a.explainedBy ? ` · ${a.explainedBy}` : ''}` : 'first scan running';
     renderChecks(state, wd);

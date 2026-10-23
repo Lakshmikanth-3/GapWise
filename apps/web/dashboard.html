@@ -127,7 +127,7 @@
       <h2 style="margin: 0; font-size: 22px; font-weight: 600">Recent events</h2>
       <a id="tg-link" href="#" style="font-size: 14px; display: none">Get alerts on Telegram ↗</a>
     </div>
-    <ul class="feed" id="feed"></ul>
+    <ul class="feed" id="feed" style="max-height: 420px; overflow-y: auto; padding-right: 6px"></ul>
   </section>
 
 
@@ -150,7 +150,7 @@ npm run verify        # or: npx zerogap verify</pre>
       Reserves: balances read directly from the lockers (Ethereum <code>eth_call</code>, Solana RPC, Cardano Koios/Blockfrost); ADA/ETH/SOL priced with Strike's
       <code>/price/v2/premiumIndex</code> index price, fiat-redeemable stablecoins at their 1:1 peg (labelled), anything else listed as unpriced — never guessed.<br>
       Liabilities: every account from <code>/stat/v1/stats/leaderboard</code> read live via <code>/v2/account</code> (equity = wallet_balance + unrealized_pnl; margin_balance is not used because it leaves out isolated margin) and <code>/v2/balances</code> (stakingRewardBalance, added), sub-accounts included; vault accounts excluded and each depositor's vault share added from <code>/v2/vault/{id}/depositors</code>; ≤ 40 requests/s.<br>
-      Status: Balanced within ±0.01%, Drift up to ±1%, beyond that "Under review with Strike" (being investigated with the Strike team, never published as insolvency). Gaps explained by components Strike does not expose yet show as Incomplete.
+      Status: Balanced within ±0.01%, Drift up to ±1%, beyond that "Reconciling" (being reconciled with Strike, never published as insolvency). Gaps explained by components Strike does not expose yet show as Incomplete.
       Read-only, open source (MIT): <a id="gh" href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>.
     </p>
   </section>

@@ -189,7 +189,7 @@
     const dz = document.getElementById('disclose');
     if (mm.length) { dz.hidden = false; dz.textContent = `Disclosed by Strike: reserves include ${compactUsd(mm.reduce((t, r) => t + (r.usdValue ?? 0), 0))} held by Strike's market-maker bot on external exchanges (${mm.map((r) => r.asset.replace('USD equity ', '').replace(/[()]/g, '')).join(', ')}). Not an on-chain locker; read via public / read-only API access provided by Strike. A known gap.`; } else dz.hidden = true; updStack(st); updWave(st);
     const a = st.ratio?.published;
-    const label = a?.status === 'Needs review' ? 'Under review with Strike' : a?.status;
+    const label = a?.status === 'Needs review' ? 'Reconciling' : a?.status;
     document.getElementById('ticker').innerHTML = `<span><i class="dot"></i>Live</span>`
       + (a ? `<span>Ratio <b>${pct(a.ratio, 2)}</b></span><span><b>${label}</b></span>` : '')
       + (st.reserves ? `<span>In lockers <b>${compactUsd(st.reserves.pricedUsd)}</b></span>` : '')

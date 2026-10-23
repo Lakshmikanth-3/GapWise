@@ -6,7 +6,7 @@ const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(SVG
 const MONO = 'Geist Mono, ui-monospace, monospace';
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const usd = (n) => (n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}K` : `$${n.toFixed(0)}`);
-const statusText = (a) => (a.status === 'Needs review' ? 'Under review with Strike' : a.status);
+const statusText = (a) => (a.status === 'Needs review' ? 'Reconciling' : a.status);
 
 export function mountStack(host) {
   const svg = el('svg', { viewBox: '0 0 720 420', role: 'img', 'aria-label': 'Live ZeroGap layers: accounts, liabilities, reserves and ratio, fed by Ethereum, Solana and Cardano' }, host);

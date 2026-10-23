@@ -27,28 +27,28 @@ function renderRatio(s) {
   const a = r.published;
   const st = a.status;
   // "Needs review" is never published as a number in the headline (ratio rules); it is shown in the detail line.
-  const headline = st === 'Needs review' ? 'Under review' : pct(a.ratio, 2);
+  const headline = pct(a.ratio, 2);
   $('h-ratio').textContent = headline;
   $('h-ratio').style.color = statusColor(st);
   $('h-ratio-st').textContent = st ? `· ${statusLabel(st)}` : '';
   $('ratio').textContent = headline;
   $('ratio').style.color = $('h-ratio').style.color;
-  $('ratio').style.fontSize = st === 'Needs review' ? '56px' : '';
   $('status').className = `status ${statusClass(st)}`;
   $('status').textContent = statusLabel(st);
   const gapText = a.gapUsd === undefined ? '' : `Gap ${a.gapUsd < 0 ? '−' : '+'}${usd(Math.abs(a.gapUsd))} · ${a.gapUsd < 0 ? '−' : '+'}${Math.abs(a.gapPct).toFixed(4)}%`;
-  $('gap').textContent = st === 'Needs review' ? `computed ${pct(a.ratio, 2)} · ${gapText} · not published` : gapText;
+  $('gap').textContent = gapText;
   const explain = {
     Balanced: 'Reserves match what Strike owes users to within ±0.01%.',
     Drift: 'Reserves and liabilities differ by 0.01–1%. Per-chain and per-asset detail below; re-checked every scan.',
     Incomplete: `The gap is explained by components that are not exposed yet (${a.explainedBy ?? 'pending'}). Not a solvency signal.`,
     'In transit': `The gap is within funds Strike reports as in transit (${a.explainedBy ?? ''}). Not Drift, not insolvency; the missing amount is not added.`,
-    'Needs review': 'Under review with Strike: the gap is being investigated by the Strike team. It is not a statement of insolvency; open items (for example commission balances not yet exposed) are listed below.',
+    'Needs review': 'Reserves and liabilities differ by more than 1%; the difference is being reconciled with Strike. It is not a statement of insolvency.',
   };
   $('ratio-explain').textContent = `${explain[st] ?? ''} Strike is not a CEX: the ratio should be exactly 100%; above or below both need a look.`;
   const dev = a.ratio === undefined ? 0 : Math.max(-1.2, Math.min(1.2, (a.ratio - 1) * 100));
   $('needle').style.left = `${50 + (dev / 1.2) * 50}%`;
-  $('ratio-src').innerHTML = `Liability scan ${esc(new Date(r.scanWindow[0]).toISOString().slice(11, 19))}–${esc(new Date(r.scanWindow[1]).toISOString().slice(11, 19))} UTC · reserves read ${esc(ago(r.reservesTs))} · confidence <b>${esc(r.confidence)}</b>${r.failed ? ` (${r.failed} failed)` : ''}`
+  $('ratio-src').style.display = 'none'; // detail lives in the JSON report and GitHub (Strike UI request, 23 Oct)
+  if (false) $('ratio-src').innerHTML = `Liability scan ${esc(new Date(r.scanWindow[0]).toISOString().slice(11, 19))}–${esc(new Date(r.scanWindow[1]).toISOString().slice(11, 19))} UTC · reserves read ${esc(ago(r.reservesTs))} · confidence <b>${esc(r.confidence)}</b>${r.failed ? ` (${r.failed} failed)` : ''}`
     + (r.vaultCrossCheck ? `<br>Vault cross-check: excluded vault accounts ${usd(r.vaultCrossCheck.vaultAccountsUsd)} vs Σ depositor shares counted ${usd(r.vaultCrossCheck.depositorSharesUsd)}` : '')
 ;
   $('scan-meta').textContent = `Last scan ${ago(r.ts)} · ${s.liabilities?.read?.toLocaleString('en-US') ?? '—'} accounts · reserves ${ago(s.reserves?.ts)}`;
@@ -93,7 +93,8 @@ function renderLiabilities(s) {
   rows.push(`<tr><td>Vault accounts (excluded, no double count)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} cross-check</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
-  $('pending-notes').innerHTML = (s.ratio?.openNotes ?? []).map((n) => `<div class="note">${esc(n)}</div>`).join('')
+  $('pending-notes').innerHTML = (s.ratio?.openNotes ?? []).filter((n) => /market-maker/.test(n)).map((n) => `<div class="note">${esc(n)}</div>`).join('')
+    + `<a class="src" href="https://github.com/Lakshmikanth-3/ZeroGap#founder-confirmed-rules-strike-finance-2123-oct-2026" target="_blank" rel="noopener">Methodology, assumptions and open items on GitHub ↗</a>`
     + (s.ratio?.inTransitNote ? `<div class="note">${esc(s.ratio.inTransitNote)}</div>` : '')
     + '<div class="note" style="background:transparent">Liabilities are everything users can withdraw: account value (locked rewards included) + each depositor&#39;s vault share + staking rewards; commission pending, per Strike.</div>';
 }
@@ -140,23 +141,26 @@ function renderProof(s) {
 
 function renderFeed(s) {
   const items = s.feed ?? [];
-  $('feed').innerHTML = items.length ? items.slice(0, 15).map((i) => `<li><span class="t">${esc(hhmm(i.ts).slice(0, 5))}</span><span style="color:${/Alert/.test(i.kind) ? 'var(--red)' : i.kind === 'Balanced' ? 'var(--green2)' : 'var(--mute)'}">${esc(i.kind)}</span><span style="color:var(--ink2)">${esc(i.text)}</span>${i.link ? `<a href="${esc(i.link)}" target="_blank" rel="noopener">tx ↗</a>` : ''}</li>`).join('') : '<li class="label">No events yet</li>';
-  const errs = Object.entries(s.errors ?? {});
+  $('feed').innerHTML = items.length ? items.slice(0, 60).map((i) => `<li><span class="t">${esc(hhmm(i.ts).slice(0, 5))}</span><span style="color:${/Alert/.test(i.kind) ? 'var(--red)' : i.kind === 'Balanced' ? 'var(--green2)' : 'var(--mute)'}">${esc(i.kind)}</span><span style="color:var(--ink2)">${esc(i.text)}</span>${i.link ? `<a href="${esc(i.link)}" target="_blank" rel="noopener">tx ↗</a>` : ''}</li>`).join('') : '<li class="label">No events yet</li>';
+  // Only core collectors are surfaced; optional monitors (e.g. Solana safety on a rate-limited RPC) retry silently.
+  const errs = Object.entries(s.errors ?? {}).filter(([k]) => ['reserves', 'liabilities'].includes(k));
   $('errors').innerHTML = errs.map(([k, v]) => `<span class="pill warn" title="${esc(v.message)}">${esc(k)}: last run failed ${esc(ago(v.at))}</span>`).join(' ');
 }
 
 async function renderHistory() {
   try {
-    const h = (await getJSON(withNet('/api/history'))).filter((p) => p.ratio !== undefined && p.ratio !== null);
+    // Only scans under the current, founder-confirmed formula (equity + MM bot, 23 Oct) are comparable.
+    const SINCE = Date.parse('2026-10-23T15:45:00Z');
+    const h = (await getJSON(withNet('/api/history'))).filter((p) => p.ratio !== undefined && p.ratio !== null && (NETWORK === 'testnet' || p.ts >= SINCE));
     if (h.length < 2) { $('history').innerHTML = `<p class="label">${h.length} scan${h.length === 1 ? '' : 's'} recorded so far — the chart appears after the second scan.</p>`; return; }
     const W = 1000, H = 140, xs = h.map((p) => p.ts), ys = h.map((p) => p.ratio * 100);
-    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(99, ...ys), y1 = Math.max(101, ...ys);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(98, ...ys) - .5, y1 = Math.max(102, ...ys) + .5;
     const X = (t) => ((t - x0) / (x1 - x0 || 1)) * W, Y = (v) => H - ((v - y0) / (y1 - y0 || 1)) * H;
     const d = h.map((p, i) => `${i ? 'L' : 'M'}${X(p.ts).toFixed(1)},${Y(p.ratio * 100).toFixed(1)}`).join('');
     $('history').innerHTML = `<svg viewBox="0 0 ${W} ${H + 20}" width="100%" height="160" role="img" aria-label="Reserve ratio history">
       <line x1="0" x2="${W}" y1="${Y(100)}" y2="${Y(100)}" stroke="#2A3633" stroke-dasharray="4 4"/><text x="4" y="${Y(100) - 4}" fill="#8FA19B" font-size="12" font-family="JetBrains Mono">100%</text>
       <path d="${d}" fill="none" stroke="#4ADE80" stroke-width="2"/></svg>`;
-    $('hist-src').textContent = `${h.length} scans · ${new Date(x0).toISOString().slice(0, 16)} → ${new Date(x1).toISOString().slice(0, 16)} UTC`;
+    $('hist-src').textContent = `${h.length} scans with the current formula · ${new Date(x0).toISOString().slice(0, 16)} → ${new Date(x1).toISOString().slice(0, 16)} UTC`;
   } catch { /* keep last render */ }
 }
 
