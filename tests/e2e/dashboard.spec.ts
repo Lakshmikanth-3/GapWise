@@ -14,7 +14,7 @@ test('T3.4 home loads under 2 s with all three chains and correct explorer links
 
 test('T3.1 ratio card shows status, value and timestamp from live state', async ({ page }) => {
   await page.goto('/dashboard');
-  await expect(page.locator('#status')).toHaveText(/Balanced|Drift|Incomplete|Needs review/, { timeout: 15_000 });
+  await expect(page.locator('#status')).toHaveText(/Balanced|Drift|Incomplete|In transit|Under review with Strike/, { timeout: 15_000 });
   await expect(page.locator('#ratio-src')).toContainText('Liability scan');
   await expect(page.locator('#scan-meta')).toContainText('Last scan');
 });
