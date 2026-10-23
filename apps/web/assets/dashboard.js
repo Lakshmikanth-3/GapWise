@@ -67,7 +67,13 @@ function renderReserves(s) {
   $('res-sub').textContent = `3 chains${res.rows.some((x) => x.chain === 'hedge') ? ' + Strike MM bot (disclosed)' : ''} · ${holders.size} addresses · ${ago(res.ts)}${res.stalePrices ? ' · STALE PRICES' : ''}`;
   const byChain = {};
   for (const row of res.rows) (byChain[row.chain] ??= []).push(row);
-  $('chains').innerHTML = ['ethereum', 'solana', 'cardano', 'hedge'].filter((c) => c !== 'hedge' || (s.reserves?.rows ?? []).some((r) => r.chain === 'hedge')).map((c) => {
+  // Top section: smart-contract lockers only. The market-maker bot is shown next to what Strike owes (Strike request).
+  const mm = byChain.hedge ?? [];
+  $('mm-bot').innerHTML = mm.length ? `<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:600;font-size:17px">Off-chain reserve: Strike market-maker bot</div><div class="label" style="margin-top:4px">Disclosed by Strike · not an on-chain locker · read via public / read-only API access provided by Strike</div></div><div class="mono" style="font-size:26px;font-weight:700">${usd(mm.reduce((t, r) => t + (r.usdValue ?? 0), 0))}</div></div>`
+    + mm.map((r) => `<div class="kv"><span>${esc(r.asset.replace('USD equity ', '').replace(/[()]/g, ''))} equity</span><span>${num(r.usdValue, 2)}</span></div>`).join('')
+    + `<a class="mono" style="font-size:13px" href="https://etherscan.io/address/${esc(mm[0].holder)}" target="_blank" rel="noopener">${esc(short(mm[0].holder))} ↗ (deposits into Strike's Ethereum locker)</a>` : '';
+  $('mm-bot').style.display = mm.length ? 'flex' : 'none';
+  $('chains').innerHTML = ['ethereum', 'solana', 'cardano'].map((c) => {
     const rows = byChain[c] ?? [];
     const total = rows.reduce((x, r) => x + (r.usdValue ?? 0), 0);
     const addrs = [...new Set(rows.map((r) => r.holder))];
