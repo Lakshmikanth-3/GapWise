@@ -264,5 +264,12 @@
     −$473.17 = $1,755.79; margin_balance equals available_balance (cross margin only). Full scan of 3,472 accounts:
     Σ(wallet_balance + unrealized_pnl) $717,690.02 vs Σ margin_balance $644,140.48, a difference of **$73,549.54 in 47
     accounts, all with an isolated-margin symbol setting** (0 differences in cross-only accounts). Counting it would put
-    liabilities near $1.845M and the ratio near **96.5%, about −$65k**. The published formula is unchanged until the founder
-    confirms which field is the account's owed value; the question goes to the founder on Discord. Not alerted, never shown as insolvency.
+    liabilities near $1.845M and the ratio near **96.5%, about −$65k**. The question went to the founder on Discord. Not alerted, never shown as insolvency.
+    **Founder answer (23 Oct 10:58 IST):** "you need to do wallet balance + unrealized pnl". Applied: account liability =
+    equity = wallet_balance + unrealized_pnl (accounts, sub-accounts and the vault cross-check); margin_balance is kept in
+    reports for transparency only. Double counting checked live: stakingRewardBalance is NOT inside wallet_balance (e.g.
+    wallet 0.0048, staking 6.20), so it is still added; lockedRewards ARE inside wallet_balance (595 accounts), counted once.
+    Effect: every vault account's equity now equals Σ its depositors' shares within $3 total (was −$414 with margin_balance).
+    **Live verify (06:07 UTC):** reserves $1,783,641.09; liabilities $1,846,728.44 (equity $729,897.39 incl. isolated
+    $77,247.71 · vault shares $1,084,855.52 · staking $31,975.53); **ratio 96.5838%, gap −$63,087 (−3.42%)**, shown as
+    "Under review with Strike" (the Strike team is investigating the gap), never as insolvency. Report version 2.

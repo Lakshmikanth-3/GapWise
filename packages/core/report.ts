@@ -2,20 +2,20 @@
 // Produced identically by `npm run verify` and by the published engine, so anyone can diff their run against ours.
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
-import type { LiabilityScan } from '../collectors/accounts';
+import { equityOf, type LiabilityScan } from '../collectors/accounts';
 import type { ReserveSnapshot } from '../collectors/reserves';
 import { LOCKERS, NETWORK } from './config';
 import { assessRatio, confidence, formatGap, IN_TRANSIT } from './ratio';
 import { liabilityBreakdown } from './liabilities';
 
-export const REPORT_VERSION = 1;
+export const REPORT_VERSION = 2;
 
 export const RULES = [
   'Reserves: on-chain balances of every Strike locker (Ethereum vault; Solana vault account, its treasury PDA and the named USDC token account, de-duplicated; both Cardano scripts).',
   'Prices: Strike /price/v2/premiumIndex index price for ADA/ETH/SOL; Strike /v2/credit/collateral-assets for sUSDrf, LP_SUNDAE_USDCx_USDM and scaled aUSDC; fiat-redeemable stablecoins (USDC, USDT, USDCx, USDM) at the 1:1 peg by contract id; anything else unpriced and excluded.',
   'Raw on-chain amounts of Credit custody assets are scaled with /v2/credit/settings raw_amount_scale.',
-  'Liabilities (everything withdrawable): Σ margin_balance of every non-vault leaderboard account plus discovered sub-accounts, (lockedRewards are inside margin_balance and counted as owed), plus Σ depositors\x27 vault shares (/v2/vault/{id}/depositors; not inside margin_balance), plus Σ stakingRewardBalance (withdrawable; not inside margin_balance). Commission balances are withdrawable too; public source pending, listed as a pending line.',
-  'Vault accounts (vault_id / vault_ prefix) are excluded so nothing is double counted; their margin_balance is a cross-check that should equal Σ depositor shares.',
+  'Liabilities (everything withdrawable): Σ account equity = wallet_balance + unrealized_pnl of every non-vault leaderboard account plus discovered sub-accounts (founder, 23 Oct; margin_balance is not used because it leaves out isolated-margin positions; lockedRewards are inside wallet_balance and counted once), plus Σ depositor vault shares (/v2/vault/{id}/depositors; not inside equity), plus Σ stakingRewardBalance (withdrawable; not inside wallet_balance). Commission balances are withdrawable too; public source pending, listed as a pending line.',
+  'Vault accounts (vault_id / vault_ prefix) are excluded so nothing is double counted; their equity is a cross-check that should equal Σ depositor shares.',
   'One price snapshot values every reserve row; it is taken right after the account scan and both are timestamped.',
   'Status: Balanced within ±0.01%, Drift up to ±1%, Needs review beyond; a gap within the founder-stated in-transit amount is "In transit".',
 ];
@@ -64,7 +64,7 @@ export function buildReport(p: { liab: LiabilityScan; reserves: ReserveSnapshot;
     liabilities: {
       accounts_listed: liab.listed, vaults_excluded: liab.excludedVaults, subaccounts_discovered: liab.discovered,
       accounts_read: liab.read, accounts_failed: liab.failed, negative_accounts: liab.negative, confidence: conf.label,
-      margin_balance_usd: liab.totalUsd, locked_rewards_usd: liab.lockedRewardsUsd, vault_shares_usd: liab.vaultSharesUsd, staking_rewards_usd: liab.stakingRewardsUsd, commission_usd: null,
+      account_equity_usd: liab.totalUsd, margin_balance_usd: liab.marginBalanceUsd, isolated_margin_usd: liab.totalUsd - liab.marginBalanceUsd, locked_rewards_usd: liab.lockedRewardsUsd, vault_shares_usd: liab.vaultSharesUsd, staking_rewards_usd: liab.stakingRewardsUsd, commission_usd: null,
       total_usd: b.exposedUsd,
       vault_accounts_crosscheck_usd: liab.vaultsUsd,
       accounts: liab.accounts, vaults: liab.vaults, vault_shares: liab.vaultShares,
@@ -81,19 +81,20 @@ export function buildReport(p: { liab: LiabilityScan; reserves: ReserveSnapshot;
   return { ...body, content_sha256: createHash('sha256').update(json).digest('hex') };
 }
 
-/** Per vault: the vault account's own margin_balance vs Σ its depositors' current_equity (leader capital, rounding, timing). */
+/** Per vault: the vault account's own equity vs Σ its depositors' current_equity (leader capital, rounding, timing). */
 export function perVault(liab: Pick<LiabilityScan, 'vaults' | 'vaultShares'>) {
   return liab.vaults.map(v => {
     const shares = liab.vaultShares.filter(s => s.vault_id === v.vault_id);
     const sum = shares.reduce((s, x) => s + Number(x.current_equity), 0);
-    return { vault_id: v.vault_id, vault_account_usd: Number(v.margin_balance), depositor_shares_usd: sum, depositors: shares.length, difference_usd: Number(v.margin_balance) - sum };
+    const eq = equityOf(v);
+    return { vault_id: v.vault_id, vault_account_usd: eq, depositor_shares_usd: sum, depositors: shares.length, difference_usd: eq - sum };
   });
 }
 
 /** Open items shown as notes until the founder answers (never folded into the numbers). */
 export function openNotes(liab: Pick<LiabilityScan, 'vaults' | 'vaultShares'>, reserves: Pick<ReserveSnapshot, 'rows'>): string[] {
   const notes: string[] = ['Commission balances are withdrawable liabilities; their public source is pending from Strike, so they are not added yet.',
-    'Locked rewards are inside margin_balance and counted as owed (founder, 23 Oct).'];
+    'Locked rewards are inside wallet_balance and counted once as owed (founder, 23 Oct).'];
   for (const v of perVault(liab)) if (Math.abs(v.difference_usd) > 10) notes.push(`Vault ${v.vault_id}: vault account ${v.vault_account_usd.toFixed(2)} vs Σ depositor shares ${v.depositor_shares_usd.toFixed(2)} (difference ${v.difference_usd.toFixed(2)}): acknowledged by Strike, ignored for now.`);
   for (const r of reserves.rows) if (r.quote.status === 'placeholder') notes.push(`${r.asset} (${r.chain}) counted at a placeholder price of ${r.quote.usd}; price source pending from Strike.`);
   return notes;

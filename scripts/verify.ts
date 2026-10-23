@@ -26,7 +26,7 @@ export async function runVerify(outDir = process.env.ZEROGAP_REPORTS_DIR ?? 'rep
   if (report.reserves.failed_chains.length) log(`  !! failed chains: ${report.reserves.failed_chains.join(', ')}`);
   const l = report.liabilities;
   log(`\nLiabilities: ${l.accounts_listed} listed · ${l.vaults_excluded} vaults excluded · ${l.subaccounts_discovered} sub-accounts · ${l.accounts_read} read · ${l.accounts_failed.length} failed [${l.confidence}]`);
-  log(`  Σ margin_balance ${usd(l.margin_balance_usd)} (incl. locked rewards ${usd(l.locked_rewards_usd)}) + Σ vault shares ${usd(l.vault_shares_usd)} + Σ staking rewards ${usd(l.staking_rewards_usd)} = ${usd(l.total_usd)} · commission: pending (not yet exposed by Strike)`);
+  log(`  Σ account equity (wallet_balance + unrealized_pnl) ${usd(l.account_equity_usd)} (incl. locked rewards ${usd(l.locked_rewards_usd)}; isolated margin missing from margin_balance ${usd(l.isolated_margin_usd)}) + Σ vault shares ${usd(l.vault_shares_usd)} + Σ staking rewards ${usd(l.staking_rewards_usd)} = ${usd(l.total_usd)} · commission: pending (not yet exposed by Strike)`);
   const res = report.result;
   log(`\nRatio: ${res.ratio === null ? 'n/a' : (res.ratio * 100).toFixed(4) + '%'} → ${res.status} · ${res.gap_text}`);
   log(`

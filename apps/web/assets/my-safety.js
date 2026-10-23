@@ -52,7 +52,7 @@ async function refresh() {
   try {
     const [acct, bals, state] = await Promise.all([client.account(session.accountId), client.balances(session.accountId), getJSON('/api/state')]);
     const b = bals[0] ?? {};
-    const value = Number(acct.margin_balance), upnl = Number(acct.unrealized_pnl ?? 0), wd = Number(b.maxWithdrawAfterRewards ?? b.maxWithdrawAmount ?? 0);
+    const upnl = Number(acct.unrealized_pnl ?? 0), value = Number(acct.wallet_balance) + upnl, wd = Number(b.maxWithdrawAfterRewards ?? b.maxWithdrawAmount ?? 0);
     const staking = Number(b.stakingRewardBalance ?? 0);
     $('a-value').textContent = usd(value, 2);
     $('a-value-sub').textContent = `Includes ${usd(upnl, 2)} unrealized PnL${staking ? ` · plus ${usd(staking, 2)} staking rewards` : ''} · ${network}`;
@@ -62,8 +62,8 @@ async function refresh() {
     $('title').textContent = value > 0 ? 'Here is how your funds are backed' : 'Your account is connected';
     $('subtitle').textContent = `Checked against Strike's on-chain lockers · platform scan ${ago(state.ratio?.ts)}.`;
     const a = state.ratio?.published;
-    $('a-ratio').textContent = a ? (a.status === 'Needs review' ? 'Under review' : pct(a.ratio, 2)) : '…';
-    $('a-ratio').style.color = a?.status === 'Balanced' ? 'var(--green)' : a?.status === 'Needs review' ? 'var(--red)' : 'var(--amber)';
+    $('a-ratio').textContent = a ? (a.status === 'Needs review' ? 'Under review with Strike' : pct(a.ratio, 2)) : '…';
+    $('a-ratio').style.color = a?.status === 'Balanced' ? 'var(--green)' : 'var(--amber)';
     $('a-ratio-sub').textContent = a ? `${a.status}${a.explainedBy ? ` · ${a.explainedBy}` : ''}` : 'first scan running';
     renderChecks(state, wd);
   } catch (e) { log(`refresh failed: ${e.message}`); }

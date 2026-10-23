@@ -12,7 +12,10 @@ export function ago(ts) {
   return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago`;
 }
 export const hhmm = (ts) => new Date(ts).toISOString().slice(11, 16) + ' UTC';
-export const statusClass = (s) => (s === 'Needs review' ? 'Needs' : s === 'In transit' ? 'Drift' : s || '');
+// A gap beyond ±1% is shown as under review with Strike (founder, 23 Oct): amber, never a red alarm or "insolvent".
+export const statusClass = (s) => (s === 'Needs review' || s === 'In transit' ? 'Drift' : s || '');
+export const statusLabel = (s) => (s === 'Needs review' ? 'Under review with Strike' : s ?? '—');
+export const statusColor = (s) => (s === 'Balanced' ? 'var(--green)' : 'var(--amber)');
 
 /** Which deployment the page shows: the published mainnet result (default) or the labelled testnet one. */
 export const NETWORK = new URLSearchParams(location.search).get('network') === 'testnet' ? 'testnet' : 'mainnet';

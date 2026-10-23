@@ -60,11 +60,12 @@ describe('pluggable pricer: adding one adapter prices a pending asset', () => {
   });
 });
 
-describe('liabilities = withdrawable value: margin_balance minus locked rewards; other rewards excluded', () => {
-  it('margin_balance (locked rewards included) + vault shares + staking rewards; commission pending (founder rules)', () => {
-    const b = liabilityBreakdown({ totalUsd: 1000, lockedRewardsUsd: 30, vaultSharesUsd: 500, stakingRewardsUsd: 40 });
-    expect(b.exposedUsd).toBe(1540); // locked rewards are inside margin_balance: counted once, never subtracted or re-added
-    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['margin_balance', 'counted'], ['Locked', 'included'], ['Vault', 'counted'], ['Staking', 'counted'], ['Commission', 'pending']]);
+describe('liabilities = everything withdrawable (founder rules, 23 Oct)', () => {
+  it('account equity (locked rewards and isolated margin inside it) + vault shares + staking rewards; commission pending', () => {
+    const b = liabilityBreakdown({ totalUsd: 1000, marginBalanceUsd: 900, lockedRewardsUsd: 30, vaultSharesUsd: 500, stakingRewardsUsd: 40 });
+    expect(b.exposedUsd).toBe(1540); // locked rewards and isolated margin are inside equity: shown, counted once, never re-added
+    expect(b.components.find(c => c.name.startsWith('Isolated'))!.usd).toBe(100);
+    expect(b.components.map(c => [c.name.split(' ')[0], c.status])).toEqual([['account_equity', 'counted'], ['Isolated-margin', 'included'], ['Locked', 'included'], ['Vault', 'counted'], ['Staking', 'counted'], ['Commission', 'pending']]);
     expect(b.components.find(c => c.status === 'pending')!.usd).toBeUndefined();
   });
 

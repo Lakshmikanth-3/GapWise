@@ -4,25 +4,33 @@ import { createRateLimiter, withRetry } from '../core/rateLimiter';
 // Live shape (verified 22 Oct 2026): { entries: [{ account_id, vault_id, equity, ... }], total, updated_at }.
 // Vault rows have account_id "vault_<8hex>" and the full UUID in vault_id.
 type LbEntry = { account_id: string; vault_id?: string };
-type Account = { account_id: string; margin_balance: string; sub_accounts?: { account_id: string }[] };
+type Account = { account_id: string; margin_balance: string; wallet_balance: string; unrealized_pnl?: string; sub_accounts?: { account_id: string }[] };
+
+/**
+ * What Strike owes an account: its equity = wallet_balance + unrealized_pnl (founder, 23 Oct 10:58). margin_balance is
+ * NOT used: it equals available_balance and leaves out isolated-margin positions (docs/DECISIONS.md #50).
+ */
+export const equityOf = (a: { wallet_balance: string; unrealized_pnl?: string }) => Number(a.wallet_balance) + Number(a.unrealized_pnl ?? 0);
 // GET /v2/balances?account_id= → one row per collateral asset (live: a single USDT row).
 export type BalanceRow = { asset: string; walletBalance: string; maxWithdrawAmount: string; maxWithdrawAfterRewards: string; lockedRewards: string; stakingRewardBalance: string };
 
 /** Raw per-account values as returned by Strike (strings preserved) — published in verify reports for diffing. */
-export type AccountRow = { account_id: string; sub_account: boolean; margin_balance: string; lockedRewards: string; stakingRewardBalance: string };
-export type VaultRow = { vault_id: string; margin_balance: string };
+export type AccountRow = { account_id: string; sub_account: boolean; wallet_balance: string; unrealized_pnl: string; margin_balance: string; lockedRewards: string; stakingRewardBalance: string };
+export type VaultRow = { vault_id: string; wallet_balance: string; unrealized_pnl: string; margin_balance: string };
 /** One depositor's share of a vault (GET /v2/vault/{id}/depositors current_equity), raw string preserved. */
 export type VaultShareRow = { vault_id: string; address: string; current_equity: string };
 
 export type LiabilityScan = {
   accounts: AccountRow[]; vaults: VaultRow[]; vaultShares: VaultShareRow[];
-  /** Σ depositors' vault shares — owed to users but NOT inside their own margin_balance (founder, 22 Oct 23:33). */
+  /** Σ depositors' vault shares — owed to users but NOT inside their own equity (founder, 22 Oct 23:33). */
   vaultSharesUsd: number;
   listed: number; excludedVaults: number;
-  /** Σ margin_balance of the excluded vault accounts, read separately for audit; NOT in totalUsd. */
+  /** Σ equity of the excluded vault accounts, read separately for audit; NOT in totalUsd. */
   vaultsUsd: number; discovered: number; read: number; failed: string[];
-  /** Σ margin_balance (non-vault accounts + sub-accounts). */
+  /** Σ equity = wallet_balance + unrealized_pnl (non-vault accounts + sub-accounts). */
   totalUsd: number;
+  /** Σ margin_balance, for transparency only: totalUsd − this = isolated-margin equity margin_balance leaves out. */
+  marginBalanceUsd: number;
   /** Σ stakingRewardBalance — segregated from margin per the docs, so it is an extra liability. */
   stakingRewardsUsd: number;
   /** Σ lockedRewards — logged only; see lockedInWallet for whether it already sits inside walletBalance. */
@@ -42,7 +50,7 @@ async function getJson<T>(url: string): Promise<T> {
 
 /**
  * Vault accounts are excluded (confirmed by Shan): a depositor's vault share is already inside their own
- * margin_balance, so counting the vault too double-counts it.
+ * equity, so counting the vault too double-counts it.
  */
 export const isVaultAccount = (e: { account_id: string; vault_id?: string }) => !!e.vault_id || e.account_id.startsWith('vault_');
 
@@ -83,7 +91,7 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   const seen = new Set(queue);
   const failed: string[] = []; const negative: string[] = [];
   const lockedInWallet = { consistent: 0, inconsistent: 0 };
-  let total = 0, staking = 0, locked = 0, read = 0, discovered = 0;
+  let total = 0, margin = 0, staking = 0, locked = 0, read = 0, discovered = 0;
   const accounts: AccountRow[] = []; const vaults: VaultRow[] = []; const subs = new Set<string>();
 
   async function one(id: string) {
@@ -91,10 +99,10 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
     try {
       // Both reads must succeed before anything is counted, so a half-read account is a clean failure.
       const [a, bal] = await Promise.all([get<Account>(`${base}/v2/account?${q}`), get<BalanceRow[]>(`${base}/v2/balances?${q}`)]);
-      const v = Number(a.margin_balance);
+      const v = equityOf(a);
       const r = rewardsOf(bal);
-      total += v; staking += r.staking; locked += r.locked; read++;
-      accounts.push({ account_id: a.account_id || id, sub_account: subs.has(id), margin_balance: a.margin_balance, lockedRewards: String(r.locked), stakingRewardBalance: String(r.staking) });
+      total += v; margin += Number(a.margin_balance); staking += r.staking; locked += r.locked; read++;
+      accounts.push({ account_id: a.account_id || id, sub_account: subs.has(id), wallet_balance: a.wallet_balance, unrealized_pnl: a.unrealized_pnl ?? '0', margin_balance: a.margin_balance, lockedRewards: String(r.locked), stakingRewardBalance: String(r.staking) });
       if (r.lockedInWallet !== undefined) lockedInWallet[r.lockedInWallet ? 'consistent' : 'inconsistent']++;
       if (v < 0) negative.push(id);
       for (const s of a.sub_accounts ?? []) {
@@ -116,14 +124,14 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
   await Promise.all(workers);
 
   // Vault accounts are excluded (no double counting), but each depositor's share of a vault is a liability that is NOT
-  // inside that depositor's margin_balance, so it is added from /v2/vault/{id}/depositors. The vault account's own
-  // margin_balance is kept as an audit cross-check: Σ depositor shares ≈ vault margin_balance (docs/DECISIONS.md #48).
+  // inside that depositor's equity, so it is added from /v2/vault/{id}/depositors. The vault account's own equity is
+  // kept as an audit cross-check: Σ depositor shares ≈ vault equity (docs/DECISIONS.md #48).
   let vaultsUsd = 0, vaultSharesUsd = 0;
   const vaultShares: VaultShareRow[] = [];
   for (const vid of vaultIds) {
     try {
       const va = await get<Account>(`${base}/v2/account?vault_id=${encodeURIComponent(vid)}`);
-      vaultsUsd += Number(va.margin_balance); vaults.push({ vault_id: vid, margin_balance: va.margin_balance });
+      vaultsUsd += equityOf(va); vaults.push({ vault_id: vid, wallet_balance: va.wallet_balance, unrealized_pnl: va.unrealized_pnl ?? '0', margin_balance: va.margin_balance });
       let cursor: string | undefined;
       do {
         const page = await get<{ depositors: { address: string; current_equity: string }[]; next_cursor?: string | null }>(
@@ -134,7 +142,7 @@ export async function scanLiabilities(base = env.strikeApi, rps = env.rps, opts:
     } catch { failed.push(`vault:${vid}`); }
   }
   return {
-    listed, excludedVaults, vaultsUsd, vaultSharesUsd, vaultShares, discovered, read, failed, totalUsd: total,
+    listed, excludedVaults, vaultsUsd, vaultSharesUsd, vaultShares, discovered, read, failed, totalUsd: total, marginBalanceUsd: margin,
     stakingRewardsUsd: staking, lockedRewardsUsd: locked, lockedInWallet, negative, startedAt, ts: Date.now(), accounts, vaults,
   };
 }

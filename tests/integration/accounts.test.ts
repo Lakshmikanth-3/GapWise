@@ -26,7 +26,7 @@ describe('accounts collector (mocked fixtures)', () => {
     expect(excludedVaults).toBe(1);
   });
 
-  it('T2.3 sums margin_balance, discovers a sub-account once; T2.4 negative equity included as-is and flagged; scan is timestamped', async () => {
+  it('T2.3 sums account equity (wallet_balance + unrealized_pnl, not margin_balance), discovers a sub-account once; T2.4 negative equity included as-is and flagged; scan is timestamped', async () => {
     const [a0, a1] = leaderboard.entries.map(e => e.account_id);
     const requested: string[] = [];
     server.use(
@@ -43,11 +43,14 @@ describe('accounts collector (mocked fixtures)', () => {
         requested.push(id);
         // both masters report the same sub-account, plus a vault-shaped id that must be ignored
         const subs = id === a0 || id === a1 ? [{ account_id: 'sub-1' }, { account_id: 'vault_x' }] : [];
-        return HttpResponse.json({ ...account, account_id: id, margin_balance: id === 'sub-1' ? '-2' : '10', sub_accounts: subs });
+        // a1 holds an isolated position: margin_balance (3) leaves it out; equity = 12 + (−2) = 10 is what is owed.
+        const bal = id === 'sub-1' ? { wallet_balance: '-2', unrealized_pnl: '0', margin_balance: '-2' }
+          : id === a1 ? { wallet_balance: '12', unrealized_pnl: '-2', margin_balance: '3' } : { wallet_balance: '10', unrealized_pnl: '0', margin_balance: '10' };
+        return HttpResponse.json({ ...account, account_id: id, ...bal, sub_accounts: subs });
       }),
     );
     const s = await scanLiabilities(B, 40);
-    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, vaultSharesUsd: 9.75, discovered: 1, read: 4, failed: [], totalUsd: 28, stakingRewardsUsd: 1.5, lockedRewardsUsd: 4, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['sub-1'] });
+    expect(s).toMatchObject({ listed: 3, excludedVaults: 1, vaultsUsd: 10, vaultSharesUsd: 9.75, discovered: 1, read: 4, failed: [], totalUsd: 28, marginBalanceUsd: 21, stakingRewardsUsd: 1.5, lockedRewardsUsd: 4, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['sub-1'] });
     expect(requested.filter(r => r === 'sub-1')).toHaveLength(1);
     expect(requested.some(r => r.startsWith('vault_'))).toBe(false);
     expect(s.startedAt).toBeLessThanOrEqual(s.ts);

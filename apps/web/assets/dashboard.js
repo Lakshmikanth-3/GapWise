@@ -1,4 +1,4 @@
-import { $, esc, usd, num, pct, short, compactUsd, ago, hhmm, statusClass, poll, getJSON, LOGO, NETWORK, withNet } from './common.js';
+import { $, esc, usd, num, pct, short, compactUsd, ago, hhmm, statusClass, statusLabel, statusColor, poll, getJSON, LOGO, NETWORK, withNet } from './common.js';
 
 $('logo').innerHTML = LOGO;
 const activeNet = $(NETWORK === 'testnet' ? 'net-testnet' : 'net-mainnet');
@@ -28,13 +28,13 @@ function renderRatio(s) {
   // "Needs review" is never published as a number in the headline (ratio rules); it is shown in the detail line.
   const headline = st === 'Needs review' ? 'Under review' : pct(a.ratio, 2);
   $('h-ratio').textContent = headline;
-  $('h-ratio').style.color = st === 'Balanced' ? 'var(--green)' : st === 'Needs review' ? 'var(--red)' : 'var(--amber)';
-  $('h-ratio-st').textContent = st ? `· ${st}` : '';
+  $('h-ratio').style.color = statusColor(st);
+  $('h-ratio-st').textContent = st ? `· ${statusLabel(st)}` : '';
   $('ratio').textContent = headline;
   $('ratio').style.color = $('h-ratio').style.color;
   $('ratio').style.fontSize = st === 'Needs review' ? '56px' : '';
   $('status').className = `status ${statusClass(st)}`;
-  $('status').textContent = st ?? '—';
+  $('status').textContent = statusLabel(st);
   const gapText = a.gapUsd === undefined ? '' : `Gap ${a.gapUsd < 0 ? '−' : '+'}${usd(Math.abs(a.gapUsd))} · ${a.gapUsd < 0 ? '−' : '+'}${Math.abs(a.gapPct).toFixed(4)}%`;
   $('gap').textContent = st === 'Needs review' ? `computed ${pct(a.ratio, 2)} · ${gapText} · not published` : gapText;
   const explain = {
@@ -42,7 +42,7 @@ function renderRatio(s) {
     Drift: 'Reserves and liabilities differ by 0.01–1%. Per-chain and per-asset detail below; re-checked every scan.',
     Incomplete: `The gap is explained by components that are not exposed yet (${a.explainedBy ?? 'pending'}). Not a solvency signal.`,
     'In transit': `The gap is within funds Strike reports as in transit (${a.explainedBy ?? ''}). Not Drift, not insolvency; the missing amount is not added.`,
-    'Needs review': 'The two sides differ by more than 1%. This is logged for investigation and is NOT published as insolvency — most often a missed asset, an unpriced token or an accounting rule to confirm with Strike.',
+    'Needs review': 'Under review with Strike: the gap is being investigated by the Strike team. It is not a statement of insolvency; open items (for example commission balances not yet exposed) are listed below.',
   };
   $('ratio-explain').textContent = `${explain[st] ?? ''} Strike is not a CEX: the ratio should be exactly 100%; above or below both need a look.`;
   const dev = a.ratio === undefined ? 0 : Math.max(-1.2, Math.min(1.2, (a.ratio - 1) * 100));
@@ -88,7 +88,7 @@ function renderLiabilities(s) {
   $('h-acc').textContent = l.read.toLocaleString('en-US');
   $('lia-sub').textContent = `${l.read.toLocaleString('en-US')} accounts read · ${l.failedCount} failed · ${ago(l.ts)}`;
   const fmt = (c) => c.status === 'pending' ? '<span style="color:var(--amber)">pending</span>' : c.status === 'included' ? `${num(c.usd, 0)} <span class="src">inside account value</span>` : num(c.usd, 0);
-  const rows = l.components.map((c) => `<tr><td>${esc(c.name === 'margin_balance' ? 'Account value' : c.name)}</td><td style="color:var(--dim)">${esc(c.source.replace('GET ', ''))}</td><td class="r" style="${c.status !== 'counted' ? 'color:var(--dim)' : ''}">${fmt(c)}</td></tr>`);
+  const rows = l.components.map((c) => `<tr><td>${esc(c.name === 'account_equity' ? 'Account equity (wallet balance + unrealized PnL)' : c.name)}</td><td style="color:var(--dim)">${esc(c.source.replace('GET ', ''))}</td><td class="r" style="${c.status !== 'counted' ? 'color:var(--dim)' : ''}">${fmt(c)}</td></tr>`);
   rows.push(`<tr><td>Vault accounts (excluded, no double count)</td><td style="color:var(--dim)">${l.excludedVaults} vaults · ${num(l.vaultsUsd, 0)} cross-check</td><td class="r" style="color:var(--dim)">not counted</td></tr>`);
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');

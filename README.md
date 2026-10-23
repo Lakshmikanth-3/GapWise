@@ -17,7 +17,7 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
 | **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
-| **Result** | **100.46%**: $1.78M in lockers vs $1.77M owed to 3,470 accounts, cross-checked per vault, using the founder-confirmed formula. Open question: margin_balance leaves out isolated-margin positions ($73.5k in 47 accounts; ~96.5% if counted), found by our own manual check and raised with Strike ([DECISIONS #50](docs/DECISIONS.md)). |
+| **Result** | **96.58%**, under review with Strike: $1.784M in lockers vs $1.847M owed to 3,477 accounts. ZeroGap's own manual check found that `margin_balance` leaves out isolated-margin positions ($77K); Strike's founder confirmed the fix (account equity), and the Strike team is now investigating the remaining gap. Per-vault cross-check matches to $3. |
 | **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
 | **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
 | **Quality** | 105 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
@@ -28,7 +28,7 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Innovation and creativity** | The first independent proof-of-solvency for a hybrid DEX: an off-chain order book checked against on-chain lockers on three chains at once, with a target of exactly 100% (over is as suspicious as under). |
 | **Integration with Strike** | Reads Strike's locker contracts on Ethereum, Solana and Cardano (ABI and IDL decoded); the leaderboard, `/v2/account`, `/v2/balances`, vault depositors, price index, Credit prices and transfer stats; **Builder Connect** with registered builder code `zerogap` for My Safety (testnet withdrawal proven). |
-| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues: flow mismatches, and isolated-margin balances missing from `margin_balance`. |
+| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues: flow mismatches, and isolated-margin balances missing from `margin_balance` ($77K, fix confirmed by Strike's founder). |
 | **Technical execution** | TypeScript monorepo; read-only collectors; pure, tested core; 112 unit and integration tests, Playwright E2E, a live smoke test and a fresh-clone verify, all in CI; live on Vercel with scheduled GitHub Actions; every number carries its source, timestamp and confidence. |
 | **Future potential** | Can become Strike's public transparency page: per-user proofs, more chains and lockers as Strike adds them, an alerting API for partners, and hourly signed reports already published to the `reports` branch. |
 
@@ -73,7 +73,7 @@ Scheduled GitHub Actions run the engine (`scan.yml`) and the public hourly verif
 
 ```mermaid
 flowchart TD
-  A["List accounts<br/>leaderboard (exclude 6 vault accounts)"] --> B["Read every account live<br/>≤ 40 req/s · margin_balance + stakingRewardBalance<br/>+ discovered sub-accounts"]
+  A["List accounts<br/>leaderboard (exclude 6 vault accounts)"] --> B["Read every account live<br/>≤ 40 req/s · equity (wallet_balance + unrealized_pnl) + stakingRewardBalance<br/>+ discovered sub-accounts"]
   B --> C["Add depositors' vault shares<br/>/v2/vault/{id}/depositors"]
   C --> D["Cross-check: Σ shares ≈ each vault account"]
   B --> E["Read lockers on-chain<br/>Ethereum · Solana · Cardano"]
@@ -115,20 +115,24 @@ sequenceDiagram
 
 ZeroGap never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
 
-## Latest result (23 Oct 2026, 21:46 UTC, `npm run verify`)
+## Latest result (23 Oct 2026, 06:07 UTC, `npm run verify`)
 
 | | USD |
 | --- | --- |
-| **Reserves** | **$1,780,450.92** (Ethereum $163,161.59 · Solana $3,120.63 · Cardano $1,614,168.70) |
-| Σ account values (`margin_balance`, locked rewards included) | $645,696.86 |
-| + Σ depositors' vault shares | $1,094,609.93 |
-| + Σ staking rewards | $32,031.50 |
+| **Reserves** | **$1,783,641.09** (Ethereum, Solana, Cardano lockers) |
+| Σ account equity (`wallet_balance + unrealized_pnl`, locked rewards and isolated margin included) | $729,897.39 |
+| (of which isolated margin that `margin_balance` leaves out) | ($77,247.71) |
+| + Σ depositors' vault shares | $1,084,855.52 |
+| + Σ staking rewards | $31,975.53 |
 | + Commission | pending (not yet exposed by Strike) |
-| **Liabilities** | **$1,772,338.29** (3,470 accounts read, 0 failed, 6 vault accounts excluded) |
-| **Ratio** | **100.46%** · gap **+$8,113 (+0.46%)** → **In transit** |
+| **Liabilities** | **$1,846,728.44** (3,477 accounts read, 0 failed, 6 vault accounts excluded) |
+| **Ratio** | **96.58%** · gap **−$63,087 (−3.42%)** → **Under review with Strike** |
 
-About $5.7K of the gap is iUSD valued at a $1 placeholder. Commission, once Strike exposes it, adds to liabilities and closes
-most of the rest. Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
+**Under review with Strike: the gap is being investigated by the Strike team.** It is not a statement of insolvency.
+Switching to account equity (founder-confirmed, 23 Oct) made every vault account match the sum of its depositors' shares
+to within $3 in total, a strong sign that the account side is now measured correctly. Open items: commission balances
+(pending from Strike) and the iUSD price ($5.7K at a $1 placeholder). Live numbers: the
+[dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
 [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
 
 ## Verify it yourself
@@ -143,7 +147,7 @@ No keys are needed. It scans every Strike account (about 3 minutes at ≤40 requ
 reserves by chain and address, the liabilities (accounts read, vaults excluded, failures), the price snapshot used,
 the ratio, and the gap in USD and %. It also writes **`reports/<network>-<timestamp>.json`**, a plain JSON file with
 every input: addresses, raw on-chain balances, decimals, prices with sources and timestamps, every account's raw
-`margin_balance` / `lockedRewards` / `stakingRewardBalance`, every depositor's vault share, the per-vault cross-check,
+`wallet_balance` / `unrealized_pnl` / `margin_balance` / `lockedRewards` / `stakingRewardBalance`, every depositor's vault share, the per-vault cross-check,
 open notes, the code commit and a `content_sha256`. Diff it against any
 published scan: the dashboard's **Download this scan (JSON)** button, `GET /api/report`, or the hourly files in the
 `reports` branch.
@@ -168,9 +172,10 @@ reserves    = Σ over lockers, assets:  amount × price
               price   = Strike index price (ADA, ETH, SOL) | Strike Credit price (sUSDrf, LP, scaled aUSDC)
                         | 1.00 for fiat-redeemable stablecoins by contract (USDC, USDT, USDCx, USDM)
                         | iUSD: labelled $1 placeholder (price source pending) | anything else unpriced → excluded
-liabilities = Σ margin_balance                       every non-vault account + sub-accounts (locked rewards included)
-            + Σ depositors' current vault shares  GET /v2/vault/{id}/depositors current_equity (not inside margin_balance)
-            + Σ stakingRewardBalance              GET /v2/balances (withdrawable; not inside margin_balance)
+liabilities = Σ (wallet_balance + unrealized_pnl)    account equity, every non-vault account + sub-accounts
+                                                  (locked rewards and isolated margin included; NOT margin_balance)
+            + Σ depositors' current vault shares  GET /v2/vault/{id}/depositors current_equity (not inside equity)
+            + Σ stakingRewardBalance              GET /v2/balances (withdrawable; not inside wallet_balance)
             + commission                          pending: not yet exposed by Strike (no value added)
 ratio       = reserves ÷ liabilities                gap = reserves − liabilities  (USD and % of liabilities)
 status      = Balanced |gap| ≤ 0.01% · Drift ≤ 1% · Needs review > 1% (never published as insolvency)
@@ -196,7 +201,7 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 | Purpose | Strike endpoint (public, no key) |
 | --- | --- |
 | Account list | [`GET /stat/v1/stats/leaderboard`](https://docs.strikefinance.org/api/platform-stats/leaderboard.md) (ids only; balances lag) |
-| Account value | [`GET /v2/account?account_id=`](https://docs.strikefinance.org/api/user/rest-api/account.md) → `margin_balance`, `sub_accounts` |
+| Account value | [`GET /v2/account?account_id=`](https://docs.strikefinance.org/api/user/rest-api/account.md) → `wallet_balance`, `unrealized_pnl` (equity), `sub_accounts` |
 | Rewards | `GET /v2/balances?account_id=` → `lockedRewards`, `stakingRewardBalance` |
 | Vault shares | [`GET /v2/vault/{id}/depositors`](https://docs.strikefinance.org/api/vaults/vaults-public.md) → `current_equity` per depositor |
 | Index prices | [`GET /price/v2/premiumIndex`](https://docs.strikefinance.org/api/market/rest-api/prices.md) |
@@ -207,12 +212,14 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 
 ## Founder-confirmed rules (Strike Finance, 21–23 Oct 2026)
 
-- **Vault accounts are excluded** (no double counting), but `margin_balance` does **not** include a user's vault deposits,
-  so each depositor's current vault share is added. Cross-check: Σ depositor shares ≈ each vault account's balance.
+- **Account value = equity = `wallet_balance + unrealized_pnl`** (23 Oct). `margin_balance` is not used: it equals
+  `available_balance` and leaves out isolated-margin positions ($77K across 47 accounts, found by ZeroGap's manual check).
+- **Vault accounts are excluded** (no double counting), but a user's equity does **not** include their vault deposits,
+  so each depositor's current vault share is added. Cross-check: Σ depositor shares ≈ each vault account's equity (within $3).
 - **iUSD** counts as a reserve; it is valued at a labelled $1 placeholder until Strike confirms its price source.
 - **Coverage:** the leaderboard lists every account that has or once had a balance; accounts not on it never deposited.
-- **All rewards are owed:** staking rewards (`stakingRewardBalance`, separate from margin_balance) are added; locked rewards
-  are already inside margin_balance and counted once. Commission balances are withdrawable too: pending until Strike exposes them.
+- **All rewards are owed:** staking rewards (`stakingRewardBalance`, not inside wallet_balance) are added; locked rewards
+  are already inside wallet_balance and counted once. Commission balances are withdrawable too: pending until Strike exposes them.
 - **Both Cardano scripts** count (deposit + protocol).
 - **Both Solana addresses** count: the vault account `Dj9NkHy…` and the USDC token account `BT85fg…`, de-duplicated.
 - **Prices** for sUSDrf, the SundaeSwap LP token and scaled aUSDC come from Strike's Credit API, never an assumed $1.

@@ -145,8 +145,8 @@
     const a = s.ratio?.published;
     if (a) {
       $('s-ratio').textContent = pct(a.ratio, 2);
-      $('s-ratio').style.color = a.status === 'Balanced' ? 'var(--green)' : a.status === 'Needs review' ? 'var(--red)' : 'var(--amber)';
-      $('s-status').textContent = `· ${a.status}`;
+      $('s-ratio').style.color = a.status === 'Balanced' ? 'var(--green)' : 'var(--amber)';
+      $('s-status').textContent = `· ${a.status === 'Needs review' ? 'Under review with Strike' : a.status}`;
       $('code-ratio').textContent = a.ratio.toFixed(4);
     }
     if (s.reserves) {

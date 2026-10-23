@@ -6,12 +6,12 @@ import type { ReserveSnapshot } from '../../packages/collectors/reserves';
 
 const liab: LiabilityScan = {
   accounts: [
-    { account_id: 'a1', sub_account: false, margin_balance: '100.5', lockedRewards: '0.5', stakingRewardBalance: '3' },
-    { account_id: 's1', sub_account: true, margin_balance: '-2', lockedRewards: '0', stakingRewardBalance: '0' },
+    { account_id: 'a1', sub_account: false, wallet_balance: '101', unrealized_pnl: '-0.5', margin_balance: '80', lockedRewards: '0.5', stakingRewardBalance: '3' },
+    { account_id: 's1', sub_account: true, wallet_balance: '-2', unrealized_pnl: '0', margin_balance: '-2', lockedRewards: '0', stakingRewardBalance: '0' },
   ],
-  vaults: [{ vault_id: 'v-uuid', margin_balance: '50' }],
+  vaults: [{ vault_id: 'v-uuid', wallet_balance: '50', unrealized_pnl: '0', margin_balance: '50' }],
   vaultShares: [{ vault_id: 'v-uuid', address: '0xabc', current_equity: '49.5' }], vaultSharesUsd: 49.5,
-  listed: 1, excludedVaults: 1, vaultsUsd: 50, discovered: 1, read: 2, failed: [], totalUsd: 98.5,
+  listed: 1, excludedVaults: 1, vaultsUsd: 50, discovered: 1, read: 2, failed: [], totalUsd: 98.5, marginBalanceUsd: 78,
   stakingRewardsUsd: 3, lockedRewardsUsd: 0.5, lockedInWallet: { consistent: 1, inconsistent: 0 }, negative: ['s1'], startedAt: 1_000, ts: 2_000,
 };
 const reserves = {
@@ -26,7 +26,7 @@ describe('verify report (founder request: independently verifiable)', () => {
   it('carries every input: addresses, raw balances, prices, account rows, vault audit rows, timing and rules', () => {
     expect(r.reserves.rows[0]).toMatchObject({ address: '0xbF4c', raw: '98000000', decimals: 6, price_usd: 1, price_source: 'peg' });
     expect(r.liabilities.accounts).toHaveLength(2);
-    expect(r.liabilities.vaults).toEqual([{ vault_id: 'v-uuid', margin_balance: '50' }]);
+    expect(r.liabilities.vaults).toEqual([{ vault_id: 'v-uuid', wallet_balance: '50', unrealized_pnl: '0', margin_balance: '50' }]);
     expect(r.liabilities.vault_shares).toEqual([{ vault_id: 'v-uuid', address: '0xabc', current_equity: '49.5' }]);
     expect(r.timing.price_snapshot_at).toBe(new Date(2_500).toISOString());
     expect(r.rules).toEqual(RULES);
@@ -35,7 +35,7 @@ describe('verify report (founder request: independently verifiable)', () => {
   });
 
   it('recomputes liabilities and the ratio from the rows it publishes', () => {
-    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.margin_balance), 0)
+    const fromRows = r.liabilities.accounts.reduce((s, a) => s + Number(a.wallet_balance) + Number(a.unrealized_pnl), 0)
       + r.liabilities.vault_shares.reduce((s, v) => s + Number(v.current_equity), 0)
       + r.liabilities.accounts.reduce((s, a) => s + Number(a.stakingRewardBalance), 0);
     expect(fromRows).toBeCloseTo(r.liabilities.total_usd, 9); // 98.5 + 49.5 + 3 = 151
@@ -43,6 +43,7 @@ describe('verify report (founder request: independently verifiable)', () => {
     expect(r.result.vault_crosscheck).toEqual({ vault_accounts_usd: 50, depositor_shares_usd: 49.5, difference_usd: 0.5,
       per_vault: [{ vault_id: 'v-uuid', vault_account_usd: 50, depositor_shares_usd: 49.5, depositors: 1, difference_usd: 0.5 }] });
     expect(r.result.open_notes.join(' ')).toMatch(/Commission/);
+    expect(r.liabilities).toMatchObject({ account_equity_usd: 98.5, margin_balance_usd: 78, isolated_margin_usd: 20.5 });
   });
 
   it('content_sha256 is the hash of the report body, so anyone can check integrity', () => {
