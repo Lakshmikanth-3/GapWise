@@ -1,13 +1,16 @@
 name: ZeroGap engine
-# Runs one real engine cycle (reserves, safety events, full liability scan, flow match, alerts) every ~5 minutes
-# and publishes the state to the `zerogap-data` branch, which the Vercel site serves.
+# Runs a real engine cycle (reserves, safety events, full liability scan, flow match, alerts) every ~5 minutes and
+# publishes the state to the `zerogap-data` branch, which the Vercel site serves. GitHub's cron fires only every few
+# hours, so one run loops for ~5.5 h (scripts/engine-loop.sh) and then starts the next run itself. The cron stays as a
+# fallback in case the chain ever breaks.
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: zerogap-engine
@@ -16,7 +19,7 @@ concurrency:
 jobs:
   cycle:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,17 +28,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Restore previous state
-        run: |
-          mkdir -p data
-          if git fetch --depth=1 origin zerogap-data 2>/dev/null; then
-            git --work-tree=data checkout origin/zerogap-data -- . && git reset -q
-          fi
-          ls -la data
-
-      - name: Engine cycle
+      - name: Engine loop (mainnet + labelled testnet, publish every cycle)
         env:
-          ZEROGAP_DATA_DIR: data
+          GITHUB_TOKEN: ${{ github.token }}
           ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
           BLOCKFROST_PROJECT_ID: ${{ secrets.BLOCKFROST_PROJECT_ID }}
@@ -43,23 +38,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PUBLIC_URL: https://zerogap-strike.vercel.app
-        run: npx tsx scripts/engine-once.ts
+        run: bash scripts/engine-loop.sh
 
-      - name: Engine cycle (Strike testnet, labelled; no Telegram)
-        continue-on-error: true
+      - name: Start the next run
+        if: always()
         env:
-          ZEROGAP_NETWORK: testnet
-          ZEROGAP_DATA_DIR: data/testnet
-          PUBLIC_URL: https://zerogap-strike.vercel.app/dashboard?network=testnet
-        run: mkdir -p data/testnet && npx tsx scripts/engine-once.ts
-
-      - name: Publish state to zerogap-data
-        run: |
-          cd data
-          rm -f *.jsonl testnet/*.jsonl
-          git init -q -b zerogap-data
-          git config user.name "zerogap-engine"
-          git config user.email "zerogap-engine@users.noreply.github.com"
-          git add -A
-          git commit -qm "state $(date -u +%FT%TZ)"
-          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" zerogap-data
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run scan.yml --ref main
