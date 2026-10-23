@@ -17,10 +17,10 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
 | **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
-| **Result** | **96.58%**, under review with Strike: $1.784M in lockers vs $1.847M owed to 3,477 accounts. ZeroGap's own manual check found that `margin_balance` leaves out isolated-margin positions ($77K); Strike's founder confirmed the fix (account equity), and the Strike team is now investigating the remaining gap. Per-vault cross-check matches to $3. |
+| **Result** | **96.77%**, under review with Strike: $1.78M in lockers vs $1.84M owed to 3,479 accounts (0 failed). ZeroGap's own checks found real issues that Strike confirmed: `margin_balance` left out $77K of isolated-margin positions, and Solana flow alerts were caused by relayed deposits landing in the Ethereum locker. Strike's founder is reviewing the remaining gap (staking rewards and rewards cleanup). |
 | **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
 | **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
-| **Quality** | 105 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
+| **Quality** | 109 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
 
 ## How ZeroGap meets the judging criteria
 
@@ -28,8 +28,8 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Innovation and creativity** | The first independent proof-of-solvency for a hybrid DEX: an off-chain order book checked against on-chain lockers on three chains at once, with a target of exactly 100% (over is as suspicious as under). |
 | **Integration with Strike** | Reads Strike's locker contracts on Ethereum, Solana and Cardano (ABI and IDL decoded); the leaderboard, `/v2/account`, `/v2/balances`, vault depositors, price index, Credit prices and transfer stats; **Builder Connect** with registered builder code `zerogap` for My Safety (testnet withdrawal proven). |
-| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues: flow mismatches, and isolated-margin balances missing from `margin_balance` ($77K, fix confirmed by Strike's founder). |
-| **Technical execution** | TypeScript monorepo; read-only collectors; pure, tested core; 112 unit and integration tests, Playwright E2E, a live smoke test and a fresh-clone verify, all in CI; live on Vercel with scheduled GitHub Actions; every number carries its source, timestamp and confidence. |
+| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues that Strike's founder confirmed: isolated-margin balances missing from `margin_balance` ($77K) and relayed deposits that made Solana flows look wrong. |
+| **Technical execution** | TypeScript monorepo; read-only collectors; pure, tested core; 109 unit and integration tests, Playwright E2E, a live smoke test and a fresh-clone verify, all in CI; live on Vercel with scheduled GitHub Actions; every number carries its source, timestamp and confidence. |
 | **Future potential** | Can become Strike's public transparency page: per-user proofs, more chains and lockers as Strike adds them, an alerting API for partners, and hourly signed reports already published to the `reports` branch. |
 
 ## Architecture
@@ -115,24 +115,25 @@ sequenceDiagram
 
 ZeroGap never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
 
-## Latest result (23 Oct 2026, 06:07 UTC, `npm run verify`)
+## Latest result (23 Oct 2026, ~11:30 UTC, `npm run verify`)
 
 | | USD |
 | --- | --- |
-| **Reserves** | **$1,783,641.09** (Ethereum, Solana, Cardano lockers) |
-| Σ account equity (`wallet_balance + unrealized_pnl`, locked rewards and isolated margin included) | $729,897.39 |
-| (of which isolated margin that `margin_balance` leaves out) | ($77,247.71) |
-| + Σ depositors' vault shares | $1,084,855.52 |
-| + Σ staking rewards | $31,975.53 |
+| **Reserves** | **$1,783,624.50** (Ethereum, Solana, Cardano lockers) |
+| Σ account equity (`wallet_balance + unrealized_pnl`, locked rewards and isolated margin included) | $725,619.75 |
+| (of which isolated margin that `margin_balance` leaves out) | ($75,977.76) |
+| + Σ depositors' vault shares | $1,085,495.32 |
+| + Σ staking rewards | $31,952.85 |
 | + Commission | pending (not yet exposed by Strike) |
-| **Liabilities** | **$1,846,728.44** (3,477 accounts read, 0 failed, 6 vault accounts excluded) |
-| **Ratio** | **96.58%** · gap **−$63,087 (−3.42%)** → **Under review with Strike** |
+| **Liabilities** | **$1,843,067.91** (3,479 accounts read, 0 failed, 6 vault accounts excluded) |
+| **Ratio** | **96.77%** · gap **−$59,443 (−3.23%)** → **Under review with Strike** |
 
 **Under review with Strike: the gap is being investigated by the Strike team.** It is not a statement of insolvency.
-Switching to account equity (founder-confirmed, 23 Oct) made every vault account match the sum of its depositors' shares
-to within $3 in total, a strong sign that the account side is now measured correctly. Open items: commission balances
-(pending from Strike) and the iUSD price ($5.7K at a $1 placeholder). Live numbers: the
-[dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
+An account-by-account audit found no double counting ([docs/GAP-INVESTIGATION.md](docs/GAP-INVESTIGATION.md)): the gap is
+close to staking rewards ($32K) plus traders' net unrealized profit ($34K). Strike's founder explained that early staking
+distributions were credited straight into balances and is cleaning up expired rewards (locked rewards already fell from
+$3.4K to $1.3K); ZeroGap re-runs automatically as that lands. Strike's external hedging bot is **not** counted as a
+reserve (founder, 23 Oct). Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
 [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
 
 ## Verify it yourself
@@ -223,6 +224,10 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 - **Both Cardano scripts** count (deposit + protocol).
 - **Both Solana addresses** count: the vault account `Dj9NkHy…` and the USDC token account `BT85fg…`, de-duplicated.
 - **Prices** for sUSDrf, the SundaeSwap LP token and scaled aUSDC come from Strike's Credit API, never an assumed $1.
+- **Relayed deposits:** deposits from chains without their own locker (Solana via relayer `0x8f0e…eca7`, base, bsc,
+  polygon …) arrive as USDC in the Ethereum locker. The daily flow match compares them as one "Solana + relayed" row
+  (22 Oct: 2,447.28 reported vs 2,447.45 on-chain, 99.99%).
+- **Hedging bot** balances on external venues are not reserves.
 - **In-transit LP/IOG bridge gaps** are rare (a one-time event every few months) and shown as a note only.
 - Rate limit: ≤ 40 requests/second to Strike (the founder asked for under 50).
 
