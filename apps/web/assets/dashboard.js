@@ -64,7 +64,7 @@ function renderReserves(s) {
   if (!res) return;
   $('h-res').textContent = compactUsd(res.pricedUsd);
   const holders = new Set(res.rows.map((x) => x.holder));
-  $('res-sub').textContent = `3 chains + hedging bot · ${holders.size} addresses · ${ago(res.ts)}${res.stalePrices ? ' · STALE PRICES' : ''}`;
+  $('res-sub').textContent = `3 chains · ${holders.size} addresses · ${ago(res.ts)}${res.stalePrices ? ' · STALE PRICES' : ''}`;
   const byChain = {};
   for (const row of res.rows) (byChain[row.chain] ??= []).push(row);
   $('chains').innerHTML = ['ethereum', 'solana', 'cardano', 'hedge'].filter((c) => c !== 'hedge' || (s.reserves?.rows ?? []).some((r) => r.chain === 'hedge')).map((c) => {
