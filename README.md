@@ -19,6 +19,7 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
 | **Result** | **99.16%** (Drift, within 1%): $1.73M in reserves vs $1.75M owed to 3,487 accounts (0 failed). Reserves include Strike's market-maker bot on Aster ($34.2K), a separate line disclosed by Strike. ZeroGap's own checks found real issues that Strike confirmed: $79K of isolated-margin positions missing from `margin_balance`, false Solana flow alarms from relayed deposits, and the market-maker bot's off-chain funds. The rest of the gap is bridge funds being returned, per Strike. |
 | **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
+| **Demo video** | [▶ Watch on YouTube](https://youtu.be/UTykbSh0ySg) (5 min: 1-min pitch, then live demo) |
 | **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
 | **Quality** | 109 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
 
