@@ -17,7 +17,7 @@ Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_al
 | --- | --- |
 | **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
 | **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
-| **Result** | **96.77%**, under review with Strike: $1.78M in lockers vs $1.84M owed to 3,479 accounts (0 failed). ZeroGap's own checks found real issues that Strike confirmed: `margin_balance` left out $77K of isolated-margin positions, and Solana flow alerts were caused by relayed deposits landing in the Ethereum locker. Strike's founder is reviewing the remaining gap (staking rewards and rewards cleanup). |
+| **Result** | **99.16%** (Drift, within 1%): $1.73M in reserves vs $1.75M owed to 3,487 accounts (0 failed). Reserves include Strike's market-maker bot on Aster ($34.2K), a separate line disclosed by Strike. ZeroGap's own checks found real issues that Strike confirmed: $79K of isolated-margin positions missing from `margin_balance`, false Solana flow alarms from relayed deposits, and the market-maker bot's off-chain funds. The rest of the gap is bridge funds being returned, per Strike. |
 | **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
 | **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
 | **Quality** | 109 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
@@ -115,25 +115,27 @@ sequenceDiagram
 
 ZeroGap never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
 
-## Latest result (23 Oct 2026, ~11:30 UTC, `npm run verify`)
+## Latest result (23 Oct 2026, evening IST, `npm run verify`)
 
 | | USD |
 | --- | --- |
-| **Reserves** | **$1,783,624.50** (Ethereum, Solana, Cardano lockers) |
-| Σ account equity (`wallet_balance + unrealized_pnl`, locked rewards and isolated margin included) | $725,619.75 |
-| (of which isolated margin that `margin_balance` leaves out) | ($75,977.76) |
-| + Σ depositors' vault shares | $1,085,495.32 |
-| + Σ staking rewards | $31,952.85 |
+| Reserves: Ethereum, Solana and Cardano lockers | $1,696,613 |
+| + Strike market-maker bot on external exchanges (Aster $34,196.04 · Lighter $1.00), **disclosed by Strike** | $34,197 |
+| **Reserves total** | **$1,730,810.31** |
+| Σ account equity (`wallet_balance + unrealized_pnl`, locked rewards and isolated margin included) | $632,637.47 |
+| + Σ depositors' vault shares | $1,080,910.03 |
+| + Σ staking rewards | $31,942.88 |
 | + Commission | pending (not yet exposed by Strike) |
-| **Liabilities** | **$1,843,067.91** (3,479 accounts read, 0 failed, 6 vault accounts excluded) |
-| **Ratio** | **96.77%** · gap **−$59,443 (−3.23%)** → **Under review with Strike** |
+| **Liabilities** | **$1,745,490.38** (3,487 accounts read, 0 failed, 6 vault accounts excluded) |
+| **Ratio** | **99.16%** · gap **−$14,680 (−0.84%)** → **Drift** |
 
-**Under review with Strike: the gap is being investigated by the Strike team.** It is not a statement of insolvency.
-An account-by-account audit found no double counting ([docs/GAP-INVESTIGATION.md](docs/GAP-INVESTIGATION.md)): the gap is
-close to staking rewards ($32K) plus traders' net unrealized profit ($34K). Strike's founder explained that early staking
-distributions were credited straight into balances and is cleaning up expired rewards (locked rewards already fell from
-$3.4K to $1.3K); ZeroGap re-runs automatically as that lands. Strike's market-maker bot on Lighter/Aster is counted as a
-separate, disclosed reserve line (founder, 23 Oct 18:43); the rest is being returned from the bridge, per Strike. Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
+**Transparency note (requested by Strike):** part of the reserves is held by Strike's market-maker bot
+`0x6139…1937` on the Aster exchange. It is not an on-chain locker; ZeroGap reads it live through read-only API access that
+Strike provided (keys are kept out of this repo), and shows it as its own line everywhere. Anyone can check the bot's link to
+Strike on-chain: it deposits USDC into Strike's Ethereum locker for Strike account `019d06a7…`. Strike says the remaining
+gap is funds being returned over the bridge today; ZeroGap re-runs automatically. Earlier steps of the investigation:
+[docs/GAP-INVESTIGATION.md](docs/GAP-INVESTIGATION.md) and [docs/DECISIONS.md](docs/DECISIONS.md) #50–54. Live numbers:
+the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
 [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
 
 ## Verify it yourself
