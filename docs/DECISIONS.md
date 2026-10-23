@@ -277,3 +277,26 @@
 51. **Gap investigation (23 Oct ~10:00 UTC):** no counting bug found; formula unchanged. The −$63.7K gap ≈ traders' net
     unrealized PnL +$33.7K (counterparty not in the scanned set) + staking rewards $32.0K; without both the ratio is
     100.11%. Evidence and open questions: docs/GAP-INVESTIGATION.md.
+
+51. **Gap audit after the equity switch (23 Oct, founder: "−$63K looks way off").** `scripts/gap-audit.mjs`, 3,478 accounts
+    (477 sub-accounts) + 6 vaults, 0 failed. Reserves at the time $1,783,392.
+    1. *Isolated margin added on top of wallet_balance?* **No.** Liabilities = Σ(wallet_balance + unrealized_pnl) + vault
+       shares + staking; the isolated line is shown as "included" and never added (`packages/core/liabilities.ts`).
+       Σ(equity − margin_balance) = $76,578, all in 46 accounts with isolated settings.
+    2. *Master wallet_balance includes sub-accounts?* **No.** `/v2/account` returns each account's own wallet: e.g. master
+       01a09b40 wallet $1,738 + its 2 subs $4,771 = $6,509 = the leaderboard's (aggregated) figure. Each read once.
+    3. *Staking inside wallet_balance?* **No.** /v2/balances walletBalance equals /v2/account wallet_balance for all accounts
+       (0 mismatches), and accounts with wallet $0.0048 hold $6.20 staking. Staking (Σ $31,953) is separate.
+    4. *Vault deposits inside depositors' wallets?* **No.** Each vault's own equity equals Σ its depositors' shares
+       (SLP $1,031,053 vs $1,031,050); 245 depositors' own wallets total $67,330 and are separate money.
+    5. *Unrealized PnL:* accounts +$69,552 / −$35,615, **net +$33,938**; vaults +$886; **all scanned positions net +$34,823**.
+       On a perp exchange Σ unrealized PnL over all positions is ~0, so ~$34.8K of the losing side is held by accounts that
+       are **not on the leaderboard** (e.g. market-making or protocol accounts). Counting winners' unrealized gains without
+       those counterparties overstates liabilities. One account alone (019d728d…) holds +$32,182 on isolated positions.
+    6. *Five largest equity − margin_balance accounts vs Strike's own equity (leaderboard):* 019d728d $39,608 vs $39,847;
+       019d0c8c $7,698 vs $7,720; 019f1044 $1,827 vs $1,830; 019d0d50 $1,762 vs $1,775 (two are sub-accounts, not listed).
+       Strike's displayed equity = wallet_balance + unrealized_pnl, so the per-account values are right.
+    **Ratios on the same data:** published formula (equity) liabilities $1,847,152 → **96.55%, −$63,760**; with unrealized
+    PnL netted to zero across positions (cash view: Σ wallet_balance + vault shares + staking) $1,813,215 → **98.36%,
+    −$29,823**. Formula unchanged until Strike confirms which accounts hold the other side of those positions; dashboard
+    stays "Under review with Strike". Open: the counterparty accounts, commission (pending), iUSD ($5.7K placeholder).
