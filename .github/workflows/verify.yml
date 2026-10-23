@@ -28,8 +28,8 @@ jobs:
         env:
           ZEROGAP_REPORTS_DIR: out
           ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
-          ASTER_API_KEY: ${{ secrets.ASTER_API_KEY }}
-          ASTER_API_SECRET: ${{ secrets.ASTER_API_SECRET }}
+          ASTER_SIGNER: ${{ secrets.ASTER_SIGNER }}
+          ASTER_SIGNER_KEY: ${{ secrets.ASTER_SIGNER_KEY }}
           SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: npm run verify
       - name: Append report to the reports branch

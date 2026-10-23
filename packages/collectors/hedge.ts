@@ -1,4 +1,3 @@
-import { createHmac } from 'node:crypto';
 import { NETWORK } from '../core/config';
 import type { Reserve } from './types';
 
@@ -9,7 +8,7 @@ import type { Reserve } from './types';
  * Link to Strike, checkable on-chain: this address sends Deposit transactions into Strike's Ethereum locker for Strike
  * account 019d06a7-bcfb-79a9-857e-cd54172ba144 (e.g. 4,000 / 7,000 / 4,924.40 USDC on 22 Oct, event userID 0x019d06a7…).
  * - Lighter: public API, equity = total_asset_value (includes unrealized PnL).
- * - Aster: read-only API access provided by Strike (ASTER_API_KEY / ASTER_API_SECRET, env only, never in the repo);
+ * - Aster: read-only API wallet provided by Strike (ASTER_SIGNER / ASTER_SIGNER_KEY, env only, never in the repo);
  *   equity = totalMarginBalance (wallet + unrealized PnL). Without the keys the Aster line is pending, never guessed.
  */
 export const HEDGE_BOT = '0x6139192a58152932e6f8052ef0de2ad197fb1937';
@@ -28,13 +27,24 @@ export async function lighterEquity(fetchFn: typeof fetch = fetch): Promise<numb
   return (body.accounts ?? []).reduce((s, a) => s + Number(a.total_asset_value ?? a.collateral), 0);
 }
 
-/** Signed read of the Aster futures account (Binance-compatible HMAC-SHA256). Returns undefined when no keys are set. */
-export async function asterEquity(fetchFn: typeof fetch = fetch, key = process.env.ASTER_API_KEY, secret = process.env.ASTER_API_SECRET, now = Date.now()): Promise<number | undefined> {
-  if (!key || !secret) return undefined;
-  const q = `timestamp=${now}&recvWindow=10000`;
-  const sig = createHmac('sha256', secret).update(q).digest('hex');
-  const res = await fetchFn(`${ASTER_API}/fapi/v2/account?${q}&signature=${sig}`, { headers: { 'X-MBX-APIKEY': key } });
-  if (!res.ok) throw new Error(`Aster ${res.status}`);
+/**
+ * Signed read of the Aster futures account (API v3, "API wallet" auth): the query string (user, signer, nonce in µs) is
+ * signed as EIP-712 typed data { domain AsterSignTransaction v1, chainId 1666, zero verifyingContract; Message{msg} } by
+ * the read-only API wallet, and sent as ?query&signature=. Keys come only from env (ASTER_SIGNER / ASTER_SIGNER_KEY);
+ * without them this returns undefined (Aster shown as pending, never guessed). Equity = totalMarginBalance.
+ */
+export async function asterEquity(fetchFn: typeof fetch = fetch, signer = process.env.ASTER_SIGNER, key = process.env.ASTER_SIGNER_KEY,
+  user = process.env.ASTER_USER ?? HEDGE_BOT, nowUs = Date.now() * 1000): Promise<number | undefined> {
+  if (!signer || !key) return undefined;
+  const { privateKeyToAccount } = await import('viem/accounts');
+  const account = privateKeyToAccount((key.startsWith('0x') ? key : `0x${key}`) as `0x${string}`);
+  const query = new URLSearchParams({ user, signer, nonce: String(nowUs) }).toString();
+  const signature = await account.signTypedData({
+    domain: { name: 'AsterSignTransaction', version: '1', chainId: 1666, verifyingContract: '0x0000000000000000000000000000000000000000' },
+    types: { Message: [{ name: 'msg', type: 'string' }] }, primaryType: 'Message', message: { msg: query },
+  });
+  const res = await fetchFn(`${ASTER_API}/fapi/v3/account?${query}&signature=${signature}`);
+  if (!res.ok) throw new Error(`Aster ${res.status} ${(await res.text()).slice(0, 160)}`);
   const body = await res.json() as { totalMarginBalance?: string; totalWalletBalance?: string; totalUnrealizedProfit?: string };
   return body.totalMarginBalance !== undefined ? Number(body.totalMarginBalance) : Number(body.totalWalletBalance ?? 0) + Number(body.totalUnrealizedProfit ?? 0);
 }
