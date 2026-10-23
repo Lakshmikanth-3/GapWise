@@ -13,6 +13,14 @@ export type OnchainDay = { day: string; chain: Chain; in: number; out: number; u
 /** What a collector could actually see; days outside [fromTs, toTs] are not comparable. */
 export type FlowCoverage = { chain: Chain; fromTs: number; toTs: number; note?: string };
 
+/** The Solana row includes relayer deposits read from Ethereum logs, so it is only comparable where both are covered. */
+export function relayedCoverage(cov: FlowCoverage[]): FlowCoverage[] {
+  const eth = cov.find(c => c.chain === 'ethereum');
+  return cov.map(c => (c.chain === 'solana' && eth && eth.fromTs > c.fromTs
+    ? { ...c, fromTs: eth.fromTs, note: 'includes relayed deposits into the Ethereum locker; limited to Ethereum log coverage' }
+    : c.chain === 'solana' ? { ...c, note: 'includes relayed deposits into the Ethereum locker' } : c));
+}
+
 export function bucketFlows(flows: Flow[]): OnchainDay[] {
   const m = new Map<string, OnchainDay>();
   for (const f of flows) {
@@ -30,6 +38,14 @@ export function bucketFlows(flows: Flow[]): OnchainDay[] {
 const ETH_FLOW_EVENTS = new Set(['Deposit', 'Withdraw', 'AdminWithdrawERC20', 'AdminWithdrawETH', 'AdminDepositERC20', 'AdminDepositETH']);
 const ETH_DECIMALS: Record<string, number> = { '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 6, '0xdac17f958d2ee523a2206206994597c13d831ec7': 6 };
 const NATIVE = '0x0000000000000000000000000000000000000000';
+/**
+ * Deposits from chains without their own locker (Solana via relayer, base, bsc, polygon …) are relayed by this address
+ * into the Ethereum locker. They are booked in the 'solana' flow row, which stats.ts compares with Strike's Solana +
+ * relayed-chain deposits (founder, 23 Oct).
+ */
+export const SOLANA_RELAYER = '0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7';
+export const flowChainOf = (event: string, txFrom?: string): Chain =>
+  event === 'Deposit' && txFrom?.toLowerCase() === SOLANA_RELAYER ? 'solana' : 'ethereum';
 
 export async function ethFlows(sinceMs: number, getPrice: GetPrice, chunk = BigInt(process.env.ETH_LOGS_CHUNK ?? 5000)): Promise<{ flows: Flow[]; coverage: FlowCoverage }> {
   const c = logsClient();
@@ -64,7 +80,8 @@ export async function ethFlows(sinceMs: number, getPrice: GetPrice, chunk = BigI
     const amount = Number(formatUnits(a.amount, isEth ? 18 : ETH_DECIMALS[token] ?? 18));
     const sign = l.eventName.includes('Deposit') ? 1 : -1;
     const q = await getPrice(isEth ? { chain: 'ethereum', asset: 'ETH' } : { chain: 'ethereum', asset: token, contract: a.token });
-    flows.push({ chain: 'ethereum', ts: await tsOf(l.blockNumber), tx: l.transactionHash, asset: isEth ? 'ETH' : token, amount: sign * amount, usd: q.usd === undefined ? undefined : sign * amount * q.usd });
+    const from = l.eventName === 'Deposit' ? (await c.getTransaction({ hash: l.transactionHash })).from : undefined;
+    flows.push({ chain: flowChainOf(l.eventName, from), ts: await tsOf(l.blockNumber), tx: l.transactionHash, asset: isEth ? 'ETH' : token, amount: sign * amount, usd: q.usd === undefined ? undefined : sign * amount * q.usd });
   }
   return { flows, coverage: { chain: 'ethereum', fromTs: await tsOf(coveredFrom), toTs: headTs, note } };
 }

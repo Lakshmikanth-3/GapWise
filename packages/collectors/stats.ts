@@ -21,10 +21,30 @@ export function parseTransfers(body: { deposits: Row[]; withdrawals: Row[] }): R
   return [...m.values()].sort((a, b) => a.day.localeCompare(b.day) || a.chain.localeCompare(b.chain));
 }
 
+/**
+ * Deposits from chains without their own Strike locker (Solana deposits routed via the relayer, base, bsc, polygon …)
+ * arrive as USDC in the Ethereum locker, sent by the relayer (founder, 23 Oct; 22 Oct: polygon 377.62, bsc 103.83,
+ * base 468.66 + 468.71, solana 999.60 each matched one relayer deposit). On-chain those relayer deposits are booked in
+ * the 'solana' row (see flows.ts SOLANA_RELAYER), so the reported deposits of the relayed chains are folded into that
+ * row too: one comparable "Solana + relayed" figure per day. Withdrawals are not folded (they match per chain).
+ */
+export const RELAYED_CHAINS = ['arbitrum', 'base', 'bsc', 'polygon', 'optimism', 'hyperevm', 'bitcoin', 'tron'];
+export function foldRelayedDeposits(rows: ReportedDay[]): ReportedDay[] {
+  const out = rows.map(r => ({ ...r }));
+  for (const r of rows) {
+    if (!RELAYED_CHAINS.includes(r.chain) || !r.in) continue;
+    let sol = out.find(x => x.day === r.day && x.chain === 'solana');
+    if (!sol) { sol = { day: r.day, chain: 'solana', in: 0, out: 0 }; out.push(sol); }
+    sol.in += r.in;
+    out.find(x => x.day === r.day && x.chain === r.chain)!.in = 0;
+  }
+  return out;
+}
+
 export async function reportedTransfers(base = env.strikeApi): Promise<ReportedDay[]> {
   const res = await fetch(`${base}/stat/v1/dashboard/transfers`);
   if (!res.ok) throw new Error(`transfers ${res.status}`);
-  return parseTransfers(await res.json() as { deposits: Row[]; withdrawals: Row[] });
+  return foldRelayedDeposits(parseTransfers(await res.json() as { deposits: Row[]; withdrawals: Row[] }));
 }
 
 export const LOCKER_CHAINS: Chain[] = ['ethereum', 'solana', 'cardano'];

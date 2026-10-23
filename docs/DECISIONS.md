@@ -310,3 +310,10 @@
     and/or the Aster balance.
     **Reverted (founder, 23 Oct 15:56 IST):** "the hedging bot doesn't need to be added as reserve"; he thinks the gap is
     the staking rewards and is reviewing. The Lighter reader (packages/collectors/hedge.ts) stays in the repo, unused.
+
+53. **Flow match: relayed deposits (founder, 23 Oct 16:18 IST):** deposits from chains without their own locker
+    (Solana via relayer, base, bsc, polygon, arbitrum, optimism, hyperevm, bitcoin, tron) arrive as USDC in the Ethereum
+    locker, sent by relayer 0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7. Those Deposit events are booked in the Solana
+    flow row, and Strike's reported deposits for the relayed chains are folded into the same row; withdrawals stay per
+    chain. The row is only compared where Ethereum logs cover the day. Live 22 Oct: reported 2,447.28 vs on-chain
+    2,447.45 (99.99%; previously flagged as a mismatch). The 18–21 Oct false alarms came from the same cause.

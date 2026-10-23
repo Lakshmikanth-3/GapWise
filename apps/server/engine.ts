@@ -5,7 +5,7 @@ import { scanLiabilities, type LiabilityScan } from '../../packages/collectors/a
 import { snapshotReserves, type ReserveSnapshot } from '../../packages/collectors/reserves';
 import { createPricer, createSnapshotPricer } from '../../packages/collectors/prices';
 import { reportedTransfers } from '../../packages/collectors/stats';
-import { ethFlows, solanaFlows, cardanoFlows, bucketFlows, type Flow, type FlowCoverage } from '../../packages/collectors/flows';
+import { ethFlows, solanaFlows, cardanoFlows, bucketFlows, relayedCoverage, type Flow, type FlowCoverage } from '../../packages/collectors/flows';
 import { ethSafetyState, ethSafetyEventsBetween, openItems, type EthSafetyState, type SafetyEvent } from '../../packages/collectors/safety';
 import { client } from '../../packages/collectors/ethereum';
 import { solanaSafetyFull, solanaInstructionEvents, type SolanaInstructionEvent } from '../../packages/collectors/solana-program';
@@ -178,8 +178,9 @@ export class Engine {
     const ok = chains.filter((c): c is { flows: Flow[]; coverage: FlowCoverage } => !('error' in c));
     const failed = chains.filter((c): c is { error: string } => 'error' in c);
     this.flowsRaw = ok.flatMap(c => c.flows);
-    const rows = flowCheck(reported as any, bucketFlows(this.flowsRaw), ok.map(c => c.coverage));
-    this.state.flows = { value: { rows, coverage: ok.map(c => c.coverage), moves: this.flowsRaw.length }, ts: Date.now() };
+    const coverage = relayedCoverage(ok.map(c => c.coverage));
+    const rows = flowCheck(reported as any, bucketFlows(this.flowsRaw), coverage);
+    this.state.flows = { value: { rows, coverage, moves: this.flowsRaw.length }, ts: Date.now() };
     for (const r of rows.filter(x => x.comparable)) {
       await this.store?.insert('flow_checks', [{ day: r.day, chain: r.chain, reported_in: r.reportedIn, onchain_in: r.onchainIn, reported_out: r.reportedOut, onchain_out: r.onchainOut, match_pct: Math.min(r.matchInPct, r.matchOutPct) }]).catch(() => {}); // PK (day, chain): first write wins
     }
