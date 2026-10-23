@@ -1,7 +1,7 @@
 # ZeroGap: project status report
 
-**As of:** Friday 23 October 2026, ~10:00 UTC (15:30 IST) · **Submission deadline:** 23 Oct, 10:00 AM EST (7:30 PM IST)
-**Live:** https://zerogap-strike.vercel.app · **Code:** https://github.com/Lakshmikanth-3/ZeroGap · **Alerts:** https://t.me/zerogap_alerts
+**As of:** Friday 23 October 2026, evening IST · **Status:** submitted to the Strike Hackathon · release `v1.0`
+**Live:** https://zerogap-strike.vercel.app · **Code:** https://github.com/Lakshmikanth-3/ZeroGap · **Alerts:** https://t.me/zerogap_alerts · **Demo:** https://youtu.be/UTykbSh0ySg
 
 ZeroGap is an independent, read-only proof-of-solvency and safety monitor for Strike Finance. It reads Strike's
 lockers on Ethereum, Solana and Cardano, counts what Strike owes every trader, and shows the gap live. It is not
@@ -11,17 +11,18 @@ affiliated with Strike Finance.
 
 | | USD |
 | --- | --- |
-| Reserves (all lockers, one price snapshot) | $1,783,392 |
-| Liabilities: account equity (wallet_balance + unrealized_pnl) | $728,863 |
-| + depositors' vault shares | $1,086,256 |
-| + staking rewards | $31,953 |
+| Reserves: Ethereum, Solana, Cardano lockers | $1,696,613 |
+| + Strike market-maker bot on Aster (+ Lighter), **disclosed by Strike** | $34,197 |
+| **Reserves total** | **$1,730,810** |
+| Account equity (wallet_balance + unrealized_pnl) | $632,637 |
+| + depositors' vault shares | $1,080,910 |
+| + staking rewards | $31,943 |
 | + commission | pending (not exposed by Strike) |
-| **Liabilities total** | **$1,847,071** |
-| **Ratio** | **96.55%, gap −$63,679**, shown as **"Under review with Strike"** |
+| **Liabilities total** | **$1,745,490** (3,487 accounts, 0 failed) |
+| **Ratio** | **99.16%, gap −$14,680 (−0.84%), "Drift"** |
 
-The founder says −$63K looks too large. Our account-by-account audit found **no double counting** (details in
-section 4). The gap is almost exactly traders' **net unrealized profit (+$33.7K)** plus **staking rewards ($32.0K)**.
-Without both, the ratio is **100.11%**. Questions for Strike are open (section 5).
+The gap went from −$63.7K to −$14.7K as the investigation with Strike's founder progressed. Strike says the rest is
+bridge funds being returned today; ZeroGap re-runs automatically.
 
 ## 2. What is built and working
 
@@ -40,43 +41,36 @@ Without both, the ratio is **100.11%**. Questions for Strike are open (section 5
 
 ## 3. Quality
 
-- Unit and integration tests: **112/112 pass**; type check clean.
+- Unit and integration tests: **112/112 pass** (incl. MM-bot signing, relayed flows); type check clean.
 - End-to-end (Playwright) against production: **9/9 pass**.
 - Manual checks: **T1.6 passed** (explorers match); **T2.9** found the isolated-margin issue, fixed with the founder.
 - T4.5 Telegram delivery passed; T4.6 no duplicate alerts in the published log (two duplicates were sent on 23 Oct
   when a local run overlapped a GitHub run; local engine runs have stopped).
 - Secrets: none in the repo or its history; keys only in `.env` and GitHub secrets.
 
-## 4. Key findings so far
+## 4. Key findings (all confirmed with Strike's founder)
 
-1. **Isolated margin (DECISIONS #50):** `margin_balance` left out $77K of isolated-margin positions in 46–47
-   accounts. Founder confirmed the fix: liabilities use account equity = wallet_balance + unrealized_pnl.
-2. **Gap audit (DECISIONS #51, docs/GAP-INVESTIGATION.md):**
-   - Sub-accounts are not inside masters (master + subs = leaderboard equity exactly).
-   - Staking is not inside wallet_balance (502 accounts hold less in wallet than in staking).
-   - Vault shares are not inside depositors' wallets.
-   - Our equity matches Strike's leaderboard for the top accounts.
-   - Traders' net unrealized PnL is +$33.7K; its losing side is not in any scanned account. One account alone has
-     +$32K unrealized.
+1. **Isolated margin (DECISIONS #50):** `margin_balance` left out ~$79K of isolated-margin positions. Liabilities now use
+   account equity = wallet_balance + unrealized_pnl.
+2. **No double counting (DECISIONS #51, docs/GAP-INVESTIGATION.md):** subs are not inside masters, staking is not inside
+   wallet_balance, vault shares are not inside depositors' wallets; our equity matches Strike's leaderboard.
+3. **Relayed deposits (DECISIONS #53):** deposits from Solana, base, bsc, polygon … arrive in the Ethereum locker via a
+   relayer; the flow match now counts them (22 Oct: 99.99%).
+4. **Market-maker bot (DECISIONS #54):** the other side of traders' net positions sits with Strike's MM bot on Aster. It
+   is a separate, disclosed reserve line, read with read-only API access provided by Strike (keys only in env/secrets).
 
 ## 5. Open items
 
 | Item | Owner | Status |
 | --- | --- | --- |
-| Counterparty of the +$33.7K net unrealized PnL (market maker / LP / house accounts?) | Strike (Shan) | Asked |
-| Where staking rewards ($32K) are backed (perps lockers or a separate staking wallet?) | Strike (Shan) | Asked |
+| Bridge funds being returned (remaining −$14.7K) | Strike | In progress today |
 | Commission balances: public source | Strike | Pending, shown as a pending line |
 | iUSD price source ($5.7K at $1 placeholder) | Strike | Pending |
-| 3D object to replace the stone on the landing page | Owner | Waiting for reference image |
 
-## 6. Remaining steps to submit
+## 6. Submission
 
-1. **Demo video:** a narrated version (pitch first, then demo) is scripted; the last rendered file is
-   `C:\HACK\ZeroGap-demo.mp4`. Re-render with the latest site, check, and upload to YouTube (Unlisted).
-2. Add the video link to the README, then tag **v1.0**.
-3. Submit through Strike's Google Form before **7:30 PM IST**: repo, live site, video, README summary, category
-   "Data and analytics".
-4. Keep the GitHub engine running through judging (start "ZeroGap engine" from the Actions tab if it is idle).
+- ✅ Submitted through Strike's form · ✅ demo video https://youtu.be/UTykbSh0ySg · ✅ release `v1.0`
+- Keep the "ZeroGap engine" workflow running through judging (it restarts itself every ~5.5 h).
 
 ## 7. Links
 

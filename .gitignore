@@ -16,3 +16,6 @@ apps/web/vendor/
 .vercel
 .env*
 reports/
+
+# local recordings (demo video is on YouTube)
+*.mp4
