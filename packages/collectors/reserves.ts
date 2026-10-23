@@ -1,7 +1,6 @@
 import { ethReserves } from './ethereum';
 import { cardanoReserves } from './cardano';
 import { solanaReserves } from './solana';
-import { hedgeReserves } from './hedge';
 import { createPricer, creditCustodyMappings, applyCustodyScale, type CustodyMappings, type GetPrice } from './prices';
 import { valueReserves } from '../core/valuation';
 import type { Chain, Reserve } from './types';
@@ -12,7 +11,7 @@ export type ReserveSnapshot = Awaited<ReturnType<typeof valueReserves<Reserve>>>
   custodyScale: { applied: boolean; error?: string };
 };
 
-const COLLECTORS: Partial<Record<Chain, () => Promise<Reserve[]>>> = { ethereum: ethReserves, cardano: cardanoReserves, solana: solanaReserves, hedge: () => hedgeReserves() };
+const COLLECTORS: Partial<Record<Chain, () => Promise<Reserve[]>>> = { ethereum: ethReserves, cardano: cardanoReserves, solana: solanaReserves };
 
 /** Reads all lockers and prices them. A failed chain is reported, never silently zeroed. */
 export async function snapshotReserves(

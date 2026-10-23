@@ -308,3 +308,5 @@
     only), so it is a pending note, not counted. Live verify: reserves $1,812,193.28 · liabilities $1,845,446.83 ·
     **ratio 98.20%, gap −$33,254 (−1.80%)**, still "Under review with Strike". Remaining gap ≈ staking rewards ($32.0K)
     and/or the Aster balance.
+    **Reverted (founder, 23 Oct 15:56 IST):** "the hedging bot doesn't need to be added as reserve"; he thinks the gap is
+    the staking rewards and is reviewing. The Lighter reader (packages/collectors/hedge.ts) stays in the repo, unused.

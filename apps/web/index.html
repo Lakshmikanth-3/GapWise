@@ -19,7 +19,7 @@
   @keyframes grain { 0%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} 100%{transform:translate(0,0)} }
   .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 40%, rgba(0,0,0,.75)); }
   main, header, footer { position: relative; z-index: 2; }
-  header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 26px 32px; }
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 5; background: linear-gradient(180deg, rgba(7,7,8,.92), rgba(7,7,8,.6) 70%, transparent); backdrop-filter: blur(6px); display: flex; justify-content: space-between; align-items: center; padding: 26px 32px; }
   .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; font-size: 21px; font-weight: 500; letter-spacing: -.02em; }
   .logo svg { flex: none; }
   header nav { display: flex; gap: 26px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
@@ -52,6 +52,16 @@
   .story h2 { font-size: clamp(40px, 5.2vw, 76px); max-width: 13ch; }
   .story p { margin: 22px 0 0; max-width: 44ch; font-family: var(--mono); font-size: 14px; line-height: 1.8; color: #cfcfd5; }
   .right { margin-left: auto; text-align: right; } .right h2, .right p { margin-left: auto; }
+  .split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 48px; align-items: center; }
+  .viz svg { width: 100%; height: auto; display: block; }
+  .wave { position: relative; height: 420px; margin: 40px -32px 0; }
+  .wave canvas { position: absolute; inset: 0; }
+  .wave-cards { position: absolute; inset: 0; display: flex; justify-content: space-around; align-items: flex-start; padding-top: 10px; pointer-events: none; }
+  .wave-card { padding: 14px 20px; border-radius: 10px; background: rgba(12,10,28,.82); border: 1px solid rgba(160,150,255,.35); font-family: var(--mono); box-shadow: 0 0 30px rgba(120,100,255,.18); }
+  .wave-card:nth-child(2) { margin-top: -20px; } .wave-card:nth-child(1), .wave-card:nth-child(3) { margin-top: 30px; }
+  .wave-card span { display: block; font-size: 12px; color: #c9c5ff; letter-spacing: .08em; }
+  .wave-card b { display: block; margin-top: 6px; font-size: 22px; font-weight: 500; color: #f4f2ff; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } .wave { height: 300px; margin: 30px -18px 0; } .wave-card { padding: 10px 12px; } .wave-card b { font-size: 16px; } }
   .big-stat { font-size: clamp(64px, 11vw, 170px); letter-spacing: -.06em; font-weight: 300; line-height: .9; }
   .trust { justify-content: space-between; }
   .trust h2 { font-size: clamp(64px, 10vw, 150px); letter-spacing: -.06em; }
@@ -106,10 +116,13 @@
   </section>
 
   <section class="story">
-    <div class="inner right">
-      <div class="eyebrow rv">02 · What is owed</div>
-      <h2 class="words" data-split style="margin-top: 18px">Every account, counted</h2>
-      <p class="rv">About 3,500 accounts and sub-accounts read live from Strike: account equity, depositors' vault shares and staking rewards. Each number shows its source and time.</p>
+    <div class="inner split">
+      <div class="viz rv" id="stack-viz"></div>
+      <div>
+        <div class="eyebrow rv">02 · What is owed</div>
+        <h2 class="words" data-split style="margin-top: 18px">Every account, counted</h2>
+        <p class="rv">About 3,500 accounts and sub-accounts read live from Strike: account equity, depositors' vault shares and staking rewards, layered against the reserves read from each chain.</p>
+      </div>
     </div>
   </section>
 
@@ -119,6 +132,7 @@
       <div class="big-stat rv" id="big" style="margin-top: 18px">—</div>
       <p class="rv" id="big-sub">The target is exactly 100%: lockers ÷ what is owed. Above or below both need a closer look.</p>
     </div>
+    <div class="wave rv" id="wave-viz"></div>
   </section>
 
   <section class="trust">
@@ -163,10 +177,12 @@
   document.querySelectorAll('.rv, .words').forEach((el, i) => { if (el.classList.contains('rv')) el.style.transitionDelay = `${(i % 3) * 120}ms`; io.observe(el); });
 
   let updateViz = () => {};
+  let updStack = () => {}, updWave = () => {};
+  import('/assets/landing-viz.js').then(({ mountStack, mountWave }) => { updStack = mountStack(document.getElementById('stack-viz')); updWave = mountWave(document.getElementById('wave-viz')); if (window.__zgState) { updStack(window.__zgState); updWave(window.__zgState); } }).catch((e) => console.error('landing visuals unavailable', e));
   import('/assets/hero-viz.js').then(({ mountHeroViz }) => { updateViz = mountHeroViz(document.getElementById('hero-viz')); if (window.__zgState) updateViz(window.__zgState); }).catch((e) => console.error('hero visual unavailable', e));
 
   poll((st) => {
-    window.__zgState = st; updateViz(st);
+    window.__zgState = st; updateViz(st); updStack(st); updWave(st);
     const a = st.ratio?.published;
     const label = a?.status === 'Needs review' ? 'Under review with Strike' : a?.status;
     document.getElementById('ticker').innerHTML = `<span><i class="dot"></i>Live</span>`
