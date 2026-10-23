@@ -139,6 +139,7 @@ export function mountScene(canvas, opts = {}) {
 
     if (mode === 'banner') {
       camera.position.set(0, 1.2, 7.5); camera.lookAt(0, -0.6, 0);
+      rock.visible = false; // no stone: the banner is the data floor only
       rock.position.set(1.6, -0.2, 0); rock.scale.setScalar(1.15); rock.rotation.set(0.3, t * 0.15, 0.1);
       cube.visible = false; floor.visible = true; floor.position.y = -1.6; floorMat.uniforms.uOpacity.value = 0.9;
     } else {
