@@ -100,9 +100,7 @@ function renderLiabilities(s) {
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
   $('pending-notes').innerHTML = (s.ratio?.openNotes ?? []).filter((n) => /market-maker/.test(n)).map((n) => `<div class="note">${esc(n)}</div>`).join('')
-    + `<a class="src" href="https://github.com/Lakshmikanth-3/ZeroGap#founder-confirmed-rules-strike-finance-2123-oct-2026" target="_blank" rel="noopener">Methodology, assumptions and open items on GitHub ↗</a>`
-    + (s.ratio?.inTransitNote ? `<div class="note">${esc(s.ratio.inTransitNote)}</div>` : '')
-    + '<div class="note" style="background:transparent">Liabilities are everything users can withdraw: account value (locked rewards included) + each depositor&#39;s vault share + staking rewards; commission pending, per Strike.</div>';
+    + `<a class="src" href="https://github.com/Lakshmikanth-3/ZeroGap#founder-confirmed-rules-strike-finance-2123-oct-2026" target="_blank" rel="noopener">Methodology, assumptions and open items on GitHub ↗</a>`;
 }
 
 function renderFlows(s) {
