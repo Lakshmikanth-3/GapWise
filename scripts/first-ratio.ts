@@ -17,7 +17,7 @@ async function main() {
   if (!v.custodyScale.applied) console.error(`!! Strike custody mappings unavailable (${v.custodyScale.error}); collector decimals used`);
 
   console.log('\n=== Reserves by chain and address (one price snapshot) ===');
-  for (const chain of ['ethereum', 'solana', 'cardano'] as const) {
+  for (const chain of ['ethereum', 'solana', 'cardano', 'hedge'] as const) {
     const rows = v.rows.filter(r => r.chain === chain);
     console.log(`\n${chain.toUpperCase()} — ${usd(rows.reduce((s, r) => s + (r.usdValue ?? 0), 0))}`);
     console.table(rows.map(r => ({

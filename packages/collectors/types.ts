@@ -1,4 +1,5 @@
-export type Chain = 'ethereum' | 'solana' | 'cardano';
+/** 'hedge' = Strike's hedging bot equity on external venues (founder, 23 Oct), not a blockchain locker. */
+export type Chain = 'ethereum' | 'solana' | 'cardano' | 'hedge';
 
 export type Reserve = {
   chain: Chain;

@@ -69,6 +69,13 @@ export const PEGGED_USD: Record<string, string> = {
 const byContract = (table: Record<string, unknown>) => (a: AssetRef) =>
   !!a.contract && (a.contract in table || a.contract.slice(0, 56) in table);
 
+/** USD account equity on an external venue (already in USD; its unrealized PnL is inside the venue's own figure). */
+export const usdAccountAdapter: PriceAdapter = {
+  name: 'usd-account',
+  matches: (a) => a.contract === 'lighter:account-equity-usd',
+  getPrice: async () => ({ usd: 1, source: 'USD account equity (Lighter total_asset_value)', ts: Date.now(), status: 'priced' }),
+};
+
 export const pegAdapter: PriceAdapter = {
   name: 'peg',
   matches: byContract(PEGGED_USD),
@@ -193,7 +200,7 @@ export const unknownAdapter: PriceAdapter = {
 export type GetPrice = (a: AssetRef) => Promise<PriceQuote>;
 
 /** First matching adapter wins; `unknownAdapter` always terminates the chain. */
-export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), pegAdapter, placeholderAdapter, pendingAdapter]): GetPrice {
+export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), strikeCreditAdapter(), usdAccountAdapter, pegAdapter, placeholderAdapter, pendingAdapter]): GetPrice {
   const chain = [...adapters, unknownAdapter];
   return a => chain.find(x => x.matches(a))!.getPrice(a);
 }
@@ -204,6 +211,6 @@ export function createPricer(adapters: PriceAdapter[] = [strikeFeedAdapter(), st
  */
 export function createSnapshotPricer(base = env.strikeApi): { getPrice: GetPrice; takenAt: () => number | undefined } {
   let takenAt: number | undefined;
-  const inner = createPricer([strikeFeedAdapter(base, fetch, Infinity), strikeCreditAdapter(base, fetch, Infinity), pegAdapter, placeholderAdapter, pendingAdapter]);
+  const inner = createPricer([strikeFeedAdapter(base, fetch, Infinity), strikeCreditAdapter(base, fetch, Infinity), usdAccountAdapter, pegAdapter, placeholderAdapter, pendingAdapter]);
   return { getPrice: a => { takenAt ??= Date.now(); return inner(a); }, takenAt: () => takenAt };
 }

@@ -300,3 +300,11 @@
     PnL netted to zero across positions (cash view: Σ wallet_balance + vault shares + staking) $1,813,215 → **98.36%,
     −$29,823**. Formula unchanged until Strike confirms which accounts hold the other side of those positions; dashboard
     stays "Under review with Strike". Open: the counterparty accounts, commission (pending), iUSD ($5.7K placeholder).
+
+52. **Strike hedging bot counted as a reserve (founder, 23 Oct 15:31 IST):** bot 0x6139192a58152932e6f8052ef0de2ad197fb1937
+    holds the other side of traders' net positions, with balances on Lighter and Aster. Lighter equity is read live
+    from its public API (total_asset_value incl. unrealized PnL; at 15:45 IST: collateral $32,732, long 896,835 ADA,
+    upnl −$6,157, equity ≈ $27.9K) and counted as reserve "hedge". Aster has no public per-account read (signed keys
+    only), so it is a pending note, not counted. Live verify: reserves $1,812,193.28 · liabilities $1,845,446.83 ·
+    **ratio 98.20%, gap −$33,254 (−1.80%)**, still "Under review with Strike". Remaining gap ≈ staking rewards ($32.0K)
+    and/or the Aster balance.

@@ -1,6 +1,7 @@
 import { ethReserves } from './ethereum';
 import { cardanoReserves } from './cardano';
 import { solanaReserves } from './solana';
+import { hedgeReserves } from './hedge';
 import { createPricer, creditCustodyMappings, applyCustodyScale, type CustodyMappings, type GetPrice } from './prices';
 import { valueReserves } from '../core/valuation';
 import type { Chain, Reserve } from './types';
@@ -11,7 +12,7 @@ export type ReserveSnapshot = Awaited<ReturnType<typeof valueReserves<Reserve>>>
   custodyScale: { applied: boolean; error?: string };
 };
 
-const COLLECTORS: Record<Chain, () => Promise<Reserve[]>> = { ethereum: ethReserves, cardano: cardanoReserves, solana: solanaReserves };
+const COLLECTORS: Partial<Record<Chain, () => Promise<Reserve[]>>> = { ethereum: ethReserves, cardano: cardanoReserves, solana: solanaReserves, hedge: () => hedgeReserves() };
 
 /** Reads all lockers and prices them. A failed chain is reported, never silently zeroed. */
 export async function snapshotReserves(
@@ -21,7 +22,7 @@ export async function snapshotReserves(
   const ts = Date.now();
   const chains = Object.keys(collectors) as Chain[];
   const [results, mappings] = await Promise.all([
-    Promise.allSettled(chains.map(c => collectors[c]())),
+    Promise.allSettled(chains.map(c => collectors[c]!())),
     custody().then(m => ({ m }), e => ({ error: (e as Error).message })),
   ]);
   const failedChains = chains.filter((_, i) => results[i].status === 'rejected');
