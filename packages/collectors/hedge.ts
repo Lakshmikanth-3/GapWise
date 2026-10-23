@@ -9,7 +9,7 @@ import type { Reserve } from './types';
  * account 019d06a7-bcfb-79a9-857e-cd54172ba144 (e.g. 4,000 / 7,000 / 4,924.40 USDC on 22 Oct, event userID 0x019d06a7…).
  * - Lighter: public API, equity = total_asset_value (includes unrealized PnL).
  * - Aster: read-only API wallet provided by Strike (ASTER_SIGNER / ASTER_SIGNER_KEY, env only, never in the repo);
- *   equity = totalMarginBalance (wallet + unrealized PnL). Without the keys the Aster line is pending, never guessed.
+ *   equity = Σ assets[].marginBalance (wallet + unrealized PnL, all stablecoin collateral). Without the keys the Aster line is pending, never guessed.
  */
 export const HEDGE_BOT = '0x6139192a58152932e6f8052ef0de2ad197fb1937';
 export const HEDGE_STRIKE_ACCOUNT = '019d06a7-bcfb-79a9-857e-cd54172ba144';
@@ -31,11 +31,13 @@ export async function lighterEquity(fetchFn: typeof fetch = fetch): Promise<numb
  * Signed read of the Aster futures account (API v3, "API wallet" auth): the query string (user, signer, nonce in µs) is
  * signed as EIP-712 typed data { domain AsterSignTransaction v1, chainId 1666, zero verifyingContract; Message{msg} } by
  * the read-only API wallet, and sent as ?query&signature=. Keys come only from env (ASTER_SIGNER / ASTER_SIGNER_KEY);
- * without them this returns undefined (Aster shown as pending, never guessed). Equity = totalMarginBalance.
+ * without them this returns undefined (Aster shown as pending, never guessed). Equity = Σ assets[].marginBalance.
  */
 export async function asterEquity(fetchFn: typeof fetch = fetch, signer = process.env.ASTER_SIGNER, key = process.env.ASTER_SIGNER_KEY,
   user = process.env.ASTER_USER ?? HEDGE_BOT, nowUs = Date.now() * 1000): Promise<number | undefined> {
   if (!signer || !key) return undefined;
+  // Tolerate the two values being entered the other way round: an address is 42 chars, a private key 64 (+0x).
+  if (signer.replace(/^0x/, '').length === 64 && key.replace(/^0x/, '').length === 40) [signer, key] = [key, signer];
   const { privateKeyToAccount } = await import('viem/accounts');
   const account = privateKeyToAccount((key.startsWith('0x') ? key : `0x${key}`) as `0x${string}`);
   const query = new URLSearchParams({ user, signer, nonce: String(nowUs) }).toString();
@@ -45,8 +47,11 @@ export async function asterEquity(fetchFn: typeof fetch = fetch, signer = proces
   });
   const res = await fetchFn(`${ASTER_API}/fapi/v3/account?${query}&signature=${signature}`);
   if (!res.ok) throw new Error(`Aster ${res.status} ${(await res.text()).slice(0, 160)}`);
-  const body = await res.json() as { totalMarginBalance?: string; totalWalletBalance?: string; totalUnrealizedProfit?: string };
-  return body.totalMarginBalance !== undefined ? Number(body.totalMarginBalance) : Number(body.totalWalletBalance ?? 0) + Number(body.totalUnrealizedProfit ?? 0);
+  // totalMarginBalance covers USDT only (live: USDT −8,164.77 unrealized while 41,045 USDC sits as collateral), so equity
+  // is the sum of every asset's marginBalance (wallet + unrealized PnL); all collateral assets here are USD stablecoins.
+  const body = await res.json() as { assets?: { asset: string; marginBalance: string }[]; totalMarginBalance?: string };
+  if (!body.assets) return Number(body.totalMarginBalance ?? 0);
+  return body.assets.reduce((t, x) => t + Number(x.marginBalance), 0);
 }
 
 const row = (asset: string, amount: number, contract: string): Reserve =>
