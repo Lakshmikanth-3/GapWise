@@ -37,7 +37,7 @@ export function poll(render, ms = 15000) {
   return setInterval(tick, ms);
 }
 
-export const LOGO = '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#45F0A6"/><path d="M12 13h16L12 27h16" fill="none" stroke="#04110B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const LOGO = '<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16L4 19h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 export const CHECK = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#10261E"/><path d="M6 10.5l2.5 2.5L14 7.5" fill="none" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 export const CROSS = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#2A1414"/><path d="M7 7l6 6M13 7l-6 6" fill="none" stroke="#FF8A80" stroke-width="2" stroke-linecap="round"/></svg>';
 export const WAIT = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#15130C"/><path d="M10 5v5l3 2" fill="none" stroke="#E8C46A" stroke-width="2" stroke-linecap="round"/></svg>';

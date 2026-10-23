@@ -1,6 +1,6 @@
 // Shared site chrome: the pill navigation and the footer, identical on every page.
 const REPO = 'https://github.com/Lakshmikanth-3/ZeroGap';
-export const MARK = '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#45F0A6"/><path d="M12 13h16L12 27h16" fill="none" stroke="#04110B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const MARK = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16L4 19h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const FOOTER = [
   ['Product', [['Dashboard', '/dashboard'], ['My Safety', '/me'], ['Testnet view', '/dashboard?network=testnet'], ['Telegram alerts', 'https://t.me/zerogap_alerts']]],
