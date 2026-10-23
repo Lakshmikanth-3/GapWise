@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { equityOf, type LiabilityScan } from '../collectors/accounts';
+import { HEDGE_NOTE } from '../collectors/hedge';
 import type { ReserveSnapshot } from '../collectors/reserves';
 import { LOCKERS, NETWORK } from './config';
 import { assessRatio, confidence, formatGap, IN_TRANSIT } from './ratio';
@@ -96,6 +97,7 @@ export function openNotes(liab: Pick<LiabilityScan, 'vaults' | 'vaultShares'>, r
   const notes: string[] = ['Commission balances are withdrawable liabilities; their public source is pending from Strike, so they are not added yet.',
     'Locked rewards are inside wallet_balance and counted once as owed (founder, 23 Oct).'];
   for (const v of perVault(liab)) if (Math.abs(v.difference_usd) > 10) notes.push(`Vault ${v.vault_id}: vault account ${v.vault_account_usd.toFixed(2)} vs Σ depositor shares ${v.depositor_shares_usd.toFixed(2)} (difference ${v.difference_usd.toFixed(2)}): acknowledged by Strike, ignored for now.`);
+  if (reserves.rows.some(r => r.chain === 'hedge')) notes.push(HEDGE_NOTE + (reserves.rows.some(r => r.contract === 'aster:account-equity-usd') ? '' : ' Aster balance pending: API access not configured yet, so it is not counted.'));
   for (const r of reserves.rows) if (r.quote.status === 'placeholder') notes.push(`${r.asset} (${r.chain}) counted at a placeholder price of ${r.quote.usd}; price source pending from Strike.`);
   return notes;
 }

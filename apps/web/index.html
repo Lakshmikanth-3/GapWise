@@ -34,6 +34,7 @@
   .hero .lede { margin-left: 0; }
   .hero .btns { justify-content: flex-start; }
   .hero-viz svg { width: 100%; height: auto; display: block; }
+  .disclose { max-width: 1240px; width: 100%; margin: 14px auto 0; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: #b9b4e6; }
   .hero .ticker { max-width: 1240px; margin: 40px auto 0; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.1); width: 100%; }
   @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } .hero-viz { max-width: 460px; margin: 0 auto; width: 100%; } .hero-copy { text-align: center; } .hero .lede { margin: 24px auto 0; } .hero .btns { justify-content: center; } .hero h1 { margin: 0 auto; } }
   .lede { margin: 30px auto 0; max-width: 58ch; font-family: var(--mono); font-size: clamp(13px, 1.15vw, 16px); line-height: 1.75; color: #d9d9de; }
@@ -105,6 +106,7 @@
       <div class="hero-viz" id="hero-viz"></div>
     </div>
     <div class="ticker rv" id="ticker"><span><i class="dot"></i>Live</span><span>Loading…</span></div>
+    <p class="disclose" id="disclose" hidden></p>
   </section>
 
   <section class="story" id="how">
@@ -182,7 +184,10 @@
   import('/assets/hero-viz.js').then(({ mountHeroViz }) => { updateViz = mountHeroViz(document.getElementById('hero-viz')); if (window.__zgState) updateViz(window.__zgState); }).catch((e) => console.error('hero visual unavailable', e));
 
   poll((st) => {
-    window.__zgState = st; updateViz(st); updStack(st); updWave(st);
+    window.__zgState = st; updateViz(st);
+    const mm = (st.reserves?.rows ?? []).filter((r) => r.chain === 'hedge');
+    const dz = document.getElementById('disclose');
+    if (mm.length) { dz.hidden = false; dz.textContent = `Disclosed by Strike: reserves include ${compactUsd(mm.reduce((t, r) => t + (r.usdValue ?? 0), 0))} held by Strike's market-maker bot on external exchanges (${mm.map((r) => r.asset.replace('USD equity ', '').replace(/[()]/g, '')).join(', ')}). Not an on-chain locker; read via public / read-only API access provided by Strike. A known gap.`; } else dz.hidden = true; updStack(st); updWave(st);
     const a = st.ratio?.published;
     const label = a?.status === 'Needs review' ? 'Under review with Strike' : a?.status;
     document.getElementById('ticker').innerHTML = `<span><i class="dot"></i>Live</span>`

@@ -132,8 +132,8 @@ ZeroGap never sees a key that can move funds: Strike pays out only to the connec
 An account-by-account audit found no double counting ([docs/GAP-INVESTIGATION.md](docs/GAP-INVESTIGATION.md)): the gap is
 close to staking rewards ($32K) plus traders' net unrealized profit ($34K). Strike's founder explained that early staking
 distributions were credited straight into balances and is cleaning up expired rewards (locked rewards already fell from
-$3.4K to $1.3K); ZeroGap re-runs automatically as that lands. Strike's external hedging bot is **not** counted as a
-reserve (founder, 23 Oct). Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
+$3.4K to $1.3K); ZeroGap re-runs automatically as that lands. Strike's market-maker bot on Lighter/Aster is counted as a
+separate, disclosed reserve line (founder, 23 Oct 18:43); the rest is being returned from the bridge, per Strike. Live numbers: the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
 [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
 
 ## Verify it yourself
@@ -227,7 +227,10 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 - **Relayed deposits:** deposits from chains without their own locker (Solana via relayer `0x8f0e…eca7`, base, bsc,
   polygon …) arrive as USDC in the Ethereum locker. The daily flow match compares them as one "Solana + relayed" row
   (22 Oct: 2,447.28 reported vs 2,447.45 on-chain, 99.99%).
-- **Hedging bot** balances on external venues are not reserves.
+- **Strike's market-maker bot** (`0x6139…1937`) holds the other side of traders' positions on Lighter and Aster. Its
+  equity counts as a **separate, disclosed reserve line**, not an on-chain locker (founder, 23 Oct 18:43). Lighter is read
+  from its public API; Aster through read-only API access provided by Strike (kept out of the repo). Its link to Strike is
+  on-chain: it deposits into Strike's Ethereum locker for Strike account `019d06a7…`.
 - **In-transit LP/IOG bridge gaps** are rare (a one-time event every few months) and shown as a note only.
 - Rate limit: ≤ 40 requests/second to Strike (the founder asked for under 50).
 

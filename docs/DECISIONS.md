@@ -317,3 +317,13 @@
     flow row, and Strike's reported deposits for the relayed chains are folded into the same row; withdrawals stay per
     chain. The row is only compared where Ethereum logs cover the day. Live 22 Oct: reported 2,447.28 vs on-chain
     2,447.45 (99.99%; previously flagged as a mismatch). The 18–21 Oct false alarms came from the same cause.
+
+54. **Market-maker bot counted again, with disclosure (founder, 23 Oct 18:43 IST):** "found it… here's the aster keys…
+    we need to be honest… that the api keys are given to you, and that it's a known gap… add this to ui… and also include
+    it". Strike's market-maker bot 0x6139192a58152932e6f8052ef0de2ad197fb1937 holds the other side of traders' positions
+    on Lighter and Aster. Its equity there is a separate, labelled reserve line ("Strike market-maker bot, external
+    exchanges"), disclosed on the landing page, the dashboard and every report. Lighter: public API. Aster: read-only API
+    access provided by Strike, kept only in `.env` / GitHub secrets (`ASTER_API_KEY`, `ASTER_API_SECRET`), never in the
+    repo; without them the Aster line is pending, never guessed. Link to Strike, checkable on-chain: the address sends
+    Deposit transactions into Strike's Ethereum locker for Strike account 019d06a7-bcfb-79a9-857e-cd54172ba144
+    (4,000 / 7,000 / 4,924.40 / 4,000 USDC on 22 Oct). Remaining gap: funds being returned from the bridge (per Strike).

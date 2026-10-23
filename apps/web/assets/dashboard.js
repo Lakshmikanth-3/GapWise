@@ -6,7 +6,7 @@ activeNet.style.background = 'var(--chip)'; activeNet.style.color = 'var(--ink)'
 if (NETWORK === 'testnet') { $('testnet-banner').style.display = ''; document.title = 'ZeroGap dashboard · TESTNET'; }
 for (const a of document.querySelectorAll('a[href^="/api/report"]')) a.href = withNet(a.getAttribute('href'));
 let explorerBases = { ethereum: 'https://etherscan.io', solanaSuffix: '', cardano: 'https://cardanoscan.io' };
-const CHAIN_NAMES = { ethereum: 'Ethereum', solana: 'Solana', cardano: 'Cardano', hedge: 'Hedging bot (Lighter)' };
+const CHAIN_NAMES = { ethereum: 'Ethereum', solana: 'Solana', cardano: 'Cardano', hedge: 'Strike market-maker bot (external exchanges)' };
 let config;
 getJSON('/api/config').then((c) => {
   config = c;
@@ -15,7 +15,7 @@ getJSON('/api/config').then((c) => {
 
 function explorer(chain, addr) {
   const e = explorerBases;
-  if (chain === 'hedge') return `https://mainnet.zklighter.elliot.ai/api/v1/account?by=l1_address&value=${addr}`;
+  if (chain === 'hedge') return `https://etherscan.io/address/${addr}`;
   if (chain === 'ethereum') return `${e.ethereum}/address/${addr}`;
   if (chain === 'solana') return `https://solscan.io/account/${addr}${e.solanaSuffix}`;
   return `${e.cardano}/address/${addr}`;
@@ -64,7 +64,7 @@ function renderReserves(s) {
   if (!res) return;
   $('h-res').textContent = compactUsd(res.pricedUsd);
   const holders = new Set(res.rows.map((x) => x.holder));
-  $('res-sub').textContent = `3 chains · ${holders.size} addresses · ${ago(res.ts)}${res.stalePrices ? ' · STALE PRICES' : ''}`;
+  $('res-sub').textContent = `3 chains${res.rows.some((x) => x.chain === 'hedge') ? ' + Strike MM bot (disclosed)' : ''} · ${holders.size} addresses · ${ago(res.ts)}${res.stalePrices ? ' · STALE PRICES' : ''}`;
   const byChain = {};
   for (const row of res.rows) (byChain[row.chain] ??= []).push(row);
   $('chains').innerHTML = ['ethereum', 'solana', 'cardano', 'hedge'].filter((c) => c !== 'hedge' || (s.reserves?.rows ?? []).some((r) => r.chain === 'hedge')).map((c) => {

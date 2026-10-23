@@ -72,8 +72,8 @@ const byContract = (table: Record<string, unknown>) => (a: AssetRef) =>
 /** USD account equity on an external venue (already in USD; its unrealized PnL is inside the venue's own figure). */
 export const usdAccountAdapter: PriceAdapter = {
   name: 'usd-account',
-  matches: (a) => a.contract === 'lighter:account-equity-usd',
-  getPrice: async () => ({ usd: 1, source: 'USD account equity (Lighter total_asset_value)', ts: Date.now(), status: 'priced' }),
+  matches: (a) => a.contract === 'lighter:account-equity-usd' || a.contract === 'aster:account-equity-usd',
+  getPrice: async () => ({ usd: 1, source: 'USD account equity on external exchange (Lighter / Aster)', ts: Date.now(), status: 'priced' }),
 };
 
 export const pegAdapter: PriceAdapter = {
