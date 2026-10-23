@@ -273,3 +273,7 @@
     **Live verify (06:07 UTC):** reserves $1,783,641.09; liabilities $1,846,728.44 (equity $729,897.39 incl. isolated
     $77,247.71 · vault shares $1,084,855.52 · staking $31,975.53); **ratio 96.5838%, gap −$63,087 (−3.42%)**, shown as
     "Under review with Strike" (the Strike team is investigating the gap), never as insolvency. Report version 2.
+
+51. **Gap investigation (23 Oct ~10:00 UTC):** no counting bug found; formula unchanged. The −$63.7K gap ≈ traders' net
+    unrealized PnL +$33.7K (counterparty not in the scanned set) + staking rewards $32.0K; without both the ratio is
+    100.11%. Evidence and open questions: docs/GAP-INVESTIGATION.md.
