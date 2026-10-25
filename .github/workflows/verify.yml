@@ -44,6 +44,7 @@ jobs:
           f=$(ls ../out/*.json | head -1)
           node -e 'const r=require(process.argv[1]);const fs=require("fs");const line=`${r.generated_at},${r.network},${r.result.ratio},${r.result.status},${r.result.gap_usd},${r.result.gap_pct},${r.reserves.priced_usd},${r.liabilities.total_usd},${r.liabilities.accounts_read},${r.code_commit},${r.content_sha256}\n`;if(!fs.existsSync("index.csv"))fs.writeFileSync("index.csv","generated_at,network,ratio,status,gap_usd,gap_pct,reserves_usd,liabilities_usd,accounts_read,code_commit,content_sha256\n");fs.appendFileSync("index.csv",line)' "$(realpath $f)"
           printf '# ZeroGap scan reports\n\nOne JSON report per hourly `npm run verify` run (see `index.csv`). Each file lists every input; recompute with the same commit to diff.\n' > README.md
+          echo '{"git":{"deploymentEnabled":false}}' > vercel.json
           git add -A
           git commit -qm "verify report $(date -u +%FT%TZ)"
           git push -q "$url" HEAD:reports

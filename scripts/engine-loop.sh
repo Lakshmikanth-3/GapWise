@@ -24,6 +24,7 @@ while [ "$(date +%s)" -lt "$end" ]; do
     git init -q -b zerogap-data
     git config user.name "zerogap-engine"
     git config user.email "zerogap-engine@users.noreply.github.com"
+    echo '{"git":{"deploymentEnabled":false}}' > vercel.json  # data branch: never build a Vercel preview
     git add -A && git commit -qm "state $(date -u +%FT%TZ)" && git push -q --force "$REMOTE" zerogap-data
   ) || echo "publish failed"
   left=$(( PERIOD - ($(date +%s) - start) ))
