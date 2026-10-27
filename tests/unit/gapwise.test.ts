@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { ScanReport } from '../../packages/core/report';
 import { analyzeGap, EvidenceBook } from '../../packages/agent/evidence';
-import { applyAnswer, investigate, parseAnswer, rulesVerdict, unsupportedAmounts } from '../../packages/agent/investigate';
+import { applyAnswer, claimsFullyExplained, investigate, parseAnswer, rulesVerdict, unsupportedAmounts } from '../../packages/agent/investigate';
 import { MeterlessClient, meterlessFromEnv, type ChatMessage, type ChatResult, type LlmClient } from '../../packages/agent/llm';
 import { GapMemory } from '../../packages/agent/memory';
 import { runTool } from '../../packages/agent/tools';
@@ -178,6 +178,16 @@ describe('investigator: AI fallback and validation', () => {
   });
 });
 
+describe('validator: "fully explained" claims', () => {
+  it('rejects the claim but accepts honest negations', () => {
+    expect(claimsFullyExplained('The gap is fully explained by price moves.')).toBe(true);
+    expect(claimsFullyExplained('Nothing is left unexplained.')).toBe(true);
+    expect(claimsFullyExplained('The gap is not fully explained.')).toBe(false);
+    expect(claimsFullyExplained("The rest isn't fully accounted for yet.")).toBe(false);
+    expect(claimsFullyExplained('Price moves are confirmed, but the surplus is far from fully explained.')).toBe(false);
+  });
+});
+
 describe('agent trace', () => {
   it('logs named agents, a validator critique and one revision round through the model', async () => {
     const trace = new Trace('t', { dir: 'off', quiet: true });
@@ -252,6 +262,9 @@ describe('Zetaris adapter (mocked HTTP)', () => {
   it('rejects unknown response shapes instead of returning empty success', () => {
     expect(normalizeRows({ data: [{ x: 1 }] })).toEqual([{ x: 1 }]);
     expect(normalizeRows({ columns: [{ name: 'x' }], rows: [[2]] })).toEqual([{ x: 2 }]);
+    // shape returned by the local Zetaris 2.4.3 run-query endpoint
+    expect(normalizeRows({ headers: [{ name: 'scan_id' }, { name: 'gap_usd' }], data: [['b71f', 20865.6]], total: 1, timeUsed: 12 })).toEqual([{ scan_id: 'b71f', gap_usd: 20865.6 }]);
+    expect(normalizeRows({ headers: ['a'], data: [], total: 0, timeUsed: 3 })).toEqual([]);
     expect(() => normalizeRows({ status: 'ok' })).toThrow(/unrecognised/);
   });
   it('reads config from env only when complete', () => {

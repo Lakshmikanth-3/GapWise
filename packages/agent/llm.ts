@@ -17,7 +17,8 @@ export type ChatResult = { message: { content: string | null; tool_calls?: ToolC
 
 export interface LlmClient {
   readonly requestedModel: string;
-  chat(messages: ChatMessage[], tools?: ToolDef[]): Promise<ChatResult>;
+  /** toolChoice 'required': the model must pick a tool this turn (it still chooses which one and its arguments). */
+  chat(messages: ChatMessage[], tools?: ToolDef[], toolChoice?: 'auto' | 'required'): Promise<ChatResult>;
 }
 
 export type MeterlessConfig = { baseUrl: string; token: string; model: string; app: string; timeoutMs: number };
@@ -60,10 +61,10 @@ export class MeterlessClient implements LlmClient {
     }
   }
 
-  async chat(messages: ChatMessage[], tools?: ToolDef[]): Promise<ChatResult> {
+  async chat(messages: ChatMessage[], tools?: ToolDef[], toolChoice: 'auto' | 'required' = 'auto'): Promise<ChatResult> {
     const res = await this.fetchFn(`${this.cfg.baseUrl}/chat/completions`, {
       method: 'POST', headers: this.headers(true), signal: AbortSignal.timeout(this.cfg.timeoutMs),
-      body: JSON.stringify({ model: this.cfg.model, messages, temperature: 0.1, ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) }),
+      body: JSON.stringify({ model: this.cfg.model, messages, temperature: 0.1, ...(tools?.length ? { tools, tool_choice: toolChoice } : {}) }),
     });
     if (!res.ok) throw new Error(`Meterless chat: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     const j = await res.json() as { model?: string; choices?: { message?: ChatResult['message'] }[] };
