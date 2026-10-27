@@ -546,6 +546,13 @@ npm run test:e2e     # Playwright against a running server (GAPWISE_URL=…)
 npm run test:t6.6    # fresh clone + npm install + npm run verify with no keys, compared with the live dashboard
 ```
 
+**Latest full run (27 Oct 2026): 170 of 170 checks passed.** Typecheck, 138 unit and integration tests, 7 live mainnet
+tests, 9 browser tests against https://gapwise-agent.vercel.app, 7 judge-path checks (`SAMPLE_MODE` + `POST /run`,
+including bad input) and 8 live sponsor checks (Zetaris SQL, Nightshift, Nemotron verified, model logged per request,
+H-MEM, validator, five agents in the trace). Raw results: [`docs/testing/test-results.json`](docs/testing/test-results.json).
+
+![GapWise test results: 170 of 170 checks passed](docs/testing/test-results.png)
+
 ## Security
 
 Read-only: the server answers GET requests only, and no key that can move funds is ever stored. For My Safety, the Ed25519

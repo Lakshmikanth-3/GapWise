@@ -1,0 +1,175 @@
+{
+ "suites": [
+  {
+   "suite": "Typecheck (tsc)",
+   "passed": 1,
+   "failed": 0
+  },
+  {
+   "suite": "Unit + integration (Vitest)",
+   "passed": 138,
+   "failed": 0
+  },
+  {
+   "suite": "Live mainnet data (3 chains + Strike API)",
+   "passed": 7,
+   "failed": 0
+  },
+  {
+   "suite": "Browser E2E on live site (Playwright)",
+   "passed": 9,
+   "failed": 0
+  },
+  {
+   "suite": "Judge path: SAMPLE_MODE + POST /run",
+   "passed": 7,
+   "failed": 0
+  },
+  {
+   "suite": "Live sponsors: Zetaris, Nightshift, Nemotron, H-MEM",
+   "passed": 8,
+   "failed": 0
+  }
+ ],
+ "unit_files": [
+  {
+   "file": "unit/mmbot",
+   "passed": 3,
+   "failed": 0
+  },
+  {
+   "file": "unit/networks",
+   "passed": 3,
+   "failed": 0
+  },
+  {
+   "file": "unit/solana-state",
+   "passed": 3,
+   "failed": 0
+  },
+  {
+   "file": "integration/collectors",
+   "passed": 4,
+   "failed": 0
+  },
+  {
+   "file": "unit/hedge",
+   "passed": 4,
+   "failed": 0
+  },
+  {
+   "file": "unit/p2",
+   "passed": 4,
+   "failed": 0
+  },
+  {
+   "file": "unit/report",
+   "passed": 5,
+   "failed": 0
+  },
+  {
+   "file": "integration/accounts",
+   "passed": 6,
+   "failed": 0
+  },
+  {
+   "file": "unit/p5",
+   "passed": 6,
+   "failed": 0
+  },
+  {
+   "file": "unit/core",
+   "passed": 8,
+   "failed": 0
+  },
+  {
+   "file": "unit/solana-program",
+   "passed": 8,
+   "failed": 0
+  },
+  {
+   "file": "unit/p4",
+   "passed": 17,
+   "failed": 0
+  },
+  {
+   "file": "unit/p0",
+   "passed": 19,
+   "failed": 0
+  },
+  {
+   "file": "unit/p1",
+   "passed": 22,
+   "failed": 0
+  },
+  {
+   "file": "unit/gapwise",
+   "passed": 26,
+   "failed": 0
+  }
+ ],
+ "judge_checks": [
+  {
+   "name": "run example_1",
+   "pass": true
+  },
+  {
+   "name": "run example_2",
+   "pass": true
+  },
+  {
+   "name": "run example_3",
+   "pass": true
+  },
+  {
+   "name": "outputs differ per input",
+   "pass": true
+  },
+  {
+   "name": "bad JSON -> 400",
+   "pass": true
+  },
+  {
+   "name": "unknown scan -> 404",
+   "pass": true
+  },
+  {
+   "name": "traces written to logs/",
+   "pass": true
+  }
+ ],
+ "live_sponsor_checks": [
+  {
+   "name": "Zetaris: history read via SQL",
+   "pass": true
+  },
+  {
+   "name": "Nightshift: live AI provider",
+   "pass": true
+  },
+  {
+   "name": "Nemotron verified from response",
+   "pass": true
+  },
+  {
+   "name": "Model logged per request",
+   "pass": true
+  },
+  {
+   "name": "H-MEM recall + save",
+   "pass": true
+  },
+  {
+   "name": "Validator ran",
+   "pass": true
+  },
+  {
+   "name": "5 named agents in trace",
+   "pass": true
+  },
+  {
+   "name": "Unexplained amount kept honest",
+   "pass": true
+  }
+ ]
+}
