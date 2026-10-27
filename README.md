@@ -50,15 +50,51 @@ flowchart LR
 
 | Tech | Where in the code | What it does | Live status (27 Oct) |
 | --- | --- | --- | --- |
-| **Zetaris** | `packages/zetaris/client.ts`, `tables.ts`, `docs/zetaris/schema.sql` | After each scan the six tables are published; the investigator queries scan history by SQL and the model gets a guarded `runSql` tool (one SELECT, GapWise tables only, row limit, every query logged with timing) | Adapter tested offline; **not yet run against a live instance** (no credentials) |
-| **Meterless** | `packages/agent/llm.ts` | Inference runtime (OpenAI-compatible, `127.0.0.1:8088/v1`, documented headers), tool-calling loop capped at 6 steps | Client tested offline; **runtime not installed on the build machine** |
-| **Meterless H-MEM** | `packages/agent/memory.ts`, `packages/agent/hmem/` (reference implementation, Apache-2.0, unmodified) | Seeded with confirmed past findings; recalled before each investigation; each result saved | Working (used in the live run) |
-| **NVIDIA Nemotron** | model loaded in the Meterless fleet; `inference.nemotron_verified` | GapWise reports the model that actually answered (`response.model`) and only shows "Nemotron verified" when it names Nemotron | **Not yet verified** |
-| **Cursor** | — | This hackathon work was written with Claude Code (an AI coding tool), not Cursor | — |
+| **Zetaris** (data layer) | `packages/zetaris/client.ts`, `store.ts`, `tables.ts`, `scripts/zetaris-setup.ts` | Each scan is written as six tables to a Postgres that Zetaris federates as the datasource `gapwise` (`CREATE DATASOURCE` + `REGISTER DATASOURCE TABLES`; Lightning has no `INSERT`). Everything the agent reads goes through Zetaris SQL: scan history, and the model's guarded `runSql` tool (one SELECT, GapWise tables only, row limit, every query logged with timing) | **Live**: local Zetaris 2.4.3; 9 reports / 18,741 rows published; Nemotron ran 3 SQL queries in one investigation |
+| **Meterless Nightshift** (AI provider) | `packages/agent/llm.ts` | All model calls go to the Nightshift runtime (OpenAI-compatible, `127.0.0.1:8088/v1`, route `meterless/deep`), with tool calls; the first step must call a tool, at most 6 steps | **Live** |
+| **Meterless H-MEM** (engine) | `packages/agent/memory.ts`, `packages/agent/hmem/` (reference implementation, Apache-2.0, unmodified) | Seeded with confirmed past findings; recalled before each investigation; each result saved. Test: `tests/unit/gapwise.test.ts` "seeds H-MEM once…" | **Live** |
+| **NVIDIA Nemotron** | served through Nightshift (NVIDIA key in Nightshift's Providers tab, not in this repo); `inference.nemotron_verified` | Writes the explanation and picks the SQL queries. GapWise logs the model that served each request and shows "Nemotron verified" only when it names Nemotron | **Live**: `nvidia/nemotron-3.5-bolt-e4b`, `nemotron_verified: true` |
+| **Cursor** | — | Optional; this work was written with Claude Code | — |
 
 When Meterless or Zetaris is unavailable, results are labelled **rules-only**: the deterministic investigation, never a canned AI answer.
 
-## A real investigation (live mainnet scan, 27 Oct 2026 12:47 UTC, rules-only)
+**Zetaris setup** (once): install Zetaris locally (Zetaris Cloud → Run locally), start the store Postgres on the
+Zetaris network, fill `ZETARIS_*` and `GAPWISE_STORE_*` in `.env`, then run `npm run zetaris:setup`:
+
+```bash
+docker run -d --name gapwise-store --network zetaris_default -p 127.0.0.1:5433:5432 \
+  -e POSTGRES_USER=gapwise -e POSTGRES_PASSWORD=<choose one> -e POSTGRES_DB=gapwise postgres:16-alpine
+npm run zetaris:setup      # tables → datasource "gapwise" in Zetaris → publish reports → read back via Zetaris SQL
+```
+
+## The full agent loop on live data (27 Oct 2026, 15:09 UTC)
+
+`npm run investigate` with Zetaris, Nightshift and H-MEM online, trace from `logs/` (summarised):
+
+```
+PlannerAgent   start              plan: history (Zetaris) → hypotheses in code → H-MEM → Nightshift → validator
+EvidenceAgent  zetaris_query      SELECT scan_id, ts, gap_usd, status FROM gapwise.scans … → 5 scans
+EvidenceAgent  test_hypotheses    confirmed 3, hypothesis 3, unresolved 1, ruled out 3; unexplained $20,862
+MemoryAgent    hmem_recall        4 past findings recalled
+ExplainerAgent nightshift_request asked for runSql ×3            [nvidia/nemotron-3.5-bolt-e4b]
+EvidenceAgent  tool:runSql        FAILED: model guessed a column that does not exist; error returned to the model
+EvidenceAgent  tool:runSql        gapwise.scans history → evidence E22
+EvidenceAgent  tool:runSql        gapwise.liabilities for this scan → evidence E23
+ExplainerAgent nightshift_request final answer drafted               [nvidia/nemotron-3.5-bolt-e4b]
+ValidatorAgent critique           all claims backed by evidence
+MemoryAgent    hmem_save          stored
+```
+
+Verdict written by Nemotron and accepted by the validator: *"The gap is not fully explained, as there is an
+unresolved cause related to iUSD being counted at a placeholder price, and several other hypotheses remain
+unconfirmed."* When an answer cites unknown evidence, quotes an amount the code did not compute, or claims the gap is
+fully explained, the validator sends it back once for revision and otherwise keeps the computed result (unit tests
+"logs named agents, a validator critique…" and "rejects fabricated evidence ids…"). Honest negations such as "not fully
+explained" are accepted; an earlier version rejected them by mistake, which was found in live runs and fixed with a test.
+
+Live site (last investigation, read-only): **https://gapwise-agent.vercel.app/dashboard#why**
+
+## Example output (live mainnet scan, 27 Oct 2026 12:47 UTC, rules-only run before the sponsors were connected)
 
 `npm run investigate -- --fresh` (trimmed; full output has every evidence item):
 

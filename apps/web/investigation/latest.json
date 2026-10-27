@@ -1,6 +1,6 @@
 {
- "investigation_id": "inv-b71f0afee52fc97f-20261027T141924",
- "created_at": "2026-10-27T14:19:24.063Z",
+ "investigation_id": "inv-b71f0afee52fc97f-20261027T150924",
+ "created_at": "2026-10-27T15:09:24.530Z",
  "trigger": "cli",
  "scan_id": "b71f0afee52fc97f",
  "report_sha256": "b71f0afee52fc97f2357ad47ec7ad58f60dfff74daf7f0ee7beff6a2713158b5",
@@ -11,7 +11,7 @@
  "gap_usd": 20865.626476032194,
  "gap_pct": 1.221086405676096,
  "status": "Needs review",
- "verdict": "Reserves are $20,866 above what users are owed (+1.22%), status Needs review. Confirmed or supported causes account for $3; $20,862 is still unexplained. Open candidates: Funds in transit over the Cardano↔Ethereum bridge or an LP withdrawal ($10,000); Open trader profit whose losing side sits outside the lockers (−$1,933). Since the previous scan the gap changed by +$35,546; the largest part came from account equity owed to users (+$49,089 to the gap).",
+ "verdict": "The gap is not fully explained, as there is an unresolved cause related to iUSD being counted at a placeholder price, and several other hypotheses remain unconfirmed.",
  "model": "nvidia/nemotron-3.5-bolt-e4b",
  "rules_only": false,
  "inference": {
@@ -61,7 +61,7 @@
      "label": "Vault cross-check difference"
     }
    ],
-   "narrative": "A minor difference of $3.4 exists because vault accounts hold more than the sum of depositors' shares, which is accounted for in the gap. [E3]"
+   "narrative": "The difference between vault account equity and depositors' shares is confirmed to be $3.4. [E3]"
   },
   {
    "id": "C3",
@@ -256,7 +256,7 @@
   {
    "id": "M1",
    "key": "model_hypothesis",
-   "cause": "iUSD is counted at a placeholder price",
+   "cause": "Commission balances are not yet exposed by Strike, potentially absorbing part of the surplus.",
    "scope": "gap",
    "status": "hypothesis",
    "usd": null,
@@ -265,10 +265,10 @@
    "explanation": "Proposed by the model; not tested by code.",
    "evidence": [
     {
-     "id": "E2",
+     "id": "E7",
      "type": "source",
-     "value": "report b71f0afee52fc97f · reserves.rows[iUSD].price_source = \"placeholder: iUSD: placeholder $1 until Strike confirms the price source\"",
-     "label": "iUSD price source"
+     "value": "report b71f0afee52fc97f · liabilities.commission_usd = null",
+     "label": "Commission line (pending)"
     }
    ]
   }
@@ -310,10 +310,11 @@
   "first_ts": "2026-10-23T06:07:26.978Z",
   "persistent": false
  },
- "next_check": "Investigate the potential impact of C1 (iUSD placeholder price) by obtaining a confirmed price for iUSD.",
+ "next_check": "Investigate the actual confirmed price source for iUSD to resolve cause C1.",
  "sources_used": [
   "Verified scan report (on-chain lockers on Ethereum, Solana, Cardano; Strike API accounts, vaults, prices)",
   "Previous verified scan report",
+  "Zetaris (SQL over GapWise tables)",
   "H-MEM memory (past findings)",
   "Meterless runtime · nvidia/nemotron-3.5-bolt-e4b"
  ],
@@ -329,7 +330,7 @@
     "id": "mem-3",
     "content": "Market-maker bot: Strike's bot 0x6139192a58152932e6f8052ef0de2ad197fb1937 holds the other side of traders' positions on Lighter and Aster. Its equity is a separate, disclosed reserve line. It deposits into the Ethereum locker for Strike account 019d06a7-bcfb-79a9-857e-cd54172ba144.",
     "source": "docs/DECISIONS.md #52, #54",
-    "relevance": 0.211
+    "relevance": 0.212
    },
    {
     "id": "mem-4",
@@ -344,9 +345,37 @@
     "relevance": 0.192
    }
   ],
-  "saved": "mem-15"
+  "saved": "mem-19"
  },
- "tool_calls": [],
+ "tool_calls": [
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT chain, asset, amount, usd_value, price_source FROM gapwise.reserves WHERE scan_id = 'b71f0afee52fc97f' ORDER BY usd_value DESC LIMIT 20"
+   },
+   "ok": false,
+   "ms": 1132,
+   "error": "Zetaris POST /api/proxy/sql-editor/sqls/run-query: HTTP 400 {\"msg\":\"[UNRESOLVED_COLUMN.WITH_SUGGESTION] A column or function parameter with name `usd_value` cannot be resolved. Did you mean one of the following? [`usd`, `address`, `chain`, `decimals`, `scan_id"
+  },
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 10"
+   },
+   "ok": true,
+   "ms": 723,
+   "evidence_id": "E22"
+  },
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT * FROM gapwise.liabilities WHERE scan_id = 'b71f0afee52fc97f'"
+   },
+   "ok": true,
+   "ms": 1396,
+   "evidence_id": "E23"
+  }
+ ],
  "evidence": [
   {
    "id": "E1",
@@ -417,9 +446,9 @@
   },
   {
    "id": "E12",
-   "type": "source",
-   "value": "local reports/ · 5 scan(s) with the current formula",
-   "label": "Scan history (local report files)"
+   "type": "sql",
+   "value": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 50",
+   "label": "Zetaris · scan history · 5 row(s) · 1054 ms"
   },
   {
    "id": "E13",
@@ -475,9 +504,19 @@
    "type": "source",
    "value": "hmem mem-6 · packages/core/liabilities.ts · docs/DECISIONS.md",
    "label": "Past finding: Commission balances are withdrawable liabilities but Strike does not expose them…"
+  },
+  {
+   "id": "E22",
+   "type": "sql",
+   "value": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 10",
+   "label": "Zetaris query · 5 row(s) · 721 ms"
+  },
+  {
+   "id": "E23",
+   "type": "sql",
+   "value": "SELECT * FROM gapwise.liabilities WHERE scan_id = 'b71f0afee52fc97f' LIMIT 500",
+   "label": "Zetaris query · 500 row(s) · 1395 ms"
   }
  ],
- "warnings": [
-  "model verdict rejected: claims the gap is fully explained"
- ]
+ "warnings": []
 }

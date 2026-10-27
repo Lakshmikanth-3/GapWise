@@ -1,0 +1,522 @@
+{
+ "investigation_id": "inv-b71f0afee52fc97f-20261027T150924",
+ "created_at": "2026-10-27T15:09:24.530Z",
+ "trigger": "cli",
+ "scan_id": "b71f0afee52fc97f",
+ "report_sha256": "b71f0afee52fc97f2357ad47ec7ad58f60dfff74daf7f0ee7beff6a2713158b5",
+ "snapshot_at": "2026-10-27T12:47:16.238Z",
+ "network": "mainnet",
+ "reserves_usd": 1729641.22,
+ "liabilities_usd": 1708775.5935239678,
+ "gap_usd": 20865.626476032194,
+ "gap_pct": 1.221086405676096,
+ "status": "Needs review",
+ "verdict": "The gap is not fully explained, as there is an unresolved cause related to iUSD being counted at a placeholder price, and several other hypotheses remain unconfirmed.",
+ "model": "nvidia/nemotron-3.5-bolt-e4b",
+ "rules_only": false,
+ "inference": {
+  "runtime": "meterless",
+  "requested_model": "meterless/deep",
+  "served_model": "nvidia/nemotron-3.5-bolt-e4b",
+  "nemotron_verified": true,
+  "steps": 2
+ },
+ "causes": [
+  {
+   "id": "C1",
+   "confidence": "low",
+   "key": "placeholder_price",
+   "cause": "iUSD is counted at a placeholder price",
+   "scope": "gap",
+   "status": "unresolved",
+   "usd": -7048.01,
+   "attributed": false,
+   "calculation": "7048.007233 × placeholder 1 = $7,048",
+   "explanation": "Reserves include $7,048 of iUSD at a price Strike has not confirmed; if it is worth less, the gap is wider by up to that amount.",
+   "evidence": [
+    {
+     "id": "E2",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · reserves.rows[iUSD].price_source = \"placeholder: iUSD: placeholder $1 until Strike confirms the price source\"",
+     "label": "iUSD price source"
+    }
+   ]
+  },
+  {
+   "id": "C2",
+   "confidence": "high",
+   "key": "vault_crosscheck",
+   "cause": "Vault accounts hold more (or less) than the sum of their depositors' shares",
+   "scope": "gap",
+   "status": "confirmed",
+   "usd": 3.4,
+   "attributed": true,
+   "calculation": "Σ vault account equity $1,093,540 − Σ depositor shares $1,093,537 = 3.4",
+   "explanation": "Vault money sits in the lockers (reserves) but only depositors' shares are counted as owed, so the difference shows up one-for-one in the gap.",
+   "evidence": [
+    {
+     "id": "E3",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · result.vault_crosscheck.difference_usd = 3.4",
+     "label": "Vault cross-check difference"
+    }
+   ],
+   "narrative": "The difference between vault account equity and depositors' shares is confirmed to be $3.4. [E3]"
+  },
+  {
+   "id": "C3",
+   "confidence": "high",
+   "key": "isolated_margin",
+   "cause": "Isolated margin missing from liabilities",
+   "scope": "gap",
+   "status": "rejected",
+   "usd": 0,
+   "attributed": false,
+   "calculation": "account equity $583,549 − Σ margin_balance $503,993 = $79,556 isolated margin, already inside equity",
+   "explanation": "Liabilities use wallet_balance + unrealized_pnl, which already contains the $79,556 held in isolated-margin positions, so nothing is missing (this was the cause of the earlier $77K swing, fixed 23 Oct).",
+   "evidence": [
+    {
+     "id": "E4",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.isolated_margin_usd = 79555.58",
+     "label": "Isolated margin (inside equity)"
+    },
+    {
+     "id": "E5",
+     "type": "source",
+     "value": "docs/DECISIONS.md #50 · docs/GAP-INVESTIGATION.md check 1",
+     "label": "Formula decision: equity, not margin_balance"
+    }
+   ]
+  },
+  {
+   "id": "C4",
+   "confidence": "high",
+   "key": "relayed_deposits",
+   "cause": "Relayed deposits not counted in reserves",
+   "scope": "gap",
+   "status": "rejected",
+   "usd": 0,
+   "attributed": false,
+   "explanation": "Deposits from chains without their own locker arrive as USDC in the Ethereum locker via Strike's relayer, and the Ethereum locker balance is counted in reserves. They affect the per-chain flow match, not the ratio.",
+   "evidence": [
+    {
+     "id": "E6",
+     "type": "source",
+     "value": "relayer 0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7 → Ethereum locker 0xbF4cFccd11257e568A936a7867D138f54A43cffa",
+     "label": "Relayer path (docs/DECISIONS.md #53)",
+     "url": "https://etherscan.io/address/0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7"
+    }
+   ]
+  },
+  {
+   "id": "C5",
+   "confidence": "low",
+   "key": "commission_pending",
+   "cause": "Commission balances not yet exposed by Strike",
+   "scope": "gap",
+   "status": "hypothesis",
+   "usd": null,
+   "attributed": false,
+   "explanation": "Commission is owed to users and not yet counted; it could absorb part of this surplus once Strike exposes it.",
+   "evidence": [
+    {
+     "id": "E7",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.commission_usd = null",
+     "label": "Commission line (pending)"
+    }
+   ]
+  },
+  {
+   "id": "C6",
+   "confidence": "low",
+   "key": "mm_bot_counterparty",
+   "cause": "Open trader profit whose losing side sits outside the lockers",
+   "scope": "gap",
+   "status": "hypothesis",
+   "usd": -1933.22,
+   "attributed": false,
+   "calculation": "Σ unrealized_pnl $34,266 − market-maker bot equity $32,332 = $1,933",
+   "explanation": "Users are owed $34,266 of net open profit. The other side of their trades is Strike's market-maker bot on external exchanges, counted as a reserve line of $32,332. The $1,933 not matched by the bot is a candidate, not a confirmed cause.",
+   "evidence": [
+    {
+     "id": "E8",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · Σ liabilities.accounts[].unrealized_pnl = 34265.58",
+     "label": "Net unrealized PnL owed to users"
+    },
+    {
+     "id": "E9",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · reserves.rows[chain=hedge].usd_value = 32332.36",
+     "label": "Market-maker bot equity (Lighter + Aster)"
+    }
+   ]
+  },
+  {
+   "id": "C7",
+   "confidence": "high",
+   "key": "staking_backing",
+   "cause": "Staking rewards funded from a wallet outside the lockers",
+   "scope": "gap",
+   "status": "rejected",
+   "usd": 0,
+   "attributed": false,
+   "calculation": "Σ stakingRewardBalance = $31,690 counted as owed",
+   "explanation": "Adding a staking treasury would raise reserves and widen a surplus, so it cannot explain one.",
+   "evidence": [
+    {
+     "id": "E10",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.staking_rewards_usd = 31689.74",
+     "label": "Staking rewards owed"
+    }
+   ]
+  },
+  {
+   "id": "C8",
+   "confidence": "low",
+   "key": "bridge_in_transit",
+   "cause": "Funds in transit over the Cardano↔Ethereum bridge or an LP withdrawal",
+   "scope": "gap",
+   "status": "hypothesis",
+   "usd": 10000,
+   "attributed": false,
+   "calculation": "|gap| $20,866 > stated in-transit amount $10,000",
+   "explanation": "Strike says up to $10,000 is in transit; that is less than the gap, and it is not yet matched on-chain, so it is not attributed.",
+   "evidence": [
+    {
+     "id": "E11",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · result.in_transit.tolerance_usd = 10000",
+     "label": "In-transit amount stated by Strike"
+    }
+   ]
+  },
+  {
+   "id": "C9",
+   "confidence": "high",
+   "key": "price_movement",
+   "cause": "Price movement between scans",
+   "scope": "change",
+   "status": "confirmed",
+   "usd": -3251.76,
+   "attributed": true,
+   "calculation": "Σ previous amount × (price now − price then) = −$3,252; largest ADA −$3,557",
+   "explanation": "Prices of ETH/SOL/ADA and priced collateral moved between 2026-10-23T15:51:10.031Z and 2026-10-27T12:47:16.238Z, changing reserves by −$3,252 while what users are owed is in dollars.",
+   "evidence": [
+    {
+     "id": "E13",
+     "type": "source",
+     "value": "report cb299ba21589e558 → report b71f0afee52fc97f · gap -14680.07 → 20865.63",
+     "label": "Gap in the previous and current scan"
+    },
+    {
+     "id": "E14",
+     "type": "source",
+     "value": "ADA price 0.21564258 → 0.2047662 (https://api.strikefinance.org/price/v2/premiumIndex)",
+     "label": "ADA price change"
+    },
+    {
+     "id": "E15",
+     "type": "source",
+     "value": "LP_SUNDAE_USDCx_USDM price 1.0150980259949614 → 1.015791485189371 (https://api.strikefinance.org/v2/credit/collateral-assets (LP_SUNDAE_USDCx_USDM))",
+     "label": "LP_SUNDAE_USDCx_USDM price change"
+    },
+    {
+     "id": "E16",
+     "type": "source",
+     "value": "sUSDrf price 1.0063158332410687 → 1.007354345512675 (https://api.strikefinance.org/v2/credit/collateral-assets (sUSDrf))",
+     "label": "sUSDrf price change"
+    }
+   ]
+  },
+  {
+   "id": "C10",
+   "confidence": "high",
+   "key": "locker_change",
+   "cause": "Single locker balance change: USDCx on cardano",
+   "scope": "change",
+   "status": "confirmed",
+   "usd": -59358.92,
+   "attributed": true,
+   "calculation": "(amount now − amount then) × price now for USDCx at addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3 = −$59,359; 8 other row(s) moved $61,442",
+   "explanation": "The largest quantity change was USDCx on cardano (−$59,359).",
+   "evidence": [
+    {
+     "id": "E17",
+     "type": "source",
+     "value": "locker addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3 · USDCx: 457083.018431 → 397724.102774",
+     "label": "USDCx locker balance",
+     "url": "https://cardanoscan.io/address/addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3"
+    }
+   ]
+  },
+  {
+   "id": "M1",
+   "key": "model_hypothesis",
+   "cause": "Commission balances are not yet exposed by Strike, potentially absorbing part of the surplus.",
+   "scope": "gap",
+   "status": "hypothesis",
+   "usd": null,
+   "attributed": false,
+   "confidence": "low",
+   "explanation": "Proposed by the model; not tested by code.",
+   "evidence": [
+    {
+     "id": "E7",
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.commission_usd = null",
+     "label": "Commission line (pending)"
+    }
+   ]
+  }
+ ],
+ "unexplained_usd": 20862.23,
+ "change_since_previous": {
+  "from_scan": "cb299ba21589e558",
+  "from_ts": "2026-10-23T15:51:10.031Z",
+  "gap_before": -14680.07,
+  "gap_after": 20865.63,
+  "delta_usd": 35545.7,
+  "remainder_usd": 0,
+  "components": [
+   {
+    "label": "Price moves on reserve assets",
+    "usd": -3251.76
+   },
+   {
+    "label": "Locker balance changes (quantity)",
+    "usd": 2082.67
+   },
+   {
+    "label": "Account equity owed to users",
+    "usd": 49088.51
+   },
+   {
+    "label": "Vault shares owed to depositors",
+    "usd": -12626.86
+   },
+   {
+    "label": "Staking rewards owed",
+    "usd": 253.14
+   }
+  ]
+ },
+ "history": {
+  "scans": 5,
+  "same_sign": 1,
+  "first_ts": "2026-10-23T06:07:26.978Z",
+  "persistent": false
+ },
+ "next_check": "Investigate the actual confirmed price source for iUSD to resolve cause C1.",
+ "sources_used": [
+  "Verified scan report (on-chain lockers on Ethereum, Solana, Cardano; Strike API accounts, vaults, prices)",
+  "Previous verified scan report",
+  "Zetaris (SQL over GapWise tables)",
+  "H-MEM memory (past findings)",
+  "Meterless runtime · nvidia/nemotron-3.5-bolt-e4b"
+ ],
+ "memory": {
+  "recalled": [
+   {
+    "id": "mem-7",
+    "content": "iUSD on Cardano (about $5.7K) is counted at a placeholder price of $1 until Strike confirms a price source.",
+    "source": "docs/DECISIONS.md #51",
+    "relevance": 0.298
+   },
+   {
+    "id": "mem-3",
+    "content": "Market-maker bot: Strike's bot 0x6139192a58152932e6f8052ef0de2ad197fb1937 holds the other side of traders' positions on Lighter and Aster. Its equity is a separate, disclosed reserve line. It deposits into the Ethereum locker for Strike account 019d06a7-bcfb-79a9-857e-cd54172ba144.",
+    "source": "docs/DECISIONS.md #52, #54",
+    "relevance": 0.212
+   },
+   {
+    "id": "mem-4",
+    "content": "The -$63K gap on 23 Oct was almost exactly net unrealized trader profit (+$33.7K, losing side not on the leaderboard) plus staking rewards ($32.0K). Open questions: where the counterparty of open profit sits and which wallet backs staking rewards.",
+    "source": "docs/GAP-INVESTIGATION.md#what-the-gap-is-made-of",
+    "relevance": 0.194
+   },
+   {
+    "id": "mem-6",
+    "content": "Commission balances are withdrawable liabilities but Strike does not expose them yet; they are a pending line with no value. Adding them can only widen a shortfall.",
+    "source": "packages/core/liabilities.ts · docs/DECISIONS.md",
+    "relevance": 0.192
+   }
+  ],
+  "saved": "mem-19"
+ },
+ "tool_calls": [
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT chain, asset, amount, usd_value, price_source FROM gapwise.reserves WHERE scan_id = 'b71f0afee52fc97f' ORDER BY usd_value DESC LIMIT 20"
+   },
+   "ok": false,
+   "ms": 1132,
+   "error": "Zetaris POST /api/proxy/sql-editor/sqls/run-query: HTTP 400 {\"msg\":\"[UNRESOLVED_COLUMN.WITH_SUGGESTION] A column or function parameter with name `usd_value` cannot be resolved. Did you mean one of the following? [`usd`, `address`, `chain`, `decimals`, `scan_id"
+  },
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 10"
+   },
+   "ok": true,
+   "ms": 723,
+   "evidence_id": "E22"
+  },
+  {
+   "tool": "runSql",
+   "args": {
+    "sql": "SELECT * FROM gapwise.liabilities WHERE scan_id = 'b71f0afee52fc97f'"
+   },
+   "ok": true,
+   "ms": 1396,
+   "evidence_id": "E23"
+  }
+ ],
+ "evidence": [
+  {
+   "id": "E1",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · result.gap_usd = 20865.63",
+   "label": "Gap = priced reserves − liabilities"
+  },
+  {
+   "id": "E2",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · reserves.rows[iUSD].price_source = \"placeholder: iUSD: placeholder $1 until Strike confirms the price source\"",
+   "label": "iUSD price source"
+  },
+  {
+   "id": "E3",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · result.vault_crosscheck.difference_usd = 3.4",
+   "label": "Vault cross-check difference"
+  },
+  {
+   "id": "E4",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · liabilities.isolated_margin_usd = 79555.58",
+   "label": "Isolated margin (inside equity)"
+  },
+  {
+   "id": "E5",
+   "type": "source",
+   "value": "docs/DECISIONS.md #50 · docs/GAP-INVESTIGATION.md check 1",
+   "label": "Formula decision: equity, not margin_balance"
+  },
+  {
+   "id": "E6",
+   "type": "source",
+   "value": "relayer 0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7 → Ethereum locker 0xbF4cFccd11257e568A936a7867D138f54A43cffa",
+   "label": "Relayer path (docs/DECISIONS.md #53)",
+   "url": "https://etherscan.io/address/0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7"
+  },
+  {
+   "id": "E7",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · liabilities.commission_usd = null",
+   "label": "Commission line (pending)"
+  },
+  {
+   "id": "E8",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · Σ liabilities.accounts[].unrealized_pnl = 34265.58",
+   "label": "Net unrealized PnL owed to users"
+  },
+  {
+   "id": "E9",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · reserves.rows[chain=hedge].usd_value = 32332.36",
+   "label": "Market-maker bot equity (Lighter + Aster)"
+  },
+  {
+   "id": "E10",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · liabilities.staking_rewards_usd = 31689.74",
+   "label": "Staking rewards owed"
+  },
+  {
+   "id": "E11",
+   "type": "source",
+   "value": "report b71f0afee52fc97f · result.in_transit.tolerance_usd = 10000",
+   "label": "In-transit amount stated by Strike"
+  },
+  {
+   "id": "E12",
+   "type": "sql",
+   "value": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 50",
+   "label": "Zetaris · scan history · 5 row(s) · 1054 ms"
+  },
+  {
+   "id": "E13",
+   "type": "source",
+   "value": "report cb299ba21589e558 → report b71f0afee52fc97f · gap -14680.07 → 20865.63",
+   "label": "Gap in the previous and current scan"
+  },
+  {
+   "id": "E14",
+   "type": "source",
+   "value": "ADA price 0.21564258 → 0.2047662 (https://api.strikefinance.org/price/v2/premiumIndex)",
+   "label": "ADA price change"
+  },
+  {
+   "id": "E15",
+   "type": "source",
+   "value": "LP_SUNDAE_USDCx_USDM price 1.0150980259949614 → 1.015791485189371 (https://api.strikefinance.org/v2/credit/collateral-assets (LP_SUNDAE_USDCx_USDM))",
+   "label": "LP_SUNDAE_USDCx_USDM price change"
+  },
+  {
+   "id": "E16",
+   "type": "source",
+   "value": "sUSDrf price 1.0063158332410687 → 1.007354345512675 (https://api.strikefinance.org/v2/credit/collateral-assets (sUSDrf))",
+   "label": "sUSDrf price change"
+  },
+  {
+   "id": "E17",
+   "type": "source",
+   "value": "locker addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3 · USDCx: 457083.018431 → 397724.102774",
+   "label": "USDCx locker balance",
+   "url": "https://cardanoscan.io/address/addr1w9ygqdx9law3waqgm6eamf2xhxs5x83r0pfka928jmydkuc6ykls3"
+  },
+  {
+   "id": "E18",
+   "type": "source",
+   "value": "hmem mem-7 · docs/DECISIONS.md #51",
+   "label": "Past finding: iUSD on Cardano (about $5.7K) is counted at a placeholder price of $1 until Stri…"
+  },
+  {
+   "id": "E19",
+   "type": "source",
+   "value": "hmem mem-3 · docs/DECISIONS.md #52, #54",
+   "label": "Past finding: Market-maker bot: Strike's bot 0x6139192a58152932e6f8052ef0de2ad197fb1937 holds …"
+  },
+  {
+   "id": "E20",
+   "type": "source",
+   "value": "hmem mem-4 · docs/GAP-INVESTIGATION.md#what-the-gap-is-made-of",
+   "label": "Past finding: The -$63K gap on 23 Oct was almost exactly net unrealized trader profit (+$33.7K…"
+  },
+  {
+   "id": "E21",
+   "type": "source",
+   "value": "hmem mem-6 · packages/core/liabilities.ts · docs/DECISIONS.md",
+   "label": "Past finding: Commission balances are withdrawable liabilities but Strike does not expose them…"
+  },
+  {
+   "id": "E22",
+   "type": "sql",
+   "value": "SELECT scan_id, ts, gap_usd, status FROM gapwise.scans ORDER BY ts DESC LIMIT 10",
+   "label": "Zetaris query · 5 row(s) · 721 ms"
+  },
+  {
+   "id": "E23",
+   "type": "sql",
+   "value": "SELECT * FROM gapwise.liabilities WHERE scan_id = 'b71f0afee52fc97f' LIMIT 500",
+   "label": "Zetaris query · 500 row(s) · 1395 ms"
+  }
+ ],
+ "warnings": []
+}
