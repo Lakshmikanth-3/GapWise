@@ -11,7 +11,7 @@ export function GET() {
     builderCode: e.STRIKE_BUILDER_CODE || null,
     builderFeeBps: Number(e.STRIKE_BUILDER_FEE_BPS ?? 0),
     telegramChannel: e.TELEGRAM_CHANNEL_URL || null,
-    github: 'https://github.com/Lakshmikanth-3/ZeroGap',
+    github: 'https://github.com/Lakshmikanth-3/GapWise',
     lockers: {
       ethereum: { address: ETH, url: `https://etherscan.io/address/${ETH}` },
       solana: { address: SOL, url: `https://solscan.io/account/${SOL}` },
