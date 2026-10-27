@@ -18,7 +18,8 @@
   #why h3 { margin: 8px 0 0; font-size: 17px; font-weight: 600; }
   .why-empty { margin: 0; color: var(--ink2); font-size: 16px; line-height: 1.5; }
   .why-meta { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 13px; color: var(--dim); }
-  .why-chip { display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .why-chip { display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; max-width: 100%; }
+  @media (max-width: 520px) { .why-chip { white-space: normal; overflow-wrap: anywhere; border-radius: 10px; } }
   .why-verdict { margin: 0; font-size: clamp(18px, 2.2vw, 22px); line-height: 1.45; color: var(--ink); max-width: 80ch; }
   .why-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
   .why-big { font-size: clamp(22px, 4vw, 30px); font-weight: 700; }
