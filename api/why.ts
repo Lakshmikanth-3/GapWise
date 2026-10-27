@@ -6,6 +6,11 @@ const dataUrl = (request: Request) => (new URL(request.url).searchParams.get('ne
 
 export async function GET(request: Request) {
   const res = await fetch(`${dataUrl(request)}/investigation.json?t=${Math.floor(Date.now() / 60_000)}`);
-  if (!res.ok) return Response.json({ error: 'no investigation yet' }, { status: 404 });
+  if (!res.ok) {
+    // Fallback: the last investigation run through Nightshift and committed with this build (apps/web/investigation/).
+    const local = await fetch(new URL('/investigation/latest.json', request.url));
+    if (local.ok) return new Response(await local.text(), { headers: { 'content-type': 'application/json', 'cache-control': 'public, s-maxage=60' } });
+    return Response.json({ error: 'no investigation yet' }, { status: 404 });
+  }
   return new Response(await res.text(), { headers: { 'content-type': 'application/json', 'cache-control': 'public, s-maxage=60' } });
 }
