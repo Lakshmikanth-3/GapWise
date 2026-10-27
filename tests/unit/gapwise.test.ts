@@ -16,9 +16,10 @@ import { guardSql, normalizeRows, ZetarisClient, zetarisFromEnv, type ZetarisCon
 import { buildTables, insertStatements, scanIdOf } from '../../packages/zetaris/tables';
 import { formatAlert } from '../../packages/alerts/telegram';
 
-const load = (n: string): ScanReport => JSON.parse(readFileSync(`tests/fixtures/reports/${n}.json`, 'utf8'));
-const CUR = load('mainnet-2026-10-23T15-51-10-465Z');
-const PREV = load('mainnet-2026-10-23T11-23-00-803Z');
+// Real mainnet reports committed in input_examples/ (example_1 = 23 Oct 06:07 UTC, example_2 = 23 Oct 15:51 UTC).
+const load = (n: string): ScanReport => JSON.parse(readFileSync(`input_examples/${n}.json`, 'utf8'));
+const CUR = load('example_2');
+const PREV = load('example_1');
 const reports = () => new Map([[scanIdOf(PREV), PREV], [scanIdOf(CUR), CUR]]);
 const mem = () => new GapMemory(mkdtempSync(join(tmpdir(), 'gw-mem-')), () => 1_792_700_000_000);
 const ZCFG: ZetarisConfig = { baseUrl: 'http://zetaris.test', orgId: '42', apiKey: 'zk', limit: 1000, schema: 'gapwise' };
