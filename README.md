@@ -3,6 +3,10 @@
 **GapWise is an AI agent that checks whether a financial platform actually holds the money it owes its users. It
 combines 5+ separate data sources, finds mismatches, and explains WHY, with evidence for every claim.**
 
+**Live site:** https://gapwise-agent.vercel.app ([dashboard → "Why is there a gap?"](https://gapwise-agent.vercel.app/dashboard#why)) ·
+**Demo video:** _added at submission_ · **Slides:** [`submission/GapWise.pptx`](submission/GapWise.pptx) ·
+**Try it with no keys:** [Run it as a judge](#run-it-as-a-judge-no-credentials-needed)
+
 > Independent project, not affiliated with Strike Finance. Built for the GenAI Works Open Agent Hackathon 2026
 > (Track 02, "The Agent That Can Explain Why") on top of ZeroGap, an earlier monitor by the same author (documented below).
 
@@ -284,7 +288,7 @@ Hackathon docs: [requirements matrix](docs/hackathon/REQUIREMENTS-MATRIX.md) · 
 
 # ZeroGap (pre-hackathon foundation)
 
-[![CI](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml) [![ZeroGap engine](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml) [![Hourly verify](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml)
+[![CI](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml) · The scheduled live engine (scan and hourly verify jobs) runs in the original [ZeroGap repository](https://github.com/Lakshmikanth-3/ZeroGap).
 
 **Every dollar on Strike, proven on-chain.** ZeroGap is an independent, open-source, read-only proof-of-solvency and
 safety monitor for [Strike Finance](https://docs.strikefinance.org/). It counts every dollar in Strike's on-chain lockers,
@@ -578,7 +582,7 @@ the user's own signature. No secrets are committed (`.env` is git-ignored; `.env
 ## Docs
 
 `docs/PRD.md` (plan) · `docs/DECISIONS.md` (every decision and finding, with evidence) · `docs/PROGRESS.md` (phase log and
-test results) · `docs/MANUAL-CHECKS.md` (explorer and app spot checks) · `docs/design/ZeroGap UI.html` (design).
+test results) · `docs/MANUAL-CHECKS.md` (explorer and app spot checks).
 
 ## Licence
 
