@@ -19,3 +19,6 @@ reports/
 
 # local recordings (demo video is on YouTube)
 *.mp4
+
+# agent traces (created at runtime; examples are in output_examples/)
+logs/

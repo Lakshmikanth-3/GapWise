@@ -186,7 +186,7 @@ and changes in what accounts are owed.
 
 New: the Gap Investigator agent (`packages/agent/`), Zetaris data layer (`packages/zetaris/`), Meterless client, H-MEM
 memory, output validation, `GET /api/why` · `POST /api/why/run` · `GET /api/why/status`, the "Why is there a gap?"
-dashboard panel, the explanation in Telegram alerts, `npm run investigate`, 23 new tests and the GapWise rebrand. Full
+dashboard panel, the explanation in Telegram alerts, `npm run investigate`, `POST /run` with `SAMPLE_MODE`, JSONL agent traces, 25 new tests and the GapWise rebrand. Full
 list: [docs/hackathon/CHANGELOG.md](docs/hackathon/CHANGELOG.md). Everything in "ZeroGap" below existed before; no
 formula or collector was changed.
 
@@ -201,7 +201,42 @@ npm run investigate           # investigate the latest report (--fresh: live sca
 npm test && npm run typecheck
 ```
 
-Key env vars: `METERLESS_BASE_URL`, `METERLESS_TOKEN` (read from the local runtime automatically), `METERLESS_MODEL`;
+### Run it as a judge (no credentials needed)
+
+`SAMPLE_MODE=true` runs the same investigator on three real mainnet reports bundled in `input_examples/`, with no
+Zetaris, no Nightshift and no RPC. It does real analysis on whatever report you send (it doesn't replay saved
+outputs), and the result is labelled `rules-only`.
+
+```bash
+# Docker
+docker build -t gapwise .
+docker run --rm -p 8000:8787 -e SAMPLE_MODE=true gapwise
+# or Node 20+
+npm ci && SAMPLE_MODE=true PORT=8000 npm start
+
+curl -X POST http://localhost:8000/run -H "Content-Type: application/json" -d @input_examples/example_1.json
+```
+
+`POST /run` takes a verified scan report (the format `npm run verify` writes), `{"scan_id": "<16 hex>"}`, or an empty
+body for the latest report, and returns the investigation JSON. Bad input returns a 4xx with a message. The three
+examples give three different results: example 1 −$63,087 Needs review, example 2 −$14,680 Drift, example 3 +$20,866
+Needs review. The matching outputs and traces are in `output_examples/`.
+
+**Traces.** Each run prints JSON lines to stdout and writes `logs/<investigation_id>.jsonl`. The agents named in the
+trace are the investigator's stages, each one a separate function:
+
+| Agent | Code | Does |
+| --- | --- | --- |
+| PlannerAgent | `investigate()` | Plans the run and picks the sources |
+| EvidenceAgent | `analyzeGap`, Zetaris SQL, tools | Gathers history and tests each hypothesis in code |
+| MemoryAgent | `GapMemory` (Meterless H-MEM) | Recalls similar past findings and saves the new one |
+| ExplainerAgent | Meterless Nightshift client | Runs the model loop with read-only tools; logs the model that served each request |
+| ValidatorAgent | `applyAnswer` | Rejects unknown evidence IDs or uncomputed amounts and sends the answer back for one revision |
+
+With live sources, set `METERLESS_*` and `ZETARIS_*` in `.env`. Inside Docker, use `host.docker.internal` instead of
+`127.0.0.1`.
+
+Key env vars: `SAMPLE_MODE`, `METERLESS_BASE_URL`, `METERLESS_TOKEN` (read from the local runtime automatically), `METERLESS_MODEL`;
 `ZETARIS_BASE_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY` (or `ZETARIS_USERNAME`/`ZETARIS_PASSWORD`), `ZETARIS_SCHEMA`;
 `GAPWISE_AUTO_INVESTIGATE`, `GAPWISE_AI=off` (force rules-only). See `.env.example`.
 

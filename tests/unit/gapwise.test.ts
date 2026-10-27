@@ -10,6 +10,8 @@ import { applyAnswer, investigate, parseAnswer, rulesVerdict, unsupportedAmounts
 import { MeterlessClient, meterlessFromEnv, type ChatMessage, type ChatResult, type LlmClient } from '../../packages/agent/llm';
 import { GapMemory } from '../../packages/agent/memory';
 import { runTool } from '../../packages/agent/tools';
+import { Trace } from '../../packages/agent/trace';
+import { depsFromEnv } from '../../packages/agent/deps';
 import { guardSql, normalizeRows, ZetarisClient, zetarisFromEnv, type ZetarisConfig } from '../../packages/zetaris/client';
 import { buildTables, insertStatements, scanIdOf } from '../../packages/zetaris/tables';
 import { formatAlert } from '../../packages/alerts/telegram';
@@ -173,6 +175,35 @@ describe('investigator: AI fallback and validation', () => {
     expect(unsupportedAmounts('gap of $14,680 and $14.7K', [14680.07])).toEqual([]);
     expect(unsupportedAmounts('a $77K swing', [14680.07])).toEqual(['$77K']);
     expect(unsupportedAmounts('$31,943 may be paid elsewhere', [31942.88])).toEqual([]); // "m" of "may" is not a millions suffix
+  });
+});
+
+describe('agent trace', () => {
+  it('logs named agents, a validator critique and one revision round through the model', async () => {
+    const trace = new Trace('t', { dir: 'off', quiet: true });
+    const a = analyzeGap({ report: CUR, previous: PREV });
+    const cid = a.causes[0].id, eid = a.causes[0].evidence[0].id;
+    const answers = [
+      { verdict: 'Reserves are short by $999,999.', explanations: [] },
+      { verdict: 'Reserves are short; most of the gap is unexplained.', explanations: [{ cause_id: cid, text: 'Checked.', evidence_ids: [eid] }] },
+    ];
+    const chat = vi.fn(async () => ({ model: 'nvidia/nemotron-3-super-120b-a12b', message: { content: JSON.stringify(answers.shift()) } }));
+    const inv = await investigate(CUR, { reports: reports(), memory: mem(), llm: { requestedModel: 'meterless/text.deep', chat }, trace });
+    expect(chat).toHaveBeenCalledTimes(2);
+    expect(inv.verdict).toBe('Reserves are short; most of the gap is unexplained.');
+    const names = new Set(trace.events.map(e => e.agent_name));
+    expect([...names]).toEqual(expect.arrayContaining(['PlannerAgent', 'EvidenceAgent', 'MemoryAgent', 'ExplainerAgent', 'ValidatorAgent']));
+    expect(trace.events.some(e => e.agent_name === 'ValidatorAgent' && e.status === 'needs_revision')).toBe(true);
+    expect(trace.events.some(e => e.retry_count === 1 && e.model?.includes('nemotron'))).toBe(true);
+    expect(trace.events.every(e => e.investigation_id === 't')).toBe(true);
+  });
+
+  it('sample mode builds deps with no network sources', async () => {
+    const d = await depsFromEnv({ SAMPLE_MODE: 'true', GAPWISE_SAMPLE_DIR: 'input_examples' });
+    expect(d.llm).toBeUndefined();
+    expect(d.zetaris).toBeUndefined();
+    expect(d.lockerEvents).toBeUndefined();
+    expect(d.reports!.size).toBe(3);
   });
 });
 

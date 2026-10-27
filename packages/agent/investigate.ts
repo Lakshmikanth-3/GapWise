@@ -8,6 +8,7 @@ import { analyzeGap, EvidenceBook, usd, type Cause, type Evidence, type GapAnaly
 import { NEMOTRON, type ChatMessage, type LlmClient } from './llm';
 import type { GapMemory, Recalled } from './memory';
 import { runTool, TOOL_DEFS, type ToolCallRecord, type ToolDeps } from './tools';
+import { Trace } from './trace';
 
 export const MAX_STEPS = Number(process.env.GAPWISE_MAX_STEPS ?? 6);
 
@@ -36,6 +37,7 @@ export type InvestigateDeps = {
   lockerEvents?: (fromTs: number, toTs: number) => Promise<LockerEvent[]>;
   lookupTx?: ToolDeps['lookupTx'];
   now?: () => Date;
+  trace?: Trace;
 };
 
 const NEXT: Record<string, string> = {
@@ -177,16 +179,28 @@ export async function investigate(report: ScanReport, deps: InvestigateDeps = {}
   const sources = new Set<string>(['Verified scan report (on-chain lockers on Ethereum, Solana, Cardano; Strike API accounts, vaults, prices)']);
   const reports = deps.reports ?? new Map([[report.content_sha256.slice(0, 16), report]]);
   const scanId = report.content_sha256.slice(0, 16);
+  const investigationId = `inv-${scanId}-${now.toISOString().replace(/[-:.]/g, '').slice(0, 15)}`;
+  const trace = deps.trace ?? new Trace(investigationId);
+  trace.log({ agent_name: 'PlannerAgent', action: 'start', input_summary: `scan ${scanId} · ${report.network} · status ${report.result.status} · trigger ${trigger}`, output_summary: `plan: history (${deps.zetaris ? 'Zetaris' : 'local reports'}) → hypotheses in code → H-MEM recall → ${deps.llm ? 'Nightshift explainer → validator' : 'rules-only (no AI configured)'}`, target_agent: 'EvidenceAgent', status: 'success' });
   const previous = [...reports.values()].filter(r => r.network === report.network && r.report_version === report.report_version && r.generated_at < report.generated_at).sort((x, y) => y.generated_at.localeCompare(x.generated_at))[0];
   if (previous) sources.add('Previous verified scan report');
 
   // History: Zetaris first (SQL evidence); local report files when Zetaris is not configured or fails.
   let history: GapInput['history'];
   if (deps.zetaris) {
-    try { history = await zetarisHistory(deps.zetaris); sources.add('Zetaris (SQL over GapWise tables)'); }
-    catch (e) { warnings.push(`Zetaris history query failed: ${(e as Error).message}`); }
+    const t0 = Date.now();
+    try {
+      history = await zetarisHistory(deps.zetaris); sources.add('Zetaris (SQL over GapWise tables)');
+      trace.log({ agent_name: 'EvidenceAgent', action: 'zetaris_query', input_summary: history!.evidence.value, output_summary: `${history!.points.length} scan row(s)`, ms: Date.now() - t0, status: 'success' });
+    } catch (e) {
+      warnings.push(`Zetaris history query failed: ${(e as Error).message}`);
+      trace.log({ agent_name: 'EvidenceAgent', action: 'zetaris_query', input_summary: 'scan history', output_summary: `failed, falling back to local reports: ${(e as Error).message.slice(0, 120)}`, ms: Date.now() - t0, status: 'failed' });
+    }
   }
-  if (!history) history = await localHistory(reports, report.network);
+  if (!history) {
+    history = await localHistory(reports, report.network);
+    trace.log({ agent_name: 'EvidenceAgent', action: 'load_history', input_summary: 'local verified report files', output_summary: `${history?.points.length ?? 0} scan(s); previous scan ${previous ? previous.content_sha256.slice(0, 16) : 'none'}`, status: 'success' });
+  }
 
   let lockerEvents: LockerEvent[] | undefined;
   let lockerEventsSource: string | undefined;
@@ -205,8 +219,12 @@ export async function investigate(report: ScanReport, deps: InvestigateDeps = {}
   const book = new EvidenceBook();
   const a = analyzeGap({ report, previous, history, lockerEvents, lockerEventsSource, lockerEventsFrom }, book);
   warnings.push(...a.warnings);
+  if (lockerEventsSource) trace.log({ agent_name: 'EvidenceAgent', action: 'chain_lookup', input_summary: 'Ethereum locker Deposit/Withdraw logs', output_summary: lockerEventsSource, status: 'success' });
+  const count = (s: string) => a.causes.filter(c => c.status === s).length;
+  trace.log({ agent_name: 'EvidenceAgent', action: 'test_hypotheses', input_summary: `gap ${usd(a.gap_usd)} · ${a.causes.length} hypotheses`, output_summary: `confirmed ${count('confirmed')}, supported ${count('supported')}, hypothesis ${count('hypothesis')}, unresolved ${count('unresolved')}, ruled out ${count('rejected')}; unexplained ${usd(a.unexplained_usd)}${a.change ? `; change since previous ${usd(a.change.delta_usd)} split with remainder ${usd(a.change.remainder_usd ?? 0)}` : ''}`, target_agent: 'PlannerAgent', status: 'success' });
 
   const recalled = deps.memory ? deps.memory.recall(`${a.gap_usd < 0 ? 'shortfall' : 'surplus'} gap ${a.causes.filter(c => c.status !== 'rejected').map(c => c.key.replace(/_/g, ' ')).join(' ')}`) : [];
+  trace.log({ agent_name: 'MemoryAgent', action: 'hmem_recall', input_summary: 'Meterless H-MEM: similar past findings', output_summary: deps.memory ? `${recalled.length} recalled: ${recalled.map(m => m.id).join(', ') || 'none'}` : 'memory off', status: deps.memory ? 'success' : 'skipped' });
   if (recalled.length) { sources.add('H-MEM memory (past findings)'); for (const m of recalled) book.add('source', `hmem ${m.id} · ${m.source}`, `Past finding: ${m.content.slice(0, 80)}…`); }
 
   let verdict = rulesVerdict(a, report.result.status);
@@ -224,22 +242,43 @@ export async function investigate(report: ScanReport, deps: InvestigateDeps = {}
       let answer: string | null = null;
       for (let step = 0; step < MAX_STEPS && answer === null; step++) {
         const last = step === MAX_STEPS - 1;
+        const t0 = Date.now();
         const res = await deps.llm.chat(messages, last ? undefined : TOOL_DEFS);
         inference.steps++;
         inference.served_model = res.model ?? inference.served_model;
         const calls = res.message.tool_calls ?? [];
+        trace.log({ agent_name: 'ExplainerAgent', action: 'nightshift_request', input_summary: `step ${step + 1}/${MAX_STEPS} · requested ${deps.llm.requestedModel}`, output_summary: calls.length && !last ? `asked for ${calls.map(c => c.function.name).join(', ')}` : 'final answer drafted', model: res.model ?? null, ms: Date.now() - t0, target_agent: calls.length && !last ? 'EvidenceAgent' : 'ValidatorAgent', status: 'success' });
         if (calls.length && !last) {
           messages.push({ role: 'assistant', content: res.message.content ?? null, tool_calls: calls });
           for (const c of calls.slice(0, 4)) {
             const out = await runTool(c.function.name, c.function.arguments, toolDeps, book);
             toolCalls.push(out.record);
+            trace.log({ agent_name: 'EvidenceAgent', action: `tool:${c.function.name}`, input_summary: c.function.arguments.slice(0, 200), output_summary: out.record.ok ? out.content.slice(0, 160) : `rejected: ${out.content.slice(0, 160)}`, target_agent: 'ExplainerAgent', status: out.record.ok ? 'success' : 'failed' });
             if (out.record.ok && c.function.name === 'runSql') sources.add('Zetaris (SQL over GapWise tables)');
             messages.push({ role: 'tool', tool_call_id: c.id, content: out.content });
           }
         } else answer = res.message.content ?? '';
       }
       if (answer === null) throw new Error(`no final answer within ${MAX_STEPS} steps`);
-      const applied = applyAnswer(parseAnswer(answer), a, allowedAmounts(a, report, []));
+      const allowed = allowedAmounts(a, report, []);
+      let applied = applyAnswer(parseAnswer(answer), a, allowed);
+      trace.log({ agent_name: 'ValidatorAgent', action: 'critique', input_summary: 'model answer vs evidence ids and computed amounts', output_summary: applied.warnings.length ? applied.warnings.join('; ').slice(0, 300) : 'all claims backed by evidence', target_agent: applied.warnings.length ? 'ExplainerAgent' : 'PlannerAgent', status: applied.warnings.length ? 'needs_revision' : 'success' });
+      if (applied.warnings.length) {
+        // One revision round: the validator's objections go back to the model; the revised answer is validated again.
+        messages.push({ role: 'assistant', content: answer }, { role: 'user', content: `The validator rejected parts of your answer:\n- ${applied.warnings.join('\n- ')}\nReturn the corrected JSON object only, citing only known evidence ids and computed amounts.` });
+        try {
+          const t0 = Date.now();
+          const res = await deps.llm.chat(messages);
+          inference.steps++;
+          inference.served_model = res.model ?? inference.served_model;
+          const revised = applyAnswer(parseAnswer(res.message.content ?? ''), a, allowed);
+          trace.log({ agent_name: 'ExplainerAgent', action: 'nightshift_request', input_summary: 'revision after validator critique', output_summary: 'revised answer drafted', model: res.model ?? null, ms: Date.now() - t0, retry_count: 1, target_agent: 'ValidatorAgent', status: 'success' });
+          trace.log({ agent_name: 'ValidatorAgent', action: 'critique', input_summary: 'revised answer', output_summary: revised.warnings.length ? revised.warnings.join('; ').slice(0, 300) : 'all claims backed by evidence', retry_count: 1, target_agent: 'PlannerAgent', status: revised.warnings.length ? 'needs_revision' : 'success' });
+          if (revised.warnings.length < applied.warnings.length) applied = revised;
+        } catch (e) {
+          trace.log({ agent_name: 'ExplainerAgent', action: 'nightshift_request', input_summary: 'revision after validator critique', output_summary: `failed: ${(e as Error).message.slice(0, 160)}; keeping validated parts of the first answer`, retry_count: 1, status: 'failed' });
+        }
+      }
       warnings.push(...applied.warnings);
       if (applied.verdict) verdict = applied.verdict;
       if (applied.next) next = applied.next;
@@ -251,12 +290,13 @@ export async function investigate(report: ScanReport, deps: InvestigateDeps = {}
     } catch (e) {
       inference.error = (e as Error).message.slice(0, 300);
       warnings.push(`AI unavailable, rules-only result: ${inference.error}`);
+      trace.log({ agent_name: 'ExplainerAgent', action: 'nightshift_request', input_summary: `requested ${deps.llm.requestedModel}`, output_summary: `failed: ${inference.error.slice(0, 160)}; falling back to rules-only`, model: inference.served_model, target_agent: 'PlannerAgent', status: 'failed' });
     }
-  }
+  } else trace.log({ agent_name: 'ExplainerAgent', action: 'nightshift_request', input_summary: 'no Meterless runtime configured or SAMPLE_MODE', output_summary: 'skipped; deterministic rules-only explanation', target_agent: 'PlannerAgent', status: 'skipped' });
   const rulesOnly = !inference || !!inference.error || narratives.size === 0 && verdict === rulesVerdict(a, report.result.status);
 
   const inv: Investigation = {
-    investigation_id: `inv-${scanId}-${now.toISOString().replace(/[-:.]/g, '').slice(0, 15)}`, created_at: now.toISOString(), trigger,
+    investigation_id: investigationId, created_at: now.toISOString(), trigger,
     scan_id: scanId, report_sha256: report.content_sha256, snapshot_at: report.timing.price_snapshot_at, network: report.network,
     reserves_usd: report.reserves.priced_usd, liabilities_usd: report.liabilities.total_usd, gap_usd: a.gap_usd, gap_pct: a.gap_pct, status: report.result.status,
     verdict, model: rulesOnly ? 'rules-only' : inference!.served_model ?? inference!.requested_model, rules_only: rulesOnly, inference,
@@ -264,7 +304,11 @@ export async function investigate(report: ScanReport, deps: InvestigateDeps = {}
     unexplained_usd: a.unexplained_usd, change_since_previous: a.change, history: a.history, next_check: next,
     sources_used: [...sources], memory: { recalled }, tool_calls: toolCalls, evidence: [...book.all.values()], warnings,
   };
-  if (deps.memory) inv.memory.saved = deps.memory.save({ investigationId: inv.investigation_id, verdict: inv.verdict, causes: inv.causes });
+  if (deps.memory) {
+    inv.memory.saved = deps.memory.save({ investigationId: inv.investigation_id, verdict: inv.verdict, causes: inv.causes });
+    trace.log({ agent_name: 'MemoryAgent', action: 'hmem_save', input_summary: 'finished investigation', output_summary: `stored as ${inv.memory.saved}`, status: 'success' });
+  }
+  trace.log({ agent_name: 'PlannerAgent', action: 'finish', input_summary: `scan ${scanId}`, output_summary: `${inv.rules_only ? 'rules-only' : inv.model} · unexplained ${usd(inv.unexplained_usd)} · ${inv.causes.length} causes · ${inv.tool_calls.length} tool call(s)`, model: inv.rules_only ? null : inv.model, status: 'success' });
   return inv;
 }
 

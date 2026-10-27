@@ -13,7 +13,12 @@ export type IntegrationStatus = {
   memory: { state: 'on'; records: number };
 };
 
+export const sampleMode = (env: NodeJS.ProcessEnv = process.env) => env.SAMPLE_MODE === 'true';
+
 export async function depsFromEnv(env: NodeJS.ProcessEnv = process.env): Promise<InvestigateDeps & { meterless?: MeterlessClient }> {
+  // SAMPLE_MODE: the same investigator over the bundled real reports in input_examples/, with no network sources
+  // (no Nightshift, no Zetaris, no RPC). The result is labelled rules-only.
+  if (sampleMode(env)) return { memory: new GapMemory(), reports: await loadReports(env.GAPWISE_SAMPLE_DIR ?? 'input_examples') };
   const m = meterlessFromEnv(env);
   const z = zetarisFromEnv(env);
   const meterless = m ? new MeterlessClient(m) : undefined;
@@ -28,6 +33,7 @@ export async function depsFromEnv(env: NodeJS.ProcessEnv = process.env): Promise
 }
 
 export async function integrationStatus(d: Awaited<ReturnType<typeof depsFromEnv>>): Promise<IntegrationStatus> {
+  if (sampleMode()) return { meterless: { state: 'not configured', detail: 'SAMPLE_MODE=true' } as IntegrationStatus['meterless'], zetaris: { state: 'not configured', detail: 'SAMPLE_MODE=true' }, memory: { state: 'on', records: d.memory?.hmem.store.all().length ?? 0 } };
   const meterless = d.meterless ? { ...(await d.meterless.status()), requested_model: d.meterless.requestedModel } : { state: 'not configured' as const, detail: 'METERLESS_TOKEN not set and no local runtime token found' };
   let zetaris: IntegrationStatus['zetaris'] = { state: 'not configured', detail: 'ZETARIS_BASE_URL / ZETARIS_ORG_ID / credentials not set' };
   if (d.zetaris) {
