@@ -8,7 +8,8 @@ combines 5+ separate data sources, finds mismatches, and explains WHY, with evid
 **Try it with no keys:** [Run it as a judge](#run-it-as-a-judge-no-credentials-needed)
 
 > Independent project, not affiliated with Strike Finance. Built for the GenAI Works Open Agent Hackathon 2026
-> (Track 02, "The Agent That Can Explain Why") on top of ZeroGap, an earlier monitor by the same author (documented below).
+> (Track 02, "The Agent That Can Explain Why"). The data collectors and reserve maths were written before the build
+> window and are declared as pre-existing; the agent and everything listed under "Built during the hackathon window" is new.
 
 ## The problem
 
@@ -224,11 +225,13 @@ and changes in what accounts are owed.
 
 ## Built during the hackathon window (22–27 Oct 2026)
 
-New: the Gap Investigator agent (`packages/agent/`), Zetaris data layer (`packages/zetaris/`), Meterless client, H-MEM
-memory, output validation, `GET /api/why` · `POST /api/why/run` · `GET /api/why/status`, the "Why is there a gap?"
-dashboard panel, the explanation in Telegram alerts, `npm run investigate`, `POST /run` with `SAMPLE_MODE`, JSONL agent traces, 25 new tests and the GapWise rebrand. Full
-list: [docs/hackathon/CHANGELOG.md](docs/hackathon/CHANGELOG.md). Everything in "ZeroGap" below existed before; no
-formula or collector was changed.
+New: the Gap Investigator agent (`packages/agent/`), Zetaris data layer (`packages/zetaris/`), Meterless Nightshift client,
+H-MEM memory, output validation, `GET /api/why` · `POST /api/why/run` · `GET /api/why/status`, the "Why is there a gap?"
+dashboard panel, the explanation in alerts, `npm run investigate`, `POST /run` with `SAMPLE_MODE`, JSONL agent traces
+and 26 new tests. Full list: [docs/hackathon/CHANGELOG.md](docs/hackathon/CHANGELOG.md).
+
+Pre-existing (declared): the data collectors for the three ledgers and the platform API, the reserve and liability
+maths, the hashed verify reports and the dashboard base. No formula or collector was changed for the hackathon.
 
 ## Setup
 
@@ -282,46 +285,18 @@ Key env vars: `SAMPLE_MODE`, `METERLESS_BASE_URL`, `METERLESS_TOKEN` (read from 
 
 Hackathon docs: [requirements matrix](docs/hackathon/REQUIREMENTS-MATRIX.md) · [demo script](docs/hackathon/DEMO-SCRIPT.md) · [slide outline](docs/hackathon/SLIDE-DECK.md).
 
-**Demo video:** _link to be added_
-
 ---
 
-# ZeroGap (pre-hackathon foundation)
+# Reference: how the reserve check works
 
-[![CI](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml) · The scheduled live engine (scan and hourly verify jobs) runs in the original [ZeroGap repository](https://github.com/Lakshmikanth-3/ZeroGap).
+[![CI](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/GapWise/actions/workflows/ci.yml)
 
-**Every dollar on Strike, proven on-chain.** ZeroGap is an independent, open-source, read-only proof-of-solvency and
-safety monitor for [Strike Finance](https://docs.strikefinance.org/). It counts every dollar in Strike's on-chain lockers,
-counts every dollar Strike owes its users, and shows the gap live. Anyone can re-run the whole check with one command.
+The evidence GapWise investigates comes from a read-only reserve check: it counts every dollar in Strike's on-chain
+lockers, counts every dollar Strike owes its users, and computes the gap. Anyone can re-run it with one command.
 
-> **ZeroGap is an independent project. It is not affiliated with, endorsed by, or operated by Strike Finance.**
-> (Strike Finance is strikefinance.org, not the Bitcoin app "Strike".)
+> Not affiliated with, endorsed by, or operated by Strike Finance (strikefinance.org, not the Bitcoin app "Strike").
 
-Live: **https://zerogap-strike.vercel.app** · Alerts: **https://t.me/zerogap_alerts** · Scan history: [`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports)
-
-## Hackathon submission at a glance
-
-| | |
-| --- | --- |
-| **Problem** | Strike V2 trades off-chain on the Strike Node, while user funds sit in on-chain lockers. Nobody could independently check that the lockers hold what Strike owes. |
-| **Solution** | ZeroGap reads every locker on Ethereum, Solana and Cardano, sums every account from Strike's public API, and publishes a live reserve ratio (target exactly 100%), flow match, safety alerts and a personal "My Safety" check. Fully reproducible with one command. |
-| **Result** | **99.16%** (Drift, within 1%): $1.73M in reserves vs $1.75M owed to 3,487 accounts (0 failed). Reserves include Strike's market-maker bot on Aster ($34.2K), a separate line disclosed by Strike. ZeroGap's own checks found real issues that Strike confirmed: $79K of isolated-margin positions missing from `margin_balance`, false Solana flow alarms from relayed deposits, and the market-maker bot's off-chain funds. The rest of the gap is bridge funds being returned, per Strike. |
-| **Strike integrations** | Locker contracts on 3 chains (ABI- and IDL-decoded) · leaderboard, `/v2/account`, `/v2/balances` · vault depositors · price feed + Credit prices · transfers stats · **Builder Connect** (builder code `zerogap`, testnet withdrawal proven) |
-| **Demo video** | [▶ Watch on YouTube](https://youtu.be/UTykbSh0ySg) (5 min: 1-min pitch, then live demo) |
-| **Links** | Live: https://zerogap-strike.vercel.app · Alerts: https://t.me/zerogap_alerts · Verify: `npm run verify` |
-| **Quality** | 109 unit/integration tests + Playwright E2E + live mainnet smoke + fresh-clone verification (T6.6), all in CI |
-
-## How ZeroGap meets the judging criteria
-
-| Criterion | ZeroGap |
-| --- | --- |
-| **Innovation and creativity** | The first independent proof-of-solvency for a hybrid DEX: an off-chain order book checked against on-chain lockers on three chains at once, with a target of exactly 100% (over is as suspicious as under). |
-| **Integration with Strike** | Reads Strike's locker contracts on Ethereum, Solana and Cardano (ABI and IDL decoded); the leaderboard, `/v2/account`, `/v2/balances`, vault depositors, price index, Credit prices and transfer stats; **Builder Connect** with registered builder code `zerogap` for My Safety (testnet withdrawal proven). |
-| **Utility and impact** | Traders can see that their money is backed, check their own account, and withdraw. Strike gets public, reproducible proof of reserves plus 24/7 safety alerts. It already found real issues that Strike's founder confirmed: isolated-margin balances missing from `margin_balance` ($77K) and relayed deposits that made Solana flows look wrong. |
-| **Technical execution** | TypeScript monorepo; read-only collectors; pure, tested core; 109 unit and integration tests, Playwright E2E, a live smoke test and a fresh-clone verify, all in CI; live on Vercel with scheduled GitHub Actions; every number carries its source, timestamp and confidence. |
-| **Future potential** | Can become Strike's public transparency page: per-user proofs, more chains and lockers as Strike adds them, an alerting API for partners, and hourly signed reports already published to the `reports` branch. |
-
-## Architecture
+## Data pipeline
 
 ```mermaid
 flowchart LR
@@ -337,7 +312,7 @@ flowchart LR
     PR["/price/v2/premiumIndex<br/>/v2/credit/*"]
     TR["/stat/v1/dashboard/transfers"]
   end
-  subgraph Engine["ZeroGap engine (TypeScript)"]
+  subgraph Engine["Reserve engine (TypeScript)"]
     COL["Collectors<br/>ethereum · solana · cardano<br/>accounts · prices · flows · safety"]
     CORE["Core (pure, tested)<br/>valuation · liabilities · ratio<br/>flow check · alert rules"]
     REP["Verify report<br/>JSON + sha256 + commit"]
@@ -345,7 +320,7 @@ flowchart LR
   subgraph Out["Outputs"]
     WEB["Dashboard · Landing · My Safety<br/>(Vercel)"]
     TG["Telegram alerts"]
-    GH["GitHub branches<br/>zerogap-data · reports"]
+    GH["Published data<br/>state · reports"]
   end
   ETH & SOL & ADA --> COL
   LB & ACC & VD & PR & TR --> COL
@@ -383,10 +358,10 @@ flowchart TD
 ```mermaid
 sequenceDiagram
   actor U as Trader (wallet)
-  participant B as Browser (ZeroGap page)
+  participant B as Browser (GapWise page)
   participant S as Strike API
   B->>B: Generate Ed25519 API-wallet key (stays in this tab)
-  B->>S: POST /auth/builder/request-signature (code=zerogap, public key)
+  B->>S: POST /auth/builder/request-signature (builder code, public key)
   S-->>B: message_to_sign
   B->>U: Sign connect message
   U-->>B: wallet signature
@@ -402,7 +377,7 @@ sequenceDiagram
   S-->>B: status pending
 ```
 
-ZeroGap never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
+GapWise never sees a key that can move funds: Strike pays out only to the connected wallet, and only after the user signs.
 
 ## Latest result (23 Oct 2026, evening IST, `npm run verify`)
 
@@ -419,20 +394,19 @@ ZeroGap never sees a key that can move funds: Strike pays out only to the connec
 | **Ratio** | **99.16%** · gap **−$14,680 (−0.84%)** → **Drift** |
 
 **Transparency note (requested by Strike):** part of the reserves is held by Strike's market-maker bot
-`0x6139…1937` on the Aster exchange. It is not an on-chain locker; ZeroGap reads it live through read-only API access that
+`0x6139…1937` on the Aster exchange. It is not an on-chain locker; GapWise reads it live through read-only API access that
 Strike provided (keys are kept out of this repo), and shows it as its own line everywhere. Anyone can check the bot's link to
 Strike on-chain: it deposits USDC into Strike's Ethereum locker for Strike account `019d06a7…`. Strike says the remaining
-gap is funds being returned over the bridge today; ZeroGap re-runs automatically. Earlier steps of the investigation:
+gap is funds being returned over the bridge today; GapWise re-runs automatically. Earlier steps of the investigation:
 [docs/GAP-INVESTIGATION.md](docs/GAP-INVESTIGATION.md) and [docs/DECISIONS.md](docs/DECISIONS.md) #50–54. Live numbers:
-the [dashboard](https://zerogap-strike.vercel.app/dashboard); history: the
-[`reports` branch](https://github.com/Lakshmikanth-3/ZeroGap/tree/reports).
+the [dashboard](https://gapwise-agent.vercel.app/dashboard); history: `reports/` (local verify reports).
 
 ## Verify it yourself
 
 ```bash
-git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
+git clone https://github.com/Lakshmikanth-3/GapWise && cd GapWise
 npm install
-npm run verify          # or: npx zerogap verify
+npm run verify
 ```
 
 No keys are needed. It scans every Strike account (about 3 minutes at ≤40 requests/s), reads every locker on-chain, and prints
@@ -444,7 +418,7 @@ open notes, the code commit and a `content_sha256`. Diff it against any
 published scan: the dashboard's **Download this scan (JSON)** button, `GET /api/report`, or the hourly files in the
 `reports` branch.
 
-## What ZeroGap checks
+## What GapWise checks
 
 1. **Reserves:** on-chain balances of every Strike locker, priced in USD.
 2. **Liabilities:** what Strike owes users, summed live account by account from Strike's public API.
@@ -500,12 +474,12 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 | Credit prices | [`GET /v2/credit/collateral-assets`](https://docs.strikefinance.org/api/credit/collateral.md) |
 | Custody mapping | [`GET /v2/credit/settings`](https://docs.strikefinance.org/api/credit/settings.md) → `custody_asset_mappings` |
 | Reported flows | [`GET /stat/v1/dashboard/transfers`](https://docs.strikefinance.org/api/platform-stats/platform-dashboard.md) |
-| My Safety | [Builder Connect](https://docs.strikefinance.org/api/builder-codes.md) `/auth/builder/*`, `/v2/withdraw/*` (builder code `zerogap`) |
+| My Safety | [Builder Connect](https://docs.strikefinance.org/api/builder-codes.md) `/auth/builder/*`, `/v2/withdraw/*` (registered builder code) |
 
 ## Founder-confirmed rules (Strike Finance, 21–23 Oct 2026)
 
 - **Account value = equity = `wallet_balance + unrealized_pnl`** (23 Oct). `margin_balance` is not used: it equals
-  `available_balance` and leaves out isolated-margin positions ($77K across 47 accounts, found by ZeroGap's manual check).
+  `available_balance` and leaves out isolated-margin positions ($77K across 47 accounts, found by a manual check).
 - **Vault accounts are excluded** (no double counting), but a user's equity does **not** include their vault deposits,
   so each depositor's current vault share is added. Cross-check: Σ depositor shares ≈ each vault account's equity (within $3).
 - **iUSD** counts as a reserve; it is valued at a labelled $1 placeholder until Strike confirms its price source.
@@ -530,19 +504,19 @@ Ethereum vault ABI: `packages/collectors/abi/ethereum-vault.json`.
 - **In-transit funds:** a large LP withdrawal on Ethereum, and Cardano USDCx deposits / USDC withdrawals bridged back
   through the IOG bridge, can leave a temporary gap of a few thousand dollars. It is shown as "Known in-transit", never added.
 - **Price movement between scans:** the account scan takes about 3 minutes, and Strike values accounts with live prices while
-  ZeroGap uses one snapshot right after the scan. Small residual gaps (tens to hundreds of dollars) are expected.
+  GapWise uses one snapshot right after the scan. Small residual gaps (tens to hundreds of dollars) are expected.
 - **Commission pending:** commission balances are owed but not yet exposed by Strike, so liabilities are slightly understated
   until they are. The MARKET WIZARDS vault shows a small (~$400) account-vs-depositors difference, acknowledged by Strike.
 - Free public RPCs can be slow or rate-limited; optional free-tier keys make scans faster.
 
 ## Testnet view
 
-The same engine also runs against **Strike's testnet** (`ZEROGAP_NETWORK=testnet`, dashboard `/dashboard?network=testnet`):
+The same engine also runs against **Strike's testnet** (`GAPWISE_NETWORK=testnet`, dashboard `/dashboard?network=testnet`):
 Sepolia vault `0x879e450F2482a2DEcbd27176A4c177e69Bd7A0E6`, Solana devnet vault `Di862rQJwGgMLtrchoBfkcehEKXPpYnppeA9Gmxtasin`
 (program `FSNjjtrZP2BiuPfyRjTWQUybN8QNnEQgUogho79SMzXt`), Cardano preprod script `addr_test1wpuakhm8ftcwy2t00vhxp3rmqev90cs5xqf6ynu7f7rxrrg4rlm70`,
 and Strike's testnet accounts. It is clearly labelled as test funds and never alerts the public channel. Testnet balances are
 faucet-credited, so the testnet ratio is not meaningful; mainnet is the published proof. All write actions (My Safety
-withdrawals) were tested on testnet first. `ZEROGAP_NETWORK=testnet npm run verify` reproduces it.
+withdrawals) were tested on testnet first. `GAPWISE_NETWORK=testnet npm run verify` reproduces it.
 
 ## Run the live monitor
 
@@ -560,16 +534,15 @@ npm start               # http://localhost:8787  (/, /dashboard, /me, /api/state
 | `STRIKE_BUILDER_CODE` | Enables My Safety (Builder Connect) |
 | `DATABASE_URL` (Supabase) | Postgres history (`packages/db/schema.sql`); otherwise `data/*.jsonl` |
 
-Deployment: Vercel serves the pages and read-only API. The `ZeroGap engine` workflow runs one engine cycle on a schedule
-and publishes state to the `zerogap-data` branch. The `Hourly verify` workflow appends a verify report to the `reports` branch.
-Any always-on host can instead run `docker build -t zerogap . && docker run -p 8787:8787 --env-file .env zerogap`.
+Deployment: Vercel serves the pages and read-only API (https://gapwise-agent.vercel.app).
+Any always-on host can instead run `docker build -t gapwise . && docker run -p 8787:8787 --env-file .env gapwise`.
 
 ## Tests
 
 ```bash
 npm test             # unit + mocked integration (recorded real fixtures; no network) — runs in CI on every push
 npm run test:live    # mainnet smoke tests
-npm run test:e2e     # Playwright against a running server (ZEROGAP_URL=…)
+npm run test:e2e     # Playwright against a running server (GAPWISE_URL=…)
 npm run test:t6.6    # fresh clone + npm install + npm run verify with no keys, compared with the live dashboard
 ```
 

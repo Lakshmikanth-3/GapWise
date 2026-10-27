@@ -43,4 +43,4 @@ manual step · NOT STARTED.
 
 - Record the demo video (1–4 minutes) following `DEMO-SCRIPT.md`; show no credentials (Nightshift Providers tab, `.env`).
 - Submit on HackOS: Track 02, repository and site links, video, `submission/GapWise.pptx`, the sponsor explanation
-  (README "Sponsor technology"), and declare ZeroGap (all commits before 22 Oct) as pre-existing.
+  (README "Sponsor technology"), and declare the reserve monitor (data collectors, reserve maths, reports, dashboard base; commits before 22 Oct) as pre-existing.

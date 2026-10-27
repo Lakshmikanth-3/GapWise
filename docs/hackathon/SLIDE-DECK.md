@@ -23,7 +23,7 @@
    Meterless: inference runtime + H-MEM memory. NVIDIA Nemotron: the model loaded in the Meterless fleet, verified from
    the runtime response. Status of each live integration: see `docs/hackathon/REQUIREMENTS-MATRIX.md`.
 
-6. **What is new vs what existed.** Existing: the ZeroGap monitor (collectors, ratio, reports, dashboard, alerts).
+6. **What is new vs what existed.** Pre-existing (declared): the reserve monitor (collectors, ratio, reports, dashboard, alerts).
    New this week: the agent, the tools, Zetaris layer, Meterless client, memory, validation, "Why is there a gap?" panel,
    API, Telegram explanation, 23 tests. Limits: live sponsor integrations need credentials (see matrix); the cause of the
    current gap is still open with Strike.

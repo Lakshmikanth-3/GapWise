@@ -1,12 +1,13 @@
 import 'dotenv/config';
 
 /**
- * ZeroGap runs the same engine against Strike's mainnet (the published result) or Strike's testnet (a second, clearly
- * labelled deployment of the same code). Select with ZEROGAP_NETWORK=mainnet|testnet; every address, RPC, explorer and the
- * Strike API base follow from it. Testnet lockers were located on-chain from real testnet deposits (docs/DECISIONS.md #46).
+ * The same engine runs against Strike's mainnet (the published result) or Strike's testnet (a second, clearly
+ * labelled deployment of the same code). Select with GAPWISE_NETWORK=mainnet|testnet (ZEROGAP_NETWORK still accepted);
+ * every address, RPC, explorer and the Strike API base follow from it. Testnet lockers were located on-chain from real
+ * testnet deposits (docs/DECISIONS.md #46).
  */
 export type Network = 'mainnet' | 'testnet';
-export const NETWORK: Network = process.env.ZEROGAP_NETWORK === 'testnet' ? 'testnet' : 'mainnet';
+export const NETWORK: Network = (process.env.GAPWISE_NETWORK ?? process.env.ZEROGAP_NETWORK) === 'testnet' ? 'testnet' : 'mainnet';
 
 const NETWORKS = {
   mainnet: {

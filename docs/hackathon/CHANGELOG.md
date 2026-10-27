@@ -1,6 +1,6 @@
 # GapWise changelog (Open Agent Hackathon 2026, 22–27 Oct 2026)
 
-Everything below was built during the hackathon window on top of the existing ZeroGap monitor. The monitor itself
+Everything below was built during the hackathon window on top of a pre-existing reserve monitor (declared in the submission). The monitor itself
 (collectors, ratio maths, reports, dashboard, Telegram alerts, My Safety) existed before and is unchanged: no formula,
 exclusion rule or collector was modified.
 
@@ -40,9 +40,9 @@ exclusion rule or collector was modified.
 - **CLI**: `npm run investigate` (`--fresh` runs a live scan first, `--report <file>`, `--publish`).
 - **Tests**: `tests/unit/gapwise.test.ts` (23 tests, offline, mocked Zetaris + Meterless).
 - **Rebrand**: GapWise in page titles, headers, landing copy, package name/description, Telegram prefix, server log.
-  Kept: repo name, URLs, `zerogap` CLI bin, `ZEROGAP_*` env vars, builder code `zerogap` (registered with Strike).
+  Kept for compatibility: internal CLI bin and env var names (GAPWISE_NETWORK / GAPWISE_URL added), and the builder code registered with Strike.
 
-## Unchanged (pre-existing ZeroGap)
+## Unchanged (pre-existing, declared)
 
 Collectors for Ethereum, Solana, Cardano, Strike API and the market-maker bot; valuation; liabilities formula; ratio
 bands; `npm run verify` and its report format/hash; flow match; safety events; alert rules; My Safety; Vercel API.
