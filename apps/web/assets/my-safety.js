@@ -20,7 +20,7 @@ function renderWallets() {
   $('wallets').innerHTML = Object.entries(WALLETS).map(([id, w]) =>
     `<button class="btn walletbtn" data-w="${id}" ${w.available() ? '' : 'disabled title="Wallet extension not detected"'}>${esc(w.label)}${w.available() ? '' : ' · not detected'}</button>`).join('');
   for (const b of document.querySelectorAll('[data-w]')) b.onclick = () => connect(b.dataset.w);
-  if (!config.builderCode) $('connect-err').innerHTML = '<div class="note red">STRIKE_BUILDER_CODE is not configured on this ZeroGap server, so Builder Connect cannot start. Add it to .env and restart.</div>';
+  if (!config.builderCode) $('connect-err').innerHTML = '<div class="note red">STRIKE_BUILDER_CODE is not configured on this GapWise server, so Builder Connect cannot start. Add it to .env and restart.</div>';
 }
 
 async function connect(id) {
@@ -71,12 +71,12 @@ async function refresh() {
 
 async function renderChecks(state, wd) {
   const rows = [];
-  // 1) Is this account in the public account list ZeroGap sums? (leaderboard lookup by account id; mainnet only)
+  // 1) Is this account in the public account list GapWise sums? (leaderboard lookup by account id; mainnet only)
   if (network === 'mainnet') {
     try {
       const r = await fetch(`${config.strikeApi}/stat/v1/stats/leaderboard?limit=1&addresses=${encodeURIComponent(session.accountId)}`).then((x) => x.json());
       const listed = (r.entries ?? []).some((e) => e.account_id === session.accountId);
-      rows.push([listed ? CHECK : WAIT, listed ? 'Your account is in the account list ZeroGap sums as liabilities' : 'Your account is not in the public leaderboard snapshot yet (new accounts appear after the next snapshot)']);
+      rows.push([listed ? CHECK : WAIT, listed ? 'Your account is in the account list GapWise sums as liabilities' : 'Your account is not in the public leaderboard snapshot yet (new accounts appear after the next snapshot)']);
     } catch { rows.push([WAIT, 'Could not check the public account list right now']); }
   } else rows.push([WAIT, 'Liability inclusion is checked on mainnet (this session is on testnet)']);
   // 2) Does the locker on your chain hold enough to pay this withdrawal?
@@ -101,7 +101,7 @@ async function withdraw() {
     btn.disabled = true;
     const q = await client.withdrawQuote({ usd_value: amount.toFixed(2), blockchain: session.chain, asset: $('asset').value });
     log(`quote ${q.withdraw_id} fee ${q.fee}`);
-    if (q.tx_cbor) throw new Error('This Cardano withdrawal needs a funding transaction signature (tx_cbor), which ZeroGap does not build. Use app.strikefinance.org for this one.');
+    if (q.tx_cbor) throw new Error('This Cardano withdrawal needs a funding transaction signature (tx_cbor), which GapWise does not build. Use app.strikefinance.org for this one.');
     $('wd-out').innerHTML = `<div class="note">Quote ${esc(q.withdraw_id)} · fee ${usd(Number(q.fee), 2)}<br>Sign this in your wallet:<br><span class="mono">${esc(q.message_to_sign)}</span></div>`;
     const wallet_signature = await session.wallet.signMessage(q.message_to_sign);
     const r = await client.withdraw({ withdraw_id: q.withdraw_id, wallet_signature });

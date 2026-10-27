@@ -11,7 +11,7 @@ import { env } from '../packages/core/config';
 const usd = (n: number | null) => (n === null ? 'n/a' : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 export async function runVerify(outDir = process.env.ZEROGAP_REPORTS_DIR ?? 'reports', log: (s: string) => void = console.log) {
-  log(`ZeroGap verify · ${env.network.toUpperCase()} · Strike API ${env.strikeApi} · RPCs: ETH ${new URL(env.ethRpc()).host}, SOL ${new URL(env.solRpc()).host}, Cardano ${env.blockfrost() ? 'Blockfrost' : 'Koios (public)'}`);
+  log(`GapWise verify · ${env.network.toUpperCase()} · Strike API ${env.strikeApi} · RPCs: ETH ${new URL(env.ethRpc()).host}, SOL ${new URL(env.solRpc()).host}, Cardano ${env.blockfrost() ? 'Blockfrost' : 'Koios (public)'}`);
   log('Scanning every Strike account (≈3 min at ≤40 req/s)…');
   const liab = await scanLiabilities();
   const snap = createSnapshotPricer();

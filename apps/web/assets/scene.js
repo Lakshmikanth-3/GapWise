@@ -1,4 +1,4 @@
-// ZeroGap 3D scene: a grainy particle "rock" (the reserves), an optional glass cube (the proof) and a rippling
+// GapWise 3D scene: a grainy particle "rock" (the reserves), an optional glass cube (the proof) and a rippling
 // particle floor. `progress` (0..1, usually scroll) drives the camera, rotation and the cube.
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 

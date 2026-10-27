@@ -1,4 +1,217 @@
-# ZeroGap
+# GapWise — Understand Every Gap. Trust Every Finding.
+
+**GapWise is an AI agent that checks whether a financial platform actually holds the money it owes its users. It
+combines 5+ separate data sources, finds mismatches, and explains WHY, with evidence for every claim.**
+
+> Independent project, not affiliated with Strike Finance. Built for the GenAI Works Open Agent Hackathon 2026
+> (Track 02, "The Agent That Can Explain Why") on top of ZeroGap, an earlier monitor by the same author (documented below).
+
+## The problem
+
+A platform that holds customer money should be able to show that what it holds equals what it owes. When the two
+numbers differ, a single ratio says *that* something is off, never *why*. Finding out means reconciling records that live
+in different places: three public ledgers, a trading API with thousands of accounts, fund-share lists, price feeds and
+an external trading account. Done by hand, each question took us days. The answer matters to **users** (is my money
+there?), to **the platform** (what do we fix?) and to **auditors** (can I trust the explanation?).
+
+## How GapWise fits Track 02
+
+| Track 02 asks for | GapWise |
+| --- | --- |
+| Investigate across multiple sources | Ethereum, Solana and Cardano ledgers (reserves), Strike API accounts, vault depositors, staking, prices, market-maker account, previous scans, locker transaction logs, past findings in memory, SQL history in Zetaris |
+| Connect findings | Tests 13 candidate causes in code, then the model can query more evidence with read-only tools; the change since the previous scan is split exactly into price, balance and liability parts |
+| Evidence-backed answers | Every cause has a status (confirmed / supported / hypothesis / unresolved / ruled out), an amount computed in code and evidence ids (`sql`, `tx`, `source`). Answers with unknown ids, invented amounts or "fully explained" claims are rejected. The unexplained amount is never forced to zero |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Sources["Data sources"]
+    E[Ethereum ledger]:::s
+    S[Solana ledger]:::s
+    C[Cardano ledger]:::s
+    A[Strike API: 3,487 accounts, vaults, staking]:::s
+    P[Price feeds]:::s
+    M[Market-maker account]:::s
+  end
+  Sources --> COL[Collectors + deterministic maths<br/>verified, hashed report]
+  COL --> Z[(Zetaris<br/>scans, reserves, liabilities,<br/>prices, flows, safety_events)]
+  COL --> AG
+  Z -- SQL --> AG[Gap Investigator<br/>hypothesis tests in code]
+  AG <--> LLM[Meterless runtime<br/>NVIDIA Nemotron<br/>read-only tool calls]
+  AG <--> H[(H-MEM memory)]
+  AG --> D[Dashboard: Why is there a gap?]
+  AG --> T[Telegram alerts]
+  AG --> API[GET /api/why]
+  classDef s fill:#1c1b2a,stroke:#8f8ae6,color:#fff
+```
+
+## Sponsor technology: where and what
+
+| Tech | Where in the code | What it does | Live status (27 Oct) |
+| --- | --- | --- | --- |
+| **Zetaris** | `packages/zetaris/client.ts`, `tables.ts`, `docs/zetaris/schema.sql` | After each scan the six tables are published; the investigator queries scan history by SQL and the model gets a guarded `runSql` tool (one SELECT, GapWise tables only, row limit, every query logged with timing) | Adapter tested offline; **not yet run against a live instance** (no credentials) |
+| **Meterless** | `packages/agent/llm.ts` | Inference runtime (OpenAI-compatible, `127.0.0.1:8088/v1`, documented headers), tool-calling loop capped at 6 steps | Client tested offline; **runtime not installed on the build machine** |
+| **Meterless H-MEM** | `packages/agent/memory.ts`, `packages/agent/hmem/` (reference implementation, Apache-2.0, unmodified) | Seeded with confirmed past findings; recalled before each investigation; each result saved | Working (used in the live run) |
+| **NVIDIA Nemotron** | model loaded in the Meterless fleet; `inference.nemotron_verified` | GapWise reports the model that actually answered (`response.model`) and only shows "Nemotron verified" when it names Nemotron | **Not yet verified** |
+| **Cursor** | — | This hackathon work was written with Claude Code (an AI coding tool), not Cursor | — |
+
+When Meterless or Zetaris is unavailable, results are labelled **rules-only**: the deterministic investigation, never a canned AI answer.
+
+## A real investigation (live mainnet scan, 27 Oct 2026 12:47 UTC, rules-only)
+
+`npm run investigate -- --fresh` (trimmed; full output has every evidence item):
+
+```json
+{
+ "investigation_id": "inv-b71f0afee52fc97f-20261027T124849",
+ "scan_id": "b71f0afee52fc97f",
+ "report_sha256": "b71f0afee52fc97f2357ad47ec7ad58f60dfff74daf7f0ee7beff6a2713158b5",
+ "gap_usd": 20865.63,
+ "verdict": "Reserves are $20,866 above what users are owed (+1.22%), status Needs review. Confirmed or supported causes account for $3; $20,862 is still unexplained. Open candidates: Funds in transit over the Cardano↔Ethereum bridge or an LP withdrawal ($10,000); Open trader profit whose losing side sits outside the lockers (−$1,933). Since the previous scan the gap changed by +$35,546; the largest part came from account equity owed to users (+$49,089 to the gap).",
+ "model": "rules-only",
+ "rules_only": true,
+ "causes": [
+  {
+   "cause": "iUSD is counted at a placeholder price",
+   "status": "unresolved",
+   "usd": -7048.01,
+   "confidence": "low",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · reserves.rows[iUSD].price_source = \"placeholder: iUSD: placeholder $1 until Strike c"
+    }
+   ]
+  },
+  {
+   "cause": "Vault accounts hold more (or less) than the sum of their depositors' shares",
+   "status": "confirmed",
+   "usd": 3.4,
+   "confidence": "high",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · result.vault_crosscheck.difference_usd = 3.4"
+    }
+   ]
+  },
+  {
+   "cause": "Isolated margin missing from liabilities",
+   "status": "rejected",
+   "usd": 0,
+   "confidence": "high",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.isolated_margin_usd = 79555.58"
+    }
+   ]
+  },
+  {
+   "cause": "Relayed deposits not counted in reserves",
+   "status": "rejected",
+   "usd": 0,
+   "confidence": "high",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "relayer 0x8f0eb9cacd6f35e2afb64f137fd1ba797fa1eca7 → Ethereum locker 0xbF4cFccd11257e568A936a7867D138f54A43cff"
+    }
+   ]
+  },
+  {
+   "cause": "Commission balances not yet exposed by Strike",
+   "status": "hypothesis",
+   "usd": null,
+   "confidence": "low",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.commission_usd = null"
+    }
+   ]
+  },
+  {
+   "cause": "Open trader profit whose losing side sits outside the lockers",
+   "status": "hypothesis",
+   "usd": -1933.22,
+   "confidence": "low",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · Σ liabilities.accounts[].unrealized_pnl = 34265.58"
+    }
+   ]
+  },
+  {
+   "cause": "Staking rewards funded from a wallet outside the lockers",
+   "status": "rejected",
+   "usd": 0,
+   "confidence": "high",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · liabilities.staking_rewards_usd = 31689.74"
+    }
+   ]
+  },
+  {
+   "cause": "Funds in transit over the Cardano↔Ethereum bridge or an LP withdrawal",
+   "status": "hypothesis",
+   "usd": 10000,
+   "confidence": "low",
+   "evidence": [
+    {
+     "type": "source",
+     "value": "report b71f0afee52fc97f · result.in_transit.tolerance_usd = 10000"
+    }
+   ]
+  }
+ ],
+ "unexplained_usd": 20862.23,
+ "change_since_previous": {
+  "delta_usd": 35545.7,
+  "remainder_usd": 0
+ },
+ "next_check": "Match the in-transit bridge transfers on Cardano and Ethereum by transaction once Strike shares them."
+}```
+
+What it found: reserves are $20.9K **above** what is owed. Commission (not yet exposed) and in-transit bridge funds
+are open candidates, staking and isolated margin are ruled out, and $20,862 stays unexplained. Since the previous
+scan the gap moved +$35,546, split exactly (remainder $0) into price moves, a $59K USDCx balance change on Cardano
+and changes in what accounts are owed.
+
+## Built during the hackathon window (22–27 Oct 2026)
+
+New: the Gap Investigator agent (`packages/agent/`), Zetaris data layer (`packages/zetaris/`), Meterless client, H-MEM
+memory, output validation, `GET /api/why` · `POST /api/why/run` · `GET /api/why/status`, the "Why is there a gap?"
+dashboard panel, the explanation in Telegram alerts, `npm run investigate`, 24 new tests and the GapWise rebrand. Full
+list: [docs/hackathon/CHANGELOG.md](docs/hackathon/CHANGELOG.md). Everything in "ZeroGap" below existed before; no
+formula or collector was changed.
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env          # RPC keys optional; METERLESS_* and ZETARIS_* enable the AI and SQL layers
+npm start                     # server + engine on http://localhost:8787 → /dashboard#why
+npm run verify                # recompute the ratio from public data and write a hashed report
+npm run investigate           # investigate the latest report (--fresh: live scan first, --publish: push tables to Zetaris)
+npm test && npm run typecheck
+```
+
+Key env vars: `METERLESS_BASE_URL`, `METERLESS_TOKEN` (read from the local runtime automatically), `METERLESS_MODEL`;
+`ZETARIS_BASE_URL`, `ZETARIS_ORG_ID`, `ZETARIS_API_KEY` (or `ZETARIS_USERNAME`/`ZETARIS_PASSWORD`), `ZETARIS_SCHEMA`;
+`GAPWISE_AUTO_INVESTIGATE`, `GAPWISE_AI=off` (force rules-only). See `.env.example`.
+
+Hackathon docs: [requirements matrix](docs/hackathon/REQUIREMENTS-MATRIX.md) · [demo script](docs/hackathon/DEMO-SCRIPT.md) · [slide outline](docs/hackathon/SLIDE-DECK.md).
+
+**Demo video:** _link to be added_
+
+---
+
+# ZeroGap (pre-hackathon foundation)
 
 [![CI](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/ci.yml) [![ZeroGap engine](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/scan.yml) [![Hourly verify](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml/badge.svg)](https://github.com/Lakshmikanth-3/ZeroGap/actions/workflows/verify.yml)
 

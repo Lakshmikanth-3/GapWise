@@ -1,5 +1,6 @@
 {
-  "name": "zerogap",
+  "name": "gapwise",
+  "description": "GapWise is an AI agent that checks whether a financial platform actually holds the money it owes its users. It combines 5+ separate data sources, finds mismatches, and explains why, with evidence for every claim.",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -20,6 +21,7 @@
     "flow-match": "tsx scripts/flow-match.ts",
     "worker": "tsx scripts/reserves-worker.ts",
     "verify": "tsx scripts/verify.ts",
+    "investigate": "tsx scripts/investigate.ts",
     "test:t6.6": "tsx scripts/t6.6-fresh-clone.ts"
   },
   "dependencies": {

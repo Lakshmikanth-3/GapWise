@@ -1,0 +1,5 @@
+{
+  "name": "@zerogap/agent",
+  "private": true,
+  "type": "module"
+}

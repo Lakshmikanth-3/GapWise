@@ -3,14 +3,15 @@ import type { Alert } from './rules';
 const ICON = { info: 'ℹ️', warn: '⚠️', critical: '🚨' } as const;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Telegram HTML message, matching the ZeroGap alert design (title, details, explorer link, time). */
-export function formatAlert(a: Alert, now = new Date(), dashboardUrl?: string): string {
+/** Telegram HTML message, matching the GapWise alert design (title, details, the investigator's explanation, explorer link, time). */
+export function formatAlert(a: Alert, now = new Date(), dashboardUrl?: string, explanation?: string): string {
   return [
     `${ICON[a.severity]} <b>${esc(a.title)}</b>`,
     ...a.lines.map(esc),
+    ...(explanation ? [`<b>Why:</b> ${esc(explanation)}`] : []),
     ...(a.link ? [`<a href="${a.link}">View on explorer ↗</a>`] : []),
     ...(dashboardUrl ? [`<a href="${dashboardUrl}">Open dashboard</a>`] : []),
-    `<i>${now.toISOString().slice(0, 16).replace('T', ' ')} UTC · ZeroGap</i>`,
+    `<i>${now.toISOString().slice(0, 16).replace('T', ' ')} UTC · GapWise</i>`,
   ].join('\n');
 }
 

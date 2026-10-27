@@ -11,7 +11,7 @@ const ICONS = {
 
 export function mountHeroViz(host) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const svg = el('svg', { viewBox: '0 0 640 600', role: 'img', 'aria-label': 'Ethereum, Solana and Cardano locker data flowing into the ZeroGap verification hub' }, host);
+  const svg = el('svg', { viewBox: '0 0 640 600', role: 'img', 'aria-label': 'Ethereum, Solana and Cardano locker data flowing into the GapWise verification hub' }, host);
   const defs = el('defs', {}, svg);
   defs.innerHTML = `
     <radialGradient id="hv-glow"><stop offset="0" stop-color="#8b7dff" stop-opacity=".55"/><stop offset="1" stop-color="#8b7dff" stop-opacity="0"/></radialGradient>

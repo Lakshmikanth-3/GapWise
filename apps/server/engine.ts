@@ -1,4 +1,4 @@
-// ZeroGap engine: collectors write, the engine computes, outputs (API, Telegram) only read results.
+// GapWise engine (the ZeroGap monitor core): collectors write, the engine computes, outputs (API, Telegram) only read results.
 // A slow or failed source never blanks the state: the last good value is kept and marked with its age.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { scanLiabilities, type LiabilityScan } from '../../packages/collectors/accounts';
@@ -17,6 +17,9 @@ import { formatAlert, sendTelegram, telegramFromEnv } from '../../packages/alert
 import { openStore, toReserveRows, type Store } from '../../packages/db/queries';
 import { buildReport, reportFileName, openNotes, type ScanReport } from '../../packages/core/report';
 import { env, NET, NETWORK } from '../../packages/core/config';
+import { investigate, latestInvestigation, saveInvestigation, telegramSummary, type Investigation } from '../../packages/agent/investigate';
+import { depsFromEnv, integrationStatus } from '../../packages/agent/deps';
+import { buildTables, publishScan } from '../../packages/zetaris/tables';
 
 const DATA = process.env.ZEROGAP_DATA_DIR ?? 'data';
 const RESERVES_MS = Number(process.env.RESERVES_INTERVAL_MS ?? 60_000);
@@ -24,6 +27,10 @@ const SCAN_MS = Number(process.env.SCAN_INTERVAL_MS ?? 5 * 60_000);
 const FLOWS_MS = Number(process.env.FLOWS_INTERVAL_MS ?? 30 * 60_000);
 const SAFETY_MS = Number(process.env.SAFETY_INTERVAL_MS ?? 60_000);
 const FLOW_DAYS = Number(process.env.FLOW_DAYS ?? 7);
+/** Automatic investigation: only for scans that are not Balanced, at most once per interval unless the gap moved. */
+const AUTO_INVESTIGATE = process.env.GAPWISE_AUTO_INVESTIGATE !== 'off';
+const AUTO_MIN_MS = Number(process.env.GAPWISE_AUTO_MIN_INTERVAL_MS ?? 60 * 60_000);
+const AUTO_GAP_MOVE_USD = Number(process.env.GAPWISE_AUTO_GAP_MOVE_USD ?? 5_000);
 const EVENT_LOOKBACK_BLOCKS = BigInt(process.env.EVENT_LOOKBACK_BLOCKS ?? 5000);
 
 type Timed<T> = { value: T; ts: number; error?: string; errorAt?: number };
@@ -67,12 +74,58 @@ export class Engine {
   private flowsRaw: Flow[] = [];
   /** Full verify-format report of the latest scan (large: every account row). */
   lastReport?: ScanReport;
+  /** Reports seen by this engine (scan id → report), for the investigator's comparisons. */
+  private reports = new Map<string, ScanReport>();
+  investigation?: Investigation;
+  investigating?: { since: number; trigger: string };
+  zetarisPublish?: { at: number; scan_id?: string; rows?: number; error?: string };
 
   async init() {
     await mkdir(DATA, { recursive: true });
     this.store = await openStore();
     try { Object.assign(this.state, JSON.parse(await readFile(`${DATA}/state.json`, 'utf8')), { startedAt: Date.now() }); } catch { /* first run */ }
     try { this.sent = new Set(JSON.parse(await readFile(`${DATA}/alerts-sent.json`, 'utf8'))); } catch { /* first run */ }
+    this.investigation = await latestInvestigation();
+  }
+
+  /** Runs the Gap Investigator on the latest report, one at a time. Rules-only (labelled) when Meterless is not online. */
+  async investigateNow(trigger: 'manual' | 'auto'): Promise<Investigation> {
+    if (!this.lastReport) throw new Error('no scan yet');
+    if (this.investigating) throw new Error('an investigation is already running');
+    this.investigating = { since: Date.now(), trigger };
+    try {
+      const deps = await depsFromEnv();
+      for (const [k, v] of this.reports) deps.reports!.set(k, v);
+      if (deps.meterless && (await deps.meterless.status()).state !== 'online') deps.llm = undefined;
+      const inv = await investigate(this.lastReport, deps, trigger);
+      await saveInvestigation(inv);
+      this.investigation = inv;
+      this.feed({ ts: Date.now(), kind: 'Gap Investigator', text: `${inv.rules_only ? 'Rules-only' : inv.model} · unexplained ${Math.round(inv.unexplained_usd).toLocaleString('en-US')} USD · ${inv.verdict.slice(0, 160)}`, link: '/dashboard#why' });
+      return inv;
+    } finally { this.investigating = undefined; }
+  }
+
+  async whyStatus() {
+    return { investigating: this.investigating ?? null, integrations: await integrationStatus(await depsFromEnv()), zetaris_publish: this.zetarisPublish ?? null };
+  }
+
+  /** After each scan: publish its tables to Zetaris (when configured), then investigate if it is not Balanced. */
+  private async afterScan(r: ScanReport) {
+    this.reports.set(r.content_sha256.slice(0, 16), r);
+    if (this.reports.size > 20) this.reports.delete(this.reports.keys().next().value!);
+    const deps = await depsFromEnv();
+    if (deps.zetaris) {
+      try {
+        const p = await publishScan(deps.zetaris, buildTables(r, { flows: this.state.flows?.value.rows.filter(x => x.comparable) }));
+        this.zetarisPublish = { at: Date.now(), scan_id: r.content_sha256.slice(0, 16), rows: p.rows };
+        delete this.state.errors.zetaris;
+      } catch (e) { this.zetarisPublish = { at: Date.now(), error: (e as Error).message.slice(0, 200) }; this.state.errors.zetaris = { at: Date.now(), message: this.zetarisPublish.error! }; }
+    }
+    const last = this.investigation;
+    const due = !last || Date.now() - Date.parse(last.created_at) > AUTO_MIN_MS || Math.abs((r.result.gap_usd ?? 0) - last.gap_usd) > AUTO_GAP_MOVE_USD;
+    if (AUTO_INVESTIGATE && r.result.status !== 'Balanced' && due && !this.investigating) {
+      await this.investigateNow('auto').then(() => delete this.state.errors.investigator, e => { this.state.errors.investigator = { at: Date.now(), message: (e as Error).message.slice(0, 200) }; });
+    }
   }
 
   private async persist() {
@@ -129,6 +182,7 @@ export class Engine {
       ts: new Date().toISOString(), reserves_usd: r.pricedUsd, liabilities_usd: b.exposedUsd, ratio: published.ratio ?? null, status: published.status ?? null,
       explained_by: published.explainedBy ?? null, confidence: conf.label, unpriced: JSON.stringify(r.unpriced.map(u => ({ chain: u.chain, asset: u.asset, amount: u.amount }))),
     }]);
+    await this.afterScan(this.lastReport).catch(e => console.error('[afterScan]', (e as Error).message));
     await this.alertJob();
   });
 
@@ -232,7 +286,7 @@ export class Engine {
     for (const a of dedupe(this.buildAlerts(), this.sent)) {
       const rec: State['alerts'][number] = { ...a, ts: Date.now(), sent: false };
       if (tg) {
-        try { await sendTelegram(tg, formatAlert(a, new Date(), tg.dashboardUrl)); rec.sent = true; }
+        try { await sendTelegram(tg, formatAlert(a, new Date(), tg.dashboardUrl, a.rule === 'ratio_drift' && this.investigation ? telegramSummary(this.investigation) : undefined)); rec.sent = true; }
         catch (e) { rec.error = `not sent: ${(e as Error).message}`; } // kept as one record; re-sent by the held-back loop next cycle
       } else rec.error = NETWORK === 'mainnet' ? 'not sent: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set' : 'testnet: shown on the dashboard only'; // recorded once, shown on the dashboard
       if (rec.error && this.state.alerts.some(x => x.rule === a.rule && x.key === a.key)) continue;

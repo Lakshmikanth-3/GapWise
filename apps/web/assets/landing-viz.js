@@ -9,7 +9,7 @@ const usd = (n) => (n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `$${(n /
 const statusText = (a) => (a.status === 'Needs review' ? 'Reconciling' : a.status);
 
 export function mountStack(host) {
-  const svg = el('svg', { viewBox: '0 0 720 420', role: 'img', 'aria-label': 'Live ZeroGap layers: accounts, liabilities, reserves and ratio, fed by Ethereum, Solana and Cardano' }, host);
+  const svg = el('svg', { viewBox: '0 0 720 420', role: 'img', 'aria-label': 'Live GapWise layers: accounts, liabilities, reserves and ratio, fed by Ethereum, Solana and Cardano' }, host);
   el('defs', {}, svg).innerHTML = `
     <linearGradient id="st-face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2458" stop-opacity=".9"/><stop offset="1" stop-color="#0f0d22" stop-opacity=".9"/></linearGradient>
     <radialGradient id="st-glow"><stop offset="0" stop-color="#8b7dff" stop-opacity=".55"/><stop offset="1" stop-color="#8b7dff" stop-opacity="0"/></radialGradient>`;

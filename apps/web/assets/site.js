@@ -10,7 +10,7 @@ const FOOTER = [
 ];
 
 export function brand() {
-  return `<a class="brand" href="/" aria-label="ZeroGap home">${MARK}<b style="font-size: 24px">ZeroGap</b></a>`;
+  return `<a class="brand" href="/" aria-label="GapWise home">${MARK}<b style="font-size: 24px">GapWise</b></a>`;
 }
 
 /** Fills <footer class="site"></footer>. */
@@ -23,7 +23,7 @@ export function renderFooter(el = document.querySelector('footer.site')) {
       <p style="margin: 0; font-size: 13px; color: var(--dim)">Not affiliated with Strike Finance.</p></div>
     ${FOOTER.map(([h, links]) => `<div><h4>${h}</h4><ul>${links.map(([t, href]) => `<li><a href="${href}"${ext(href)}>${t}</a></li>`).join('')}</ul></div>`).join('')}
   </div>
-  <div class="copy">ZeroGap ${new Date().getFullYear()} · open source under the MIT licence</div>
+  <div class="copy">GapWise ${new Date().getFullYear()} · open source under the MIT licence</div>
   <div class="word" aria-hidden="true">ZEROGAP</div>`;
 }
 

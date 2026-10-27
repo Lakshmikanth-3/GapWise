@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Safety · ZeroGap</title>
+<title>My Safety · GapWise</title>
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/" aria-label="ZeroGap home"><img src="/assets/logo.png" alt="" width="28" height="32" style="object-fit:contain"><b style="font-size: 22px">ZeroGap</b></a>
+  <a class="brand" href="/" aria-label="GapWise home"><img src="/assets/logo.png" alt="" width="28" height="32" style="object-fit:contain"><b style="font-size: 22px">GapWise</b></a>
   <nav class="navlinks" aria-label="Main"><a href="/dashboard">Dashboard</a><a class="on" href="/me" aria-current="page">My Safety</a></nav>
   <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
     <div class="seg" role="group" aria-label="Network"><button id="net-testnet" class="on">Testnet</button><button id="net-mainnet">Mainnet</button></div>
@@ -31,14 +31,14 @@
 <main style="max-width: 1040px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 24px">
   <div style="display: flex; flex-direction: column; gap: 8px">
     <h1 id="title" style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -.02em">Check your funds on Strike</h1>
-    <p id="subtitle" style="margin: 0; font-size: 17px; color: var(--mute)">Connect the wallet you use on Strike. ZeroGap uses Strike Builder Connect: you sign a message in your own wallet, and the API key it creates stays in this browser tab only.</p>
+    <p id="subtitle" style="margin: 0; font-size: 17px; color: var(--mute)">Connect the wallet you use on Strike. GapWise uses Strike Builder Connect: you sign a message in your own wallet, and the API key it creates stays in this browser tab only.</p>
   </div>
 
   <section id="connect" class="card">
     <h2 style="margin: 0; font-size: 20px; font-weight: 600">Connect with Strike Builder Connect</h2>
     <div class="grid-auto" style="--min: 240px; gap: 12px" id="wallets"></div>
     <div id="connect-err"></div>
-    <p class="label" style="margin: 0; line-height: 1.5">What you sign: Strike's own connect message for the ZeroGap builder code. It creates an API wallet that can only send withdrawals to <b>your</b> connected wallet, and every withdrawal still needs your wallet signature. ZeroGap never sees a key that can move your funds.</p>
+    <p class="label" style="margin: 0; line-height: 1.5">What you sign: Strike's own connect message for the ZeroGap builder code. It creates an API wallet that can only send withdrawals to <b>your</b> connected wallet, and every withdrawal still needs your wallet signature. GapWise never sees a key that can move your funds.</p>
   </section>
 
   <div id="account" style="display: none; flex-direction: column; gap: 24px">
@@ -61,7 +61,7 @@
         <button class="btn" id="wd-btn" type="button" style="min-height: 48px; padding: 0 22px; font-size: 16px">Get quote and sign</button>
       </div>
       <div id="wd-out"></div>
-      <p class="label" style="margin: 0; line-height: 1.5">ZeroGap never holds your keys. Strike sends funds only to your connected wallet, after you sign in your wallet. Minimum $5; $1 Strike withdrawal fee applies.</p>
+      <p class="label" style="margin: 0; line-height: 1.5">GapWise never holds your keys. Strike sends funds only to your connected wallet, after you sign in your wallet. Minimum $5; $1 Strike withdrawal fee applies.</p>
     </section>
   </div>
 

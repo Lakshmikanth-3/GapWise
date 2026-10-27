@@ -1,4 +1,4 @@
-// Shared helpers for ZeroGap pages. Every number shown comes from /api/state with its own timestamp.
+// Shared helpers for GapWise pages. Every number shown comes from /api/state with its own timestamp.
 export const $ = (id) => document.getElementById(id);
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const usd = (n, d = 0) => (n === undefined || n === null || Number.isNaN(n) ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`);

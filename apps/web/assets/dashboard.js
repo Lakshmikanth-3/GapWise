@@ -3,7 +3,7 @@ import { $, esc, usd, num, pct, short, compactUsd, ago, hhmm, statusClass, statu
 $('logo').innerHTML = LOGO;
 const activeNet = $(NETWORK === 'testnet' ? 'net-testnet' : 'net-mainnet');
 activeNet.style.background = 'var(--chip)'; activeNet.style.color = 'var(--ink)'; activeNet.setAttribute('aria-current', 'page');
-if (NETWORK === 'testnet') { $('testnet-banner').style.display = ''; document.title = 'ZeroGap dashboard · TESTNET'; }
+if (NETWORK === 'testnet') { $('testnet-banner').style.display = ''; document.title = 'GapWise dashboard · TESTNET'; }
 for (const a of document.querySelectorAll('a[href^="/api/report"]')) a.href = withNet(a.getAttribute('href'));
 let explorerBases = { ethereum: 'https://etherscan.io', solanaSuffix: '', cardano: 'https://cardanoscan.io' };
 const CHAIN_NAMES = { ethereum: 'Ethereum', solana: 'Solana', cardano: 'Cardano', hedge: 'Strike market-maker bot (external exchanges)' };
@@ -86,7 +86,7 @@ function renderReserves(s) {
       ${addrs.map((a) => `<a class="mono" style="font-size:13px" href="${explorer(c, a)}" target="_blank" rel="noopener">${esc(short(a))} ↗</a>`).join('')}</div>`;
   }).join('');
   $('unpriced').innerHTML = res.unpriced.length
-    ? `<div class="note"><b>Unpriced reserves (not in the ratio):</b> ${res.unpriced.map((u) => `${esc(u.chain)} ${esc(u.asset.length > 14 ? short(u.asset) : u.asset)} ${num(u.amount)}`).join(' · ')}. Strike's official price API for these assets is not public yet; ZeroGap does not guess prices.</div>` : '';
+    ? `<div class="note"><b>Unpriced reserves (not in the ratio):</b> ${res.unpriced.map((u) => `${esc(u.chain)} ${esc(u.asset.length > 14 ? short(u.asset) : u.asset)} ${num(u.amount)}`).join(' · ')}. Strike's official price API for these assets is not public yet; GapWise does not guess prices.</div>` : '';
 }
 
 function renderLiabilities(s) {

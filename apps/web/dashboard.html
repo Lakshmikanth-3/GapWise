@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZeroGap dashboard · Strike Finance reserves</title>
+<title>GapWise dashboard · Understand every gap</title>
 <link rel="icon" href="/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -15,13 +15,42 @@
   .scale { position: relative; height: 14px; border-radius: 7px; background: linear-gradient(90deg, #4A1D1D 0%, #3A3320 30%, #10261E 46%, #10261E 54%, #3A3320 70%, #4A1D1D 100%); }
   .scale i { position: absolute; top: -6px; width: 4px; height: 26px; border-radius: 2px; background: var(--ink); transform: translateX(-2px); }
   details summary { cursor: pointer; color: var(--mute); font-size: 14px; }
+  #why h3 { margin: 8px 0 0; font-size: 17px; font-weight: 600; }
+  .why-empty { margin: 0; color: var(--ink2); font-size: 16px; line-height: 1.5; }
+  .why-meta { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 13px; color: var(--dim); }
+  .why-chip { display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .why-verdict { margin: 0; font-size: clamp(18px, 2.2vw, 22px); line-height: 1.45; color: var(--ink); max-width: 80ch; }
+  .why-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .why-big { font-size: clamp(22px, 4vw, 30px); font-weight: 700; }
+  .why-causes { display: flex; flex-direction: column; gap: 8px; }
+  .why-cause { border: 1px solid var(--line2); border-radius: 12px; padding: 12px 14px; background: rgba(255,255,255,.015); }
+  .why-cause summary { list-style: none; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
+  .why-cause summary::-webkit-details-marker { display: none; }
+  .why-cause-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .why-cause-name { flex: 1 1 260px; font-size: 15px; font-weight: 500; }
+  .why-usd { font-size: 15px; font-weight: 600; min-width: 100px; text-align: right; }
+  .why-bar { height: 8px; border-radius: 4px; background: var(--chip); overflow: hidden; }
+  .why-bar i { display: block; height: 100%; border-radius: 4px; }
+  .why-sub { font-size: 13px; color: var(--dim); margin: 0; }
+  .why-body { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; font-size: 14px; line-height: 1.55; color: var(--ink2); }
+  .why-body p { margin: 0; }
+  .why-ai { border-left: 3px solid var(--green); padding-left: 10px; color: var(--ink); }
+  .why-calc { font-size: 13px; color: var(--mute); overflow-wrap: anywhere; }
+  .why-evlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink2); }
+  .why-val { font-size: 12px; color: var(--dim); overflow-wrap: anywhere; }
+  .why-ev { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--chip); color: var(--ink2); }
+  .why-ev.sql { color: var(--blue); } .why-ev.tx { color: var(--amber); }
+  .why-comp { display: grid; grid-template-columns: minmax(140px, 1.2fr) 2fr minmax(90px, auto); gap: 12px; align-items: center; font-size: 14px; }
+  .why-comp .mono { text-align: right; }
+  .why-next { padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--line2); font-size: 14px; color: var(--ink2); }
+  @media (max-width: 560px) { .why-comp { grid-template-columns: 1fr auto; } .why-comp .why-bar { grid-column: 1 / -1; grid-row: 2; } .why-usd { min-width: 0; } }
 </style>
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/" aria-label="ZeroGap home"><span id="logo"></span><b style="font-size: 22px">ZeroGap</b></a>
+  <a class="brand" href="/" aria-label="GapWise home"><span id="logo"></span><b style="font-size: 22px">GapWise</b></a>
   <nav class="sections" aria-label="Sections">
-    <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#method">How we compute</a><a href="#verify">Verify</a>
+    <a class="on" href="#overview">Overview</a><a href="#reserves">Reserves</a><a href="#liabilities">Liabilities</a><a href="#safety">Safety</a><a href="#why">Why the gap</a><a href="#method">How we compute</a><a href="#verify">Verify</a>
   </nav>
   <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
     <div class="seg" role="group" aria-label="Network" style="display: inline-flex; border: 1px solid var(--line2); border-radius: 999px; overflow: hidden">
@@ -37,9 +66,9 @@
   <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
     <div class="zg-banner"><canvas id="banner3d" aria-hidden="true"></canvas>
     <div class="copy">
-      <span class="label" style="letter-spacing: .14em; text-transform: uppercase; font-size: 12px">Independent monitor · built on Strike Finance</span>
-      <h1 style="margin: 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.04">Every dollar on Strike, proven on chain</h1>
-      <p style="margin: 0; font-family: var(--mono); font-size: 14px; line-height: 1.7; color: var(--ink2); max-width: 52ch">ZeroGap reads Strike's lockers on Ethereum, Solana and Cardano and checks them against every account, live.</p>
+      <span class="label" style="letter-spacing: .14em; text-transform: uppercase; font-size: 12px">GapWise · independent, not affiliated with Strike Finance</span>
+      <h1 style="margin: 0; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.04">Does Strike hold what it owes? And if not, why?</h1>
+      <p style="margin: 0; font-family: var(--mono); font-size: 14px; line-height: 1.7; color: var(--ink2); max-width: 52ch">GapWise reads Strike's lockers on Ethereum, Solana and Cardano and checks them against every account, live.</p>
       <div style="display: flex; gap: 10px; flex-wrap: wrap"><a class="btn" href="#reserves">Explore reserves</a><a class="btn ghost" href="#verify">Verify it yourself</a></div>
     </div></div>
     <div class="grid-auto" style="--min: 260px; gap: 32px">
@@ -90,6 +119,20 @@
     </div>
   </section>
 
+  <section id="why" class="card big" aria-labelledby="why-title">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span class="label" style="letter-spacing: .12em; text-transform: uppercase; font-size: 12px">Gap Investigator · AI agent, read-only</span>
+        <h2 id="why-title" style="margin: 0; font-size: 26px; font-weight: 600">Why is there a gap?</h2>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+        <span class="label" id="why-state" aria-live="polite"></span>
+        <button class="btn" id="why-run" disabled>Investigate gap</button>
+      </div>
+    </div>
+    <div id="why-body" aria-live="polite"><p class="why-empty">Loading the latest investigation…</p></div>
+  </section>
+
   <section class="card">
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px"><h2 style="margin: 0; font-size: 22px; font-weight: 600">Ratio history</h2><span class="src" id="hist-src"></span></div>
     <div id="history" style="min-height: 120px"></div>
@@ -138,7 +181,7 @@
       <a class="btn ghost" id="dl-report-link" href="/api/report?download" style="min-height: 44px">Download this scan (JSON)</a>
     </div>
     <p style="margin: 0; font-size: 15px; color: var(--mute); line-height: 1.5">Re-run the whole check from scratch with only public data. Your report lists every address, raw balance, price and account value, so you can diff it against this scan.</p>
-    <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd ZeroGap
+    <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd GapWise
 npm install
 npm run verify        # or: npx zerogap verify</pre>
     <div class="src" id="scan-proof">Scan provenance loading…</div>
@@ -164,5 +207,6 @@ npm run verify        # or: npx zerogap verify</pre>
 </script>
 
 <script type="module" src="/assets/dashboard.js"></script>
+<script type="module" src="/assets/why.js"></script>
 </body>
 </html>
