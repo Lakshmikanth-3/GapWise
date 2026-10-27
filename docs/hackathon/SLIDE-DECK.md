@@ -25,7 +25,7 @@
 
 6. **What is new vs what existed.** Existing: the ZeroGap monitor (collectors, ratio, reports, dashboard, alerts).
    New this week: the agent, the tools, Zetaris layer, Meterless client, memory, validation, "Why is there a gap?" panel,
-   API, Telegram explanation, 24 tests. Limits: live sponsor integrations need credentials (see matrix); the cause of the
+   API, Telegram explanation, 23 tests. Limits: live sponsor integrations need credentials (see matrix); the cause of the
    current gap is still open with Strike.
 
 The actual deck file has not been created; build it from this outline.

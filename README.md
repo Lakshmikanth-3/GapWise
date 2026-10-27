@@ -186,7 +186,7 @@ and changes in what accounts are owed.
 
 New: the Gap Investigator agent (`packages/agent/`), Zetaris data layer (`packages/zetaris/`), Meterless client, H-MEM
 memory, output validation, `GET /api/why` · `POST /api/why/run` · `GET /api/why/status`, the "Why is there a gap?"
-dashboard panel, the explanation in Telegram alerts, `npm run investigate`, 24 new tests and the GapWise rebrand. Full
+dashboard panel, the explanation in Telegram alerts, `npm run investigate`, 23 new tests and the GapWise rebrand. Full
 list: [docs/hackathon/CHANGELOG.md](docs/hackathon/CHANGELOG.md). Everything in "ZeroGap" below existed before; no
 formula or collector was changed.
 

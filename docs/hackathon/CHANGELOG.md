@@ -38,7 +38,7 @@ exclusion rule or collector was modified.
   sources, memory, tool calls, warnings, rules-only badge, model name, integration status, loading/empty/error/retry.
 - **Telegram**: alerts are prefixed "GapWise" and ratio alerts carry the investigator's one-paragraph explanation.
 - **CLI**: `npm run investigate` (`--fresh` runs a live scan first, `--report <file>`, `--publish`).
-- **Tests**: `tests/unit/gapwise.test.ts` (24 tests, offline, mocked Zetaris + Meterless).
+- **Tests**: `tests/unit/gapwise.test.ts` (23 tests, offline, mocked Zetaris + Meterless).
 - **Rebrand**: GapWise in page titles, headers, landing copy, package name/description, Telegram prefix, server log.
   Kept: repo name, URLs, `zerogap` CLI bin, `ZEROGAP_*` env vars, builder code `zerogap` (registered with Strike).
 
