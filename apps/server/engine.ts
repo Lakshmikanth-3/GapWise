@@ -19,7 +19,8 @@ import { buildReport, reportFileName, openNotes, type ScanReport } from '../../p
 import { env, NET, NETWORK } from '../../packages/core/config';
 import { investigate, latestInvestigation, saveInvestigation, telegramSummary, type Investigation } from '../../packages/agent/investigate';
 import { depsFromEnv, integrationStatus } from '../../packages/agent/deps';
-import { buildTables, publishScan } from '../../packages/zetaris/tables';
+import { buildTables } from '../../packages/zetaris/tables';
+import { publishScan, storeUrl } from '../../packages/zetaris/store';
 
 const DATA = process.env.ZEROGAP_DATA_DIR ?? 'data';
 const RESERVES_MS = Number(process.env.RESERVES_INTERVAL_MS ?? 60_000);
@@ -114,9 +115,10 @@ export class Engine {
     this.reports.set(r.content_sha256.slice(0, 16), r);
     if (this.reports.size > 20) this.reports.delete(this.reports.keys().next().value!);
     const deps = await depsFromEnv();
-    if (deps.zetaris) {
+    const store = storeUrl();
+    if (deps.zetaris && store) {
       try {
-        const p = await publishScan(deps.zetaris, buildTables(r, { flows: this.state.flows?.value.rows.filter(x => x.comparable) }));
+        const p = await publishScan(store, buildTables(r, { flows: this.state.flows?.value.rows.filter(x => x.comparable) }));
         this.zetarisPublish = { at: Date.now(), scan_id: r.content_sha256.slice(0, 16), rows: p.rows };
         delete this.state.errors.zetaris;
       } catch (e) { this.zetarisPublish = { at: Date.now(), error: (e as Error).message.slice(0, 200) }; this.state.errors.zetaris = { at: Date.now(), message: this.zetarisPublish.error! }; }

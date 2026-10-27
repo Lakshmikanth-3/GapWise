@@ -6,7 +6,8 @@ import { readFile } from 'node:fs/promises';
 import type { ScanReport } from '../packages/core/report';
 import { depsFromEnv, integrationStatus } from '../packages/agent/deps';
 import { investigate, saveInvestigation } from '../packages/agent/investigate';
-import { buildTables, publishScan } from '../packages/zetaris/tables';
+import { buildTables } from '../packages/zetaris/tables';
+import { publishScan, storeUrl } from '../packages/zetaris/store';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -27,8 +28,9 @@ async function main() {
     if (!report) throw new Error('no report in reports/; run npm run verify first or pass --fresh');
   }
   if (args.includes('--publish')) {
-    if (!deps.zetaris) throw new Error('--publish needs ZETARIS_* configuration');
-    console.error('Zetaris publish:', await publishScan(deps.zetaris, buildTables(report)));
+    const store = storeUrl();
+    if (!store) throw new Error('--publish needs GAPWISE_STORE_URL (the Postgres registered in Zetaris; npm run zetaris:setup)');
+    console.error('Zetaris publish (gapwise datasource):', await publishScan(store, buildTables(report)));
   }
   const inv = await investigate(report, deps, 'cli');
   const file = await saveInvestigation(inv);

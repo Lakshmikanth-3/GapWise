@@ -1,7 +1,6 @@
 // The six GapWise tables, built deterministically from a verify-format scan report (plus flow checks and safety
 // events when the engine has them). Same rows whether they go to Zetaris or stay local.
 import type { ScanReport } from '../core/report';
-import type { ZetarisClient } from './client';
 
 export type Row = Record<string, string | number | boolean | null>;
 export type GapwiseTables = { scans: Row[]; reserves: Row[]; liabilities: Row[]; prices: Row[]; flows: Row[]; safety_events: Row[] };
@@ -55,15 +54,4 @@ export function insertStatements(schema: string, table: keyof GapwiseTables, row
   return out;
 }
 
-/**
- * Publish one scan to Zetaris. Requires the six tables to exist in ZETARIS_SCHEMA (docs/zetaris/schema.sql) on a
- * writable data source registered in Zetaris. Flow and safety rows are keyed by day/tx, so the caller passes only new ones.
- */
-export async function publishScan(z: ZetarisClient, t: GapwiseTables): Promise<{ statements: number; rows: number }> {
-  let statements = 0, rows = 0;
-  for (const table of Object.keys(t) as (keyof GapwiseTables)[]) {
-    for (const sql of insertStatements(z.cfg.schema, table, t[table])) { await z.exec(sql); statements++; }
-    rows += t[table].length;
-  }
-  return { statements, rows };
-}
+// Publishing lives in ./store.ts: rows go to the Postgres datasource that Zetaris federates as `gapwise`.

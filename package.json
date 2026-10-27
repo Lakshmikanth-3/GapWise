@@ -22,6 +22,7 @@
     "worker": "tsx scripts/reserves-worker.ts",
     "verify": "tsx scripts/verify.ts",
     "investigate": "tsx scripts/investigate.ts",
+    "zetaris:setup": "tsx scripts/zetaris-setup.ts",
     "test:t6.6": "tsx scripts/t6.6-fresh-clone.ts"
   },
   "dependencies": {

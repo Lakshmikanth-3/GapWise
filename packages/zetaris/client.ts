@@ -109,7 +109,8 @@ export function normalizeRows(body: unknown): Record<string, unknown>[] {
     const v = body[k];
     if (Array.isArray(v)) {
       if (v.every(obj)) return v as Record<string, unknown>[];
-      const cols = (body.columns ?? body.columnNames ?? body.header) as unknown;
+      // Zetaris 2.4.3 run-query returns { headers, data: [[…]], total, timeUsed }
+      const cols = (body.columns ?? body.columnNames ?? body.header ?? body.headers) as unknown;
       if (Array.isArray(cols) && v.every(Array.isArray)) {
         const names = cols.map(c => (obj(c) ? String(c.name ?? c.label ?? '') : String(c)));
         return (v as unknown[][]).map(r => Object.fromEntries(names.map((n, i) => [n, r[i]])));
