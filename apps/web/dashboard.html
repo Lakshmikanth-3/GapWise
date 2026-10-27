@@ -181,9 +181,9 @@
       <a class="btn ghost" id="dl-report-link" href="/api/report?download" style="min-height: 44px">Download this scan (JSON)</a>
     </div>
     <p style="margin: 0; font-size: 15px; color: var(--mute); line-height: 1.5">Re-run the whole check from scratch with only public data. Your report lists every address, raw balance, price and account value, so you can diff it against this scan.</p>
-    <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/ZeroGap && cd GapWise
+    <pre class="mono" style="margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink2); font-size: 14px; overflow-x: auto">git clone https://github.com/Lakshmikanth-3/GapWise && cd GapWise
 npm install
-npm run verify        # or: npx zerogap verify</pre>
+npm run verify</pre>
     <div class="src" id="scan-proof">Scan provenance loading…</div>
   </section>
 
@@ -195,7 +195,7 @@ npm run verify        # or: npx zerogap verify</pre>
       <code>/price/v2/premiumIndex</code> index price, fiat-redeemable stablecoins at their 1:1 peg (labelled), anything else listed as unpriced — never guessed.<br>
       Liabilities: every account from <code>/stat/v1/stats/leaderboard</code> read live via <code>/v2/account</code> (equity = wallet_balance + unrealized_pnl; margin_balance is not used because it leaves out isolated margin) and <code>/v2/balances</code> (stakingRewardBalance, added), sub-accounts included; vault accounts excluded and each depositor's vault share added from <code>/v2/vault/{id}/depositors</code>; ≤ 40 requests/s.<br>
       Status: Balanced within ±0.01%, Drift up to ±1%, beyond that "Reconciling" (being reconciled with Strike, never published as insolvency). Gaps explained by components Strike does not expose yet show as Incomplete.
-      Read-only, open source (MIT): <a id="gh" href="https://github.com/Lakshmikanth-3/ZeroGap">GitHub</a>.
+      Read-only, open source (MIT): <a id="gh" href="https://github.com/Lakshmikanth-3/GapWise">GitHub</a>.
     </p>
   </section>
 </main>

@@ -100,7 +100,7 @@ function renderLiabilities(s) {
   rows.push(`<tr><td style="font-weight:700;border-top-color:var(--line2)">Total withdrawable</td><td style="border-top-color:var(--line2)"></td><td class="r" style="font-weight:700;border-top-color:var(--line2)">${num(l.exposedUsd, 0)}</td></tr>`);
   $('lia-rows').innerHTML = rows.join('');
   $('pending-notes').innerHTML = (s.ratio?.openNotes ?? []).filter((n) => /market-maker/.test(n)).map((n) => `<div class="note">${esc(n)}</div>`).join('')
-    + `<a class="src" href="https://github.com/Lakshmikanth-3/ZeroGap#founder-confirmed-rules-strike-finance-2123-oct-2026" target="_blank" rel="noopener">Methodology, assumptions and open items on GitHub ↗</a>`;
+    + `<a class="src" href="https://github.com/Lakshmikanth-3/GapWise#founder-confirmed-rules-strike-finance-2123-oct-2026" target="_blank" rel="noopener">Methodology, assumptions and open items on GitHub ↗</a>`;
 }
 
 function renderFlows(s) {
@@ -139,7 +139,7 @@ function renderSafety(s) {
 function renderProof(s) {
   const r = s.report;
   if (!r) { $('scan-proof').textContent = 'No published scan report yet.'; return; }
-  const gh = config?.github ?? 'https://github.com/Lakshmikanth-3/ZeroGap';
+  const gh = config?.github ?? 'https://github.com/Lakshmikanth-3/GapWise';
   $('scan-proof').innerHTML = `Scan ${esc(r.generatedAt)} · produced by code <a href="${gh}/commit/${esc(r.commit)}" target="_blank" rel="noopener">${esc(r.commit.slice(0, 7))}</a> · report sha256 <span title="${esc(r.sha256)}">${esc(r.sha256.slice(0, 16))}…</span> · <a href="${withNet('/api/report')}" target="_blank" rel="noopener">view JSON</a> · history: <a href="${gh}/tree/reports" target="_blank" rel="noopener">reports branch</a>`;
 }
 

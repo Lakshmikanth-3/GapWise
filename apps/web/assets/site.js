@@ -1,5 +1,5 @@
 // Shared site chrome: the pill navigation and the footer, identical on every page.
-const REPO = 'https://github.com/Lakshmikanth-3/ZeroGap';
+const REPO = 'https://github.com/Lakshmikanth-3/GapWise';
 export const MARK = '<img src="/assets/logo.png" alt="" width="30" height="34" style="object-fit:contain">';
 
 const FOOTER = [
@@ -24,7 +24,7 @@ export function renderFooter(el = document.querySelector('footer.site')) {
     ${FOOTER.map(([h, links]) => `<div><h4>${h}</h4><ul>${links.map(([t, href]) => `<li><a href="${href}"${ext(href)}>${t}</a></li>`).join('')}</ul></div>`).join('')}
   </div>
   <div class="copy">GapWise ${new Date().getFullYear()} · open source under the MIT licence</div>
-  <div class="word" aria-hidden="true">ZEROGAP</div>`;
+  <div class="word" aria-hidden="true">GAPWISE</div>`;
 }
 
 renderFooter();
